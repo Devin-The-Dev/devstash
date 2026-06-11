@@ -426,6 +426,11 @@ graph LR
 - [Linear](https://linear.app) — Developer-grade UI density
 - [Raycast](https://raycast.com) — Speed-first interaction model
 
+### Screenshots
+- Refer to the screenshots below as a base for the dashboard UI. It does not have to be exact. Use it as a reference:
+- @context/screenshots/dashboard-ui-main.png
+- @context/screenshots/dashboard-ui-popup.png
+
 ### Interaction Details
 
 - Smooth transitions on all state changes
