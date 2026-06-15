@@ -1,18 +1,5 @@
 import Link from "next/link";
-import {
-  Box,
-  LayoutDashboard,
-  Star,
-  Clock,
-  Code,
-  Sparkles,
-  Terminal,
-  StickyNote,
-  Link as LinkIcon,
-  File,
-  Image as ImageIcon,
-  type LucideIcon,
-} from "lucide-react";
+import { Box, LayoutDashboard, Star, Clock } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -29,16 +16,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { collections, currentUser, itemTypes } from "@/lib/mock-data";
-
-const itemTypeIcons: Record<string, LucideIcon> = {
-  Code,
-  Sparkles,
-  Terminal,
-  StickyNote,
-  Link: LinkIcon,
-  File,
-  Image: ImageIcon,
-};
+import { itemTypeIconMap } from "@/lib/item-type-icons";
 
 const proItemTypeIds = new Set(["type_file", "type_image"]);
 
@@ -94,7 +72,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {itemTypes.map((type) => {
-                const Icon = itemTypeIcons[type.icon] ?? Code;
+                const Icon = itemTypeIconMap[type.icon];
                 const slug = `${type.name.toLowerCase()}s`;
                 const isPro = proItemTypeIds.has(type.id) && !currentUser.isPro;
                 return (
