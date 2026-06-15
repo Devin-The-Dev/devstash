@@ -1,24 +1,18 @@
 # Current Feature
 
-Dashboard UI Phase 3 of 3 — Main content area (stats cards, recent collections, pinned items, recent items).
+<!-- Feature name and short description -->
 
 ## Status
 
-Completed
+<!-- Not Started | In Progress | Completed -->
 
 ## Goals
 
-- Main area to the right of the sidebar
-- Recent collections section
-- Pinned Items section
-- 10 Recent items section
-- 4 stats cards at the top: number of items, collections, favorite items, favorite collections (not shown in screenshot)
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Use `src/lib/mock-data.js` directly for now until a database is implemented
-- Reference screenshot: `context/screenshots/dashboard-ui-main.png`
-- See `context/features/dashboard-phase-3-spec.md` for full spec and references
+<!-- Any extra notes -->
 
 ## History
 
