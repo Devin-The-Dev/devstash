@@ -1,28 +1,18 @@
 # Current Feature
 
-Neon PostgreSQL + Prisma 7 database setup with initial schema and migrations.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started | In Progress | Completed -->
 
 ## Goals
 
-- Configure Prisma 7 with Neon PostgreSQL (serverless) as the datasource
-- Write the initial `schema.prisma` based on the data model in `project-overview.md`
-- Include all NextAuth tables: `Account`, `Session`, `VerificationToken`
-- Add appropriate indexes and cascade deletes
-- Create the first migration via `prisma migrate dev` (never `db push`)
-- Seed system `ItemType` records (Snippet, Prompt, Command, Note, Link, File, Image)
-- Verify `prisma generate` and a successful dev-server DB connection
+<!-- Goals and requirements -->
 
 ## Notes
 
-- DATABASE_URL points to the **development** Neon branch; a separate production branch will be used in prod
-- Always use `prisma migrate dev` locally → `prisma migrate deploy` in prod — never `prisma db push`
-- Prisma 7 has breaking changes from v6; read the upgrade guide before touching any Prisma APIs
-- The rough-draft schema is in `context/project-overview.md` — treat it as a starting point, not gospel
-- System `ItemType` records are global (no `userId`); user-created types are pro-only and scoped to a user
+<!-- Any extra notes -->
 
 ## History
 
