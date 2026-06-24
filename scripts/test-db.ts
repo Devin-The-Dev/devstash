@@ -31,6 +31,35 @@ async function main() {
   console.log(`  Users:       ${userCount}`);
   console.log(`  Items:       ${itemCount}`);
   console.log(`  Collections: ${collectionCount}`);
+
+  const demoUser = await prisma.user.findUnique({
+    where: { email: "demo@devstash.io" },
+    include: {
+      collections: {
+        orderBy: { name: "asc" },
+        include: {
+          items: {
+            include: { item: { include: { type: true } } },
+          },
+        },
+      },
+    },
+  });
+
+  if (!demoUser) {
+    console.log("\n✗ Demo user not found. Run `npm run db:seed` first.");
+    return;
+  }
+
+  console.log(`\nDemo user: ${demoUser.name} <${demoUser.email}>\n`);
+  for (const collection of demoUser.collections) {
+    console.log(`${collection.name} (${collection.items.length} items)`);
+    for (const { item } of collection.items) {
+      const detail = item.url ?? item.content?.split("\n")[0] ?? "";
+      console.log(`  [${item.type.name.padEnd(8)}] ${item.title.padEnd(36)} ${detail}`);
+    }
+    console.log("");
+  }
 }
 
 main()
