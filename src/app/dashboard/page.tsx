@@ -2,17 +2,16 @@ import { StatsCards } from "@/components/dashboard/StatsCards";
 import { CollectionsSection } from "@/components/dashboard/CollectionsSection";
 import { PinnedItemsSection } from "@/components/dashboard/PinnedItemsSection";
 import { RecentItemsSection } from "@/components/dashboard/RecentItemsSection";
-import { collections, currentUser, items } from "@/lib/mock-data";
+import { currentUser, items } from "@/lib/mock-data";
+import { getCollectionsWithStats } from "@/lib/db/collections";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const recentCollections = await getCollectionsWithStats();
+
   const totalItems = items.length;
-  const totalCollections = collections.length;
+  const totalCollections = recentCollections.length;
   const favoriteItems = items.filter((item) => item.isFavorite).length;
-  const favoriteCollections = collections.filter((collection) => collection.isFavorite).length;
-
-  const recentCollections = [...collections].sort(
-    (a, b) => new Date(b.lastUsedAt).getTime() - new Date(a.lastUsedAt).getTime()
-  );
+  const favoriteCollections = recentCollections.filter((collection) => collection.isFavorite).length;
 
   const pinnedItems = items.filter((item) => item.isPinned);
 

@@ -1,5 +1,5 @@
-export function formatRelativeTime(dateString: string): string {
-  const diffMs = Date.now() - new Date(dateString).getTime();
+export function formatRelativeTime(date: Date | string): string {
+  const diffMs = Date.now() - new Date(date).getTime();
   const minutes = Math.floor(diffMs / (60 * 1000));
 
   if (minutes < 1) return "just now";
