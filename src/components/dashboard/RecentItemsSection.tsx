@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ItemCard } from "@/components/dashboard/ItemCard";
-import type { Item } from "@/lib/mock-data";
+import type { ItemSummary } from "@/lib/db/items";
 
-export function RecentItemsSection({ items }: { items: Item[] }) {
+export function RecentItemsSection({ items }: { items: ItemSummary[] }) {
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
