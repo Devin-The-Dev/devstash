@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { CollectionCard } from "@/components/dashboard/CollectionCard";
-import type { Collection } from "@/lib/mock-data";
+import type { CollectionSummary } from "@/lib/db/collections";
 
-export function CollectionsSection({ collections }: { collections: Collection[] }) {
+export function CollectionsSection({ collections }: { collections: CollectionSummary[] }) {
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Collections</h2>
+        <div>
+          <h2 className="text-lg font-semibold">Collections</h2>
+          <p className="text-sm text-muted-foreground">Color-coded by dominant item type</p>
+        </div>
         <Link href="/collections" className="text-sm text-muted-foreground hover:underline">
           View all
         </Link>
