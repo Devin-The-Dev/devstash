@@ -27,6 +27,60 @@ const SYSTEM_ITEM_TYPES = [
 const DEMO_USER_ID = "demo-user";
 const DEMO_USER_EMAIL = "demo@devstash.io";
 
+// Stable tag IDs, same idempotency convention as item types.
+const TAGS = [
+  { id: "tag-react", name: "react" },
+  { id: "tag-hooks", name: "hooks" },
+  { id: "tag-context", name: "context" },
+  { id: "tag-gpt-4", name: "gpt-4" },
+  { id: "tag-reviews", name: "reviews" },
+  { id: "tag-docs", name: "docs" },
+  { id: "tag-refactoring", name: "refactoring" },
+  { id: "tag-docker", name: "docker" },
+  { id: "tag-postgres", name: "postgres" },
+  { id: "tag-deploy", name: "deploy" },
+  { id: "tag-ci", name: "ci" },
+  { id: "tag-prisma", name: "prisma" },
+  { id: "tag-git", name: "git" },
+  { id: "tag-rebase", name: "rebase" },
+  { id: "tag-cleanup", name: "cleanup" },
+  { id: "tag-networking", name: "networking" },
+  { id: "tag-debugging", name: "debugging" },
+  { id: "tag-npm", name: "npm" },
+  { id: "tag-dependencies", name: "dependencies" },
+  { id: "tag-css", name: "css" },
+  { id: "tag-components", name: "components" },
+  { id: "tag-ui", name: "ui" },
+  { id: "tag-accessibility", name: "accessibility" },
+  { id: "tag-icons", name: "icons" },
+] as const;
+
+const ITEM_TAGS: Record<string, string[]> = {
+  "item-use-debounce": ["tag-react", "tag-hooks"],
+  "item-use-local-storage": ["tag-react", "tag-hooks"],
+  "item-compound-component": ["tag-react", "tag-context"],
+  "item-prompt-code-review": ["tag-gpt-4", "tag-reviews"],
+  "item-prompt-doc-gen": ["tag-gpt-4", "tag-docs"],
+  "item-prompt-refactor": ["tag-gpt-4", "tag-refactoring"],
+  "item-docker-compose": ["tag-docker", "tag-postgres"],
+  "item-deploy-script": ["tag-deploy", "tag-ci"],
+  "item-link-docker-docs": ["tag-docker", "tag-docs"],
+  "item-link-prisma-deploy": ["tag-prisma", "tag-deploy"],
+  "item-cmd-git-rebase": ["tag-git", "tag-rebase"],
+  "item-cmd-docker-cleanup": ["tag-docker", "tag-cleanup"],
+  "item-cmd-find-port": ["tag-networking", "tag-debugging"],
+  "item-cmd-npm-outdated": ["tag-npm", "tag-dependencies"],
+  "item-link-tailwind-docs": ["tag-css", "tag-docs"],
+  "item-link-shadcn": ["tag-components", "tag-ui"],
+  "item-link-radix-themes": ["tag-components", "tag-accessibility"],
+  "item-link-lucide": ["tag-icons", "tag-ui"],
+};
+
+// Computed relative to seed run time so "recently used" stays plausible on reseed.
+function hoursAgo(hours: number): Date {
+  return new Date(Date.now() - hours * 60 * 60 * 1000);
+}
+
 async function seedDemoUser() {
   const hashedPassword = await bcrypt.hash("12345678", 12);
 
@@ -77,6 +131,14 @@ async function seedItem(
   });
 }
 
+async function seedItemTag(itemId: string, tagId: string) {
+  await prisma.itemTag.upsert({
+    where: { itemId_tagId: { itemId, tagId } },
+    update: {},
+    create: { itemId, tagId },
+  });
+}
+
 async function main() {
   for (const type of SYSTEM_ITEM_TYPES) {
     await prisma.itemType.upsert({
@@ -87,6 +149,14 @@ async function main() {
   }
 
   const user = await seedDemoUser();
+
+  for (const tag of TAGS) {
+    await prisma.tag.upsert({
+      where: { id: tag.id },
+      update: { name: tag.name },
+      create: { id: tag.id, userId: user.id, name: tag.name },
+    });
+  }
 
   const collections = {
     reactPatterns: await seedCollection(
@@ -133,6 +203,8 @@ async function main() {
       description: "Debounce a fast-changing value by a delay",
       contentType: "TEXT",
       language: "typescript",
+      isPinned: true,
+      lastUsedAt: hoursAgo(2),
       content: `import { useEffect, useState } from "react";
 
 export function useDebounce<T>(value: T, delayMs: number): T {
@@ -158,6 +230,7 @@ export function useDebounce<T>(value: T, delayMs: number): T {
       description: "Sync state with localStorage",
       contentType: "TEXT",
       language: "typescript",
+      lastUsedAt: hoursAgo(26),
       content: `import { useEffect, useState } from "react";
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
@@ -186,6 +259,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       description: "Share implicit state between related components",
       contentType: "TEXT",
       language: "typescript",
+      lastUsedAt: hoursAgo(50),
       content: `import { createContext, useContext, useState, type ReactNode } from "react";
 
 interface TabsContextValue {
@@ -221,6 +295,8 @@ export function useTabsContext() {
       title: "Code review prompt",
       description: "Ask the model to review a diff for bugs and clarity",
       contentType: "TEXT",
+      isPinned: true,
+      lastUsedAt: hoursAgo(72),
       content: `Review the following diff for correctness bugs, edge cases, and readability issues. For each finding, cite the file and line, explain why it's a problem, and suggest a fix. Do not comment on style preferences that don't affect correctness or maintainability.
 
 Diff:
@@ -237,6 +313,7 @@ Diff:
       title: "Documentation generation prompt",
       description: "Generate API documentation from source code",
       contentType: "TEXT",
+      lastUsedAt: hoursAgo(96),
       content: `Generate concise API documentation for the following module. For each exported function, include: a one-line summary, parameter types and descriptions, return type, and one usage example. Skip internal/unexported members.
 
 Source:
@@ -253,6 +330,7 @@ Source:
       title: "Refactoring assistance prompt",
       description: "Get refactor suggestions without changing behavior",
       contentType: "TEXT",
+      lastUsedAt: hoursAgo(130),
       content: `Suggest refactors for the following code that improve readability and reduce duplication without changing its observable behavior. List each suggestion separately with a brief rationale, then provide the refactored code.
 
 Code:
@@ -272,6 +350,7 @@ Code:
       description: "Local dev stack with Postgres and the app container",
       contentType: "TEXT",
       language: "yaml",
+      lastUsedAt: hoursAgo(8),
       content: `services:
   db:
     image: postgres:16
@@ -308,6 +387,7 @@ volumes:
       description: "Build, migrate, and restart the production service",
       contentType: "TEXT",
       language: "bash",
+      lastUsedAt: hoursAgo(20),
       content:
         "npm run build && npx prisma migrate deploy && pm2 restart app",
     },
@@ -317,6 +397,7 @@ volumes:
     title: "Docker Compose documentation",
     description: "Official Docker Compose file reference",
     contentType: "URL",
+    lastUsedAt: hoursAgo(160),
     url: "https://docs.docker.com/compose/compose-file/",
   });
 
@@ -324,6 +405,7 @@ volumes:
     title: "Prisma deployment guide",
     description: "Deploying database changes with Prisma Migrate",
     contentType: "URL",
+    lastUsedAt: hoursAgo(200),
     url: "https://www.prisma.io/docs/orm/prisma-migrate/workflows/deploying-to-production",
   });
 
@@ -339,6 +421,7 @@ volumes:
       description: "Squash/reword/reorder recent commits",
       contentType: "TEXT",
       language: "bash",
+      lastUsedAt: hoursAgo(4),
       content: "git rebase -i HEAD~5",
     },
   );
@@ -353,6 +436,7 @@ volumes:
       description: "Remove stopped containers, unused networks, and dangling images",
       contentType: "TEXT",
       language: "bash",
+      lastUsedAt: hoursAgo(14),
       content: "docker system prune -af --volumes",
     },
   );
@@ -367,6 +451,7 @@ volumes:
       description: "Find and optionally kill the process bound to a TCP port",
       contentType: "TEXT",
       language: "bash",
+      lastUsedAt: hoursAgo(34),
       content: "lsof -i :3000",
     },
   );
@@ -381,6 +466,7 @@ volumes:
       description: "Check which dependencies have newer versions available",
       contentType: "TEXT",
       language: "bash",
+      lastUsedAt: hoursAgo(60),
       content: "npm outdated",
     },
   );
@@ -396,6 +482,7 @@ volumes:
       title: "Tailwind CSS documentation",
       description: "Official Tailwind CSS reference",
       contentType: "URL",
+      lastUsedAt: hoursAgo(300),
       url: "https://tailwindcss.com/docs",
     },
   );
@@ -409,6 +496,7 @@ volumes:
       title: "shadcn/ui",
       description: "Composable component library built on Radix and Tailwind",
       contentType: "URL",
+      lastUsedAt: hoursAgo(340),
       url: "https://ui.shadcn.com",
     },
   );
@@ -422,6 +510,7 @@ volumes:
       title: "Radix UI primitives",
       description: "Unstyled, accessible component primitives for React",
       contentType: "URL",
+      lastUsedAt: hoursAgo(380),
       url: "https://www.radix-ui.com/primitives",
     },
   );
@@ -435,13 +524,21 @@ volumes:
       title: "Lucide icon library",
       description: "Open-source icon set used throughout the app",
       contentType: "URL",
+      lastUsedAt: hoursAgo(420),
       url: "https://lucide.dev/icons/",
     },
   );
 
+  for (const [itemId, tagIds] of Object.entries(ITEM_TAGS)) {
+    for (const tagId of tagIds) {
+      await seedItemTag(itemId, tagId);
+    }
+  }
+
   console.log(`Seeded ${SYSTEM_ITEM_TYPES.length} system item types.`);
   console.log(`Seeded demo user ${user.email}.`);
   console.log(`Seeded ${Object.keys(collections).length} collections with items.`);
+  console.log(`Seeded ${TAGS.length} tags across ${Object.keys(ITEM_TAGS).length} items.`);
 }
 
 main()
