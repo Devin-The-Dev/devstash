@@ -1,7 +1,7 @@
 import { ItemCard } from "@/components/dashboard/ItemCard";
-import type { Item } from "@/lib/mock-data";
+import type { ItemSummary } from "@/lib/db/items";
 
-export function PinnedItemsSection({ items }: { items: Item[] }) {
+export function PinnedItemsSection({ items }: { items: ItemSummary[] }) {
   if (items.length === 0) return null;
 
   return (

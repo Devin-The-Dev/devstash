@@ -2,22 +2,16 @@ import { StatsCards } from "@/components/dashboard/StatsCards";
 import { CollectionsSection } from "@/components/dashboard/CollectionsSection";
 import { PinnedItemsSection } from "@/components/dashboard/PinnedItemsSection";
 import { RecentItemsSection } from "@/components/dashboard/RecentItemsSection";
-import { currentUser, items } from "@/lib/mock-data";
+import { currentUser } from "@/lib/mock-data";
 import { getCollectionsWithStats } from "@/lib/db/collections";
+import { getDashboardItems } from "@/lib/db/items";
 
 export default async function DashboardPage() {
-  const recentCollections = await getCollectionsWithStats();
+  const [recentCollections, { totalItems, favoriteItems, pinnedItems, recentItems }] =
+    await Promise.all([getCollectionsWithStats(), getDashboardItems()]);
 
-  const totalItems = items.length;
   const totalCollections = recentCollections.length;
-  const favoriteItems = items.filter((item) => item.isFavorite).length;
   const favoriteCollections = recentCollections.filter((collection) => collection.isFavorite).length;
-
-  const pinnedItems = items.filter((item) => item.isPinned);
-
-  const recentItems = [...items]
-    .sort((a, b) => new Date(b.lastUsedAt).getTime() - new Date(a.lastUsedAt).getTime())
-    .slice(0, 10);
 
   return (
     <main className="flex-1 space-y-8 p-6">
