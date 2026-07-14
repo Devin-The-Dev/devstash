@@ -1,24 +1,18 @@
 # Current Feature
 
-Seed Data — populate the dev database with a demo user, sample collections, and sample items per `context/features/seed-spec.md`.
+<!-- Feature name and short description -->
 
 ## Status
 
-Completed
+<!-- Not Started | In Progress | Completed -->
 
 ## Goals
 
-- Demo user: demo@devstash.io / Demo User, password "12345678" hashed with bcryptjs (12 rounds), isPro false, emailVerified set to now.
-- Keep the 7 existing system ItemTypes (already seeded, idempotent upsert).
-- 5 collections owned by the demo user: React Patterns, AI Workflows, DevOps, Terminal Commands, Design Resources.
-- Items per spec: 3 snippets (React Patterns), 3 prompts (AI Workflows), 1 snippet + 1 command + 2 links (DevOps), 4 commands (Terminal Commands), 4 links (Design Resources) — links use real URLs.
-- Seed must remain idempotent (safe to re-run via `npm run db:seed`).
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec source: `context/features/seed-spec.md`.
-- Existing system ItemType names are capitalized ("Snippet", "Prompt", ...) matching `src/lib/mock-data.ts` and `src/lib/item-type-icons.tsx` — keeping that casing instead of the lowercase names shown in the spec table for consistency with the rest of the codebase.
-- `bcryptjs` is not yet a dependency; needs to be added.
+<!-- Any extra notes -->
 
 ## History
 
@@ -31,3 +25,4 @@ Completed
 - **2026-06-16** — Started Neon PostgreSQL + Prisma 7 setup. Feature spec documented in `context/features/database-spec.md`.
 - **2026-06-16** — Implemented Neon + Prisma 7 on `feature/database-setup`. Installed `prisma@7`, `@prisma/client`, `@prisma/adapter-neon`, `@neondatabase/serverless`, `dotenv`, `tsx`. Key Prisma 7 breaking changes applied: `provider = "prisma-client"` with mandatory `output` in the generator, `url`/`directUrl` removed from `datasource` block (now live in `prisma.config.ts` and the adapter). Wrote `prisma.config.ts` (dotenv loads `.env.local` + `.env`, falls back `DIRECT_URL → DATABASE_URL` for CLI). Wrote `src/lib/prisma.ts` singleton with `PrismaNeon` adapter and hot-reload guard. Wrote `prisma/seed.ts` for 7 system ItemTypes with stable IDs. Created `.env.example`. Added `db:generate`, `db:migrate`, `db:deploy`, `db:seed`, `db:studio` scripts. Ran `prisma migrate dev --name init` — migration `20260616201744_init` created and applied to Neon dev branch. Ran `prisma db seed` — all 7 system ItemTypes inserted. Verified `prisma generate`, `tsc --noEmit`, and `eslint` all pass clean.
 - **2026-06-24** — Rewrote `prisma/seed.ts` on `feature/seed-data` per `context/features/seed-spec.md`. Added `bcryptjs` + `@types/bcryptjs`. Seed now upserts: the 7 system ItemTypes (unchanged), a demo user (`demo@devstash.io`, password hashed with bcryptjs at 12 rounds, `isPro: false`), 5 collections (React Patterns, AI Workflows, DevOps, Terminal Commands, Design Resources), and 18 items across them (3 snippets, 3 prompts, 1 snippet + 1 command + 2 links, 4 commands, 4 links — links use real URLs) joined via `ItemCollection`. All records use stable IDs so the seed is idempotent. Verified row counts after a fresh run and a re-run (1 user, 5 collections, 18 items, 18 item-collection links, 7 item types — no duplicates), plus `tsc --noEmit`, `npm run lint`, and `npm run build` all pass clean.
+- **2026-07-14** — Dashboard Collections completed on `feature/dashboard-collections` per `context/features/dashboard-collections-spec.md`. Added `src/lib/db/collections.ts` with `getCollectionsWithStats()`, querying the demo user's collections via Prisma and computing item count, most-recent activity, and per-type usage counts to derive a dominant item type. `src/app/dashboard/page.tsx` is now an async server component that fetches real collections directly (items/pinned/recent sections remain on mock data, unchanged). `CollectionCard` now shows a colored left border driven by the dominant item type (matching the existing `ItemCard` convention) plus icons for every type present in the collection; `CollectionsSection` gained a "Color-coded by dominant item type" subtitle. `formatRelativeTime` now accepts `Date | string` for real DB timestamps. Verified with `tsc --noEmit`, `npm run lint`, `npm run build`, and a headless-Chrome screenshot of `/dashboard` confirming the 5 real DB collections render with correct names, item counts, border colors, and type icons.
