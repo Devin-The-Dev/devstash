@@ -1,21 +1,4 @@
-// Mock data for the dashboard UI. Replace with real DB queries once Prisma models are wired up.
-
-export type ItemType = {
-  id: string;
-  name: string;
-  icon: string; // Lucide icon name
-  color: string; // hex
-  isSystem: boolean;
-};
-
-export type Collection = {
-  id: string;
-  name: string;
-  description: string;
-  isFavorite: boolean;
-  itemCount: number;
-  lastUsedAt: string;
-};
+// No auth is wired up yet, so the dashboard is hardcoded to a single demo user.
 
 export type User = {
   id: string;
@@ -30,64 +13,3 @@ export const currentUser: User = {
   email: "alex@example.com",
   isPro: false,
 };
-
-export const itemTypes: ItemType[] = [
-  { id: "type_snippet", name: "Snippet", icon: "Code", color: "#3b82f6", isSystem: true },
-  { id: "type_prompt", name: "Prompt", icon: "Sparkles", color: "#8b5cf6", isSystem: true },
-  { id: "type_command", name: "Command", icon: "Terminal", color: "#f97316", isSystem: true },
-  { id: "type_note", name: "Note", icon: "StickyNote", color: "#fde047", isSystem: true },
-  { id: "type_link", name: "Link", icon: "Link", color: "#10b981", isSystem: true },
-  { id: "type_file", name: "File", icon: "File", color: "#6b7280", isSystem: true },
-  { id: "type_image", name: "Image", icon: "Image", color: "#ec4899", isSystem: true },
-];
-
-export const collections: Collection[] = [
-  {
-    id: "col_react_patterns",
-    name: "React Patterns",
-    description: "Hooks, composition, and rendering tricks I reach for...",
-    isFavorite: true,
-    itemCount: 24,
-    lastUsedAt: "2026-06-13T08:00:00.000Z", // 2h ago
-  },
-  {
-    id: "col_ai_prompt_library",
-    name: "AI Prompt Library",
-    description: "System prompts and templates for GPT and...",
-    isFavorite: false,
-    itemCount: 47,
-    lastUsedAt: "2026-06-08T10:00:00.000Z", // 5d ago
-  },
-  {
-    id: "col_docker_kubernetes",
-    name: "Docker & Kubernetes",
-    description: "Commands and compose files I always forget.",
-    isFavorite: false,
-    itemCount: 18,
-    lastUsedAt: "2026-06-10T10:00:00.000Z", // 3d ago
-  },
-  {
-    id: "col_reading_list",
-    name: "Reading List",
-    description: "Articles, RFCs, and blog posts to revisit.",
-    isFavorite: false,
-    itemCount: 56,
-    lastUsedAt: "2026-06-08T10:00:00.000Z", // 5d ago
-  },
-  {
-    id: "col_architecture_notes",
-    name: "Architecture Notes",
-    description: "System design write-ups and decision records.",
-    isFavorite: true,
-    itemCount: 12,
-    lastUsedAt: "2026-06-06T10:00:00.000Z", // 1w ago
-  },
-  {
-    id: "col_postgres_toolkit",
-    name: "Postgres Toolkit",
-    description: "Query patterns, migrations, and perf tricks.",
-    isFavorite: false,
-    itemCount: 31,
-    lastUsedAt: "2026-05-30T10:00:00.000Z", // 2w ago
-  },
-];

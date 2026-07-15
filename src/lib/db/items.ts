@@ -29,6 +29,22 @@ export type DashboardItems = {
   recentItems: ItemSummary[];
 };
 
+// Sidebar order doesn't match DB insertion order reliably, so pin it explicitly.
+const SYSTEM_TYPE_ORDER = ["Snippet", "Prompt", "Command", "Note", "Link", "File", "Image"];
+
+export async function getSystemItemTypes(): Promise<ItemTypeSummary[]> {
+  const types = await prisma.itemType.findMany({ where: { isSystem: true } });
+
+  return types
+    .map((type) => ({
+      id: type.id,
+      name: type.name,
+      icon: type.icon,
+      color: type.color,
+    }))
+    .sort((a, b) => SYSTEM_TYPE_ORDER.indexOf(a.name) - SYSTEM_TYPE_ORDER.indexOf(b.name));
+}
+
 export async function getDashboardItems(recentLimit = 10): Promise<DashboardItems> {
   const items = await prisma.item.findMany({
     where: { userId: DEMO_USER_ID },
