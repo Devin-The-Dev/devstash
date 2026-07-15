@@ -1,18 +1,23 @@
 # Current Feature
 
-<!-- Feature name and short description -->
+Stats & Sidebar — replace mock-data-driven stats and sidebar with real database data.
 
 ## Status
 
-<!-- Not Started | In Progress | Completed -->
+Completed
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Display stats pertaining to database data, keeping the current design/layout
+- Display item types in sidebar with their icons, linking to /items/[typename]
+- Add "View all collections" link under the collections list that goes to /collections
+- Keep the star icons for favorite collections but for recents, each collection should show a colored circle based on the most-used item type in that collection
+- Create `src/lib/db/items.ts` and add the database functions (reference `src/lib/db/collections.ts` if needed)
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/features/stats-sidebar-spec.md`
+- `src/lib/db/items.ts` already exists from the prior dashboard-items feature (`getDashboardItems()`) — this feature's item-type functions likely extend that file rather than creating it fresh.
 
 ## History
 
@@ -27,3 +32,4 @@
 - **2026-06-24** — Rewrote `prisma/seed.ts` on `feature/seed-data` per `context/features/seed-spec.md`. Added `bcryptjs` + `@types/bcryptjs`. Seed now upserts: the 7 system ItemTypes (unchanged), a demo user (`demo@devstash.io`, password hashed with bcryptjs at 12 rounds, `isPro: false`), 5 collections (React Patterns, AI Workflows, DevOps, Terminal Commands, Design Resources), and 18 items across them (3 snippets, 3 prompts, 1 snippet + 1 command + 2 links, 4 commands, 4 links — links use real URLs) joined via `ItemCollection`. All records use stable IDs so the seed is idempotent. Verified row counts after a fresh run and a re-run (1 user, 5 collections, 18 items, 18 item-collection links, 7 item types — no duplicates), plus `tsc --noEmit`, `npm run lint`, and `npm run build` all pass clean.
 - **2026-07-14** — Dashboard Collections completed on `feature/dashboard-collections` per `context/features/dashboard-collections-spec.md`. Added `src/lib/db/collections.ts` with `getCollectionsWithStats()`, querying the demo user's collections via Prisma and computing item count, most-recent activity, and per-type usage counts to derive a dominant item type. `src/app/dashboard/page.tsx` is now an async server component that fetches real collections directly (items/pinned/recent sections remain on mock data, unchanged). `CollectionCard` now shows a colored left border driven by the dominant item type (matching the existing `ItemCard` convention) plus icons for every type present in the collection; `CollectionsSection` gained a "Color-coded by dominant item type" subtitle. `formatRelativeTime` now accepts `Date | string` for real DB timestamps. Verified with `tsc --noEmit`, `npm run lint`, `npm run build`, and a headless-Chrome screenshot of `/dashboard` confirming the 5 real DB collections render with correct names, item counts, border colors, and type icons.
 - **2026-07-14** — Dashboard Items completed on `feature/dashboard-items` per `context/features/dashboard-items-spec.md`. Added `src/lib/db/items.ts` with `getDashboardItems()`, a single Prisma query (items + type + tags + collections) that derives total/favorite counts, pinned items, and the 10 most recently used items sorted by `lastUsedAt ?? updatedAt`. `src/app/dashboard/page.tsx` now fetches collections and items in parallel and no longer imports mock items. `ItemCard`/`PinnedItemsSection`/`RecentItemsSection` now take the real `ItemSummary` shape instead of mock `Item`. Removed the now-unused `Item`/`ContentType` types and `items` array from `src/lib/mock-data.ts`. Enriched `prisma/seed.ts` with 24 tags (2 per item via a new `ItemTag` upsert helper), staggered `lastUsedAt` timestamps per item, and 2 pinned items (`useDebounce hook`, `Code review prompt`) — the prior seed left every item with null `lastUsedAt`, no tags, and `isPinned: false`, which would have made the pinned section and tag badges impossible to verify. Verified with `tsc --noEmit`, `npm run lint`, `npm run build`, and a headless-Chrome screenshot of `/dashboard` confirming 18 real items, correct pinned/recent sections, tag badges, and type-colored borders/icons.
+- **2026-07-14** — Stats & Sidebar completed on `feature/stats-sidebar` per `context/features/stats-sidebar-spec.md`. Dashboard stats already read from the DB as of the prior two features, so no change was needed there. Added `getSystemItemTypes()` to `src/lib/db/items.ts` (returns `isSystem` item types, sorted to a fixed display order since DB row order isn't guaranteed). `AppSidebar` is now an async server component that fetches real item types (`getSystemItemTypes()`) and collections (`getCollectionsWithStats()`, already used by the dashboard page) instead of `mock-data`. Item Types section links to `/items/[typename]` with real icons/colors; PRO badge check now keys off type name (`File`/`Image`) since DB ids differ from the old mock ids. Recent collections show a colored circle (from `dominantColor`) instead of the clock icon; a "View all collections" link to `/collections` was added under the Recent list. Removed the now-unused `itemTypes`/`Collection` mock exports from `src/lib/mock-data.ts`, keeping only `currentUser`. Verified with `tsc --noEmit`, `npm run lint`, `npm run build`, and headless-Chrome screenshots of `/dashboard` confirming real item types/icons, an empty Favorites section (no DB collections are favorited yet, which is correct), colored-circle recents, and the new "View all collections" link.
