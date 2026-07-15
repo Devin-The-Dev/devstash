@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Box, LayoutDashboard, Star, Clock } from "lucide-react";
+import { ArrowRight, Box, LayoutDashboard, Star, Clock } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -15,10 +15,12 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { collections, currentUser, itemTypes } from "@/lib/mock-data";
+import { currentUser } from "@/lib/mock-data";
 import { itemTypeIconMap } from "@/lib/item-type-icons";
+import { getCollectionsWithStats } from "@/lib/db/collections";
+import { getSystemItemTypes } from "@/lib/db/items";
 
-const proItemTypeIds = new Set(["type_file", "type_image"]);
+const proItemTypeNames = new Set(["File", "Image"]);
 
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -26,13 +28,15 @@ const navItems = [
   { title: "Recent", url: "/recent", icon: Clock },
 ];
 
-const favoriteCollections = collections.filter((c) => c.isFavorite);
-const recentCollections = collections
-  .filter((c) => !c.isFavorite)
-  .sort((a, b) => new Date(b.lastUsedAt).getTime() - new Date(a.lastUsedAt).getTime())
-  .slice(0, 4);
+export async function AppSidebar() {
+  const [itemTypes, collections] = await Promise.all([
+    getSystemItemTypes(),
+    getCollectionsWithStats(),
+  ]);
 
-export function AppSidebar() {
+  const favoriteCollections = collections.filter((c) => c.isFavorite);
+  const recentCollections = collections.filter((c) => !c.isFavorite).slice(0, 4);
+
   const initials = currentUser.name
     .split(" ")
     .map((part) => part[0])
@@ -74,7 +78,7 @@ export function AppSidebar() {
               {itemTypes.map((type) => {
                 const Icon = itemTypeIconMap[type.icon];
                 const slug = `${type.name.toLowerCase()}s`;
-                const isPro = proItemTypeIds.has(type.id) && !currentUser.isPro;
+                const isPro = proItemTypeNames.has(type.name) && !currentUser.isPro;
                 return (
                   <SidebarMenuItem key={type.id}>
                     <SidebarMenuButton
@@ -125,11 +129,23 @@ export function AppSidebar() {
                     tooltip={collection.name}
                     render={<Link href={`/collections/${collection.id}`} />}
                   >
-                    <Clock />
+                    <span
+                      className="size-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: collection.dominantColor ?? "#6b7280" }}
+                    />
                     <span>{collection.name}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip="View all collections"
+                  render={<Link href="/collections" />}
+                >
+                  <ArrowRight />
+                  <span className="text-muted-foreground">View all collections</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
