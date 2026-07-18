@@ -1,22 +1,18 @@
-# Current Feature: Check Pro Badge on Sidebar
+# Current Feature
 
-Check if the PRO badge on the Files/Images item types in the sidebar meets the requirements below. Only make changes if a requirement is not already met.
+<!-- Feature name and short description -->
 
 ## Status
 
-Completed
+<!-- Not Started | In Progress | Completed -->
 
 ## Goals
 
-- Uses the ShadCN UI `Badge` component
-- Badge is clean and subtle
-- "PRO" text is all uppercase
+<!-- Goals and requirements -->
 
 ## Notes
 
-- This is a verification/audit task, not a new feature — only touch the code if one of the goals above is not already satisfied.
-- Relevant code: `AppSidebar` (Item Types section, PRO badge on Files/Images) per the 2026-07-14 stats-sidebar history entry.
-- Audit result: all 3 goals already met in `src/components/dashboard/AppSidebar.tsx` (`<Badge variant="secondary" className="ml-auto">PRO</Badge>`) — no code changes required.
+<!-- Any extra notes -->
 
 ## History
 
@@ -32,3 +28,4 @@ Completed
 - **2026-07-14** — Dashboard Collections completed on `feature/dashboard-collections` per `context/features/dashboard-collections-spec.md`. Added `src/lib/db/collections.ts` with `getCollectionsWithStats()`, querying the demo user's collections via Prisma and computing item count, most-recent activity, and per-type usage counts to derive a dominant item type. `src/app/dashboard/page.tsx` is now an async server component that fetches real collections directly (items/pinned/recent sections remain on mock data, unchanged). `CollectionCard` now shows a colored left border driven by the dominant item type (matching the existing `ItemCard` convention) plus icons for every type present in the collection; `CollectionsSection` gained a "Color-coded by dominant item type" subtitle. `formatRelativeTime` now accepts `Date | string` for real DB timestamps. Verified with `tsc --noEmit`, `npm run lint`, `npm run build`, and a headless-Chrome screenshot of `/dashboard` confirming the 5 real DB collections render with correct names, item counts, border colors, and type icons.
 - **2026-07-14** — Dashboard Items completed on `feature/dashboard-items` per `context/features/dashboard-items-spec.md`. Added `src/lib/db/items.ts` with `getDashboardItems()`, a single Prisma query (items + type + tags + collections) that derives total/favorite counts, pinned items, and the 10 most recently used items sorted by `lastUsedAt ?? updatedAt`. `src/app/dashboard/page.tsx` now fetches collections and items in parallel and no longer imports mock items. `ItemCard`/`PinnedItemsSection`/`RecentItemsSection` now take the real `ItemSummary` shape instead of mock `Item`. Removed the now-unused `Item`/`ContentType` types and `items` array from `src/lib/mock-data.ts`. Enriched `prisma/seed.ts` with 24 tags (2 per item via a new `ItemTag` upsert helper), staggered `lastUsedAt` timestamps per item, and 2 pinned items (`useDebounce hook`, `Code review prompt`) — the prior seed left every item with null `lastUsedAt`, no tags, and `isPinned: false`, which would have made the pinned section and tag badges impossible to verify. Verified with `tsc --noEmit`, `npm run lint`, `npm run build`, and a headless-Chrome screenshot of `/dashboard` confirming 18 real items, correct pinned/recent sections, tag badges, and type-colored borders/icons.
 - **2026-07-14** — Stats & Sidebar completed on `feature/stats-sidebar` per `context/features/stats-sidebar-spec.md`. Dashboard stats already read from the DB as of the prior two features, so no change was needed there. Added `getSystemItemTypes()` to `src/lib/db/items.ts` (returns `isSystem` item types, sorted to a fixed display order since DB row order isn't guaranteed). `AppSidebar` is now an async server component that fetches real item types (`getSystemItemTypes()`) and collections (`getCollectionsWithStats()`, already used by the dashboard page) instead of `mock-data`. Item Types section links to `/items/[typename]` with real icons/colors; PRO badge check now keys off type name (`File`/`Image`) since DB ids differ from the old mock ids. Recent collections show a colored circle (from `dominantColor`) instead of the clock icon; a "View all collections" link to `/collections` was added under the Recent list. Removed the now-unused `itemTypes`/`Collection` mock exports from `src/lib/mock-data.ts`, keeping only `currentUser`. Verified with `tsc --noEmit`, `npm run lint`, `npm run build`, and headless-Chrome screenshots of `/dashboard` confirming real item types/icons, an empty Favorites section (no DB collections are favorited yet, which is correct), colored-circle recents, and the new "View all collections" link.
+- **2026-07-18** — Checked Pro Badge on Sidebar completed on `feature/pro-badge-sidebar-check` per `context/features/pro-badge-sidebar-check.md`. Pure audit task — verified the PRO badge on Files/Images in `AppSidebar` (`<Badge variant="secondary" className="ml-auto">PRO</Badge>`) already used the ShadCN `Badge` component, was clean/subtle (secondary variant, small pill), and had "PRO" in all uppercase. All three requirements were already met, so no source code changes were made. Verified with `npm run build`.
