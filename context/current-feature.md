@@ -1,18 +1,22 @@
-# Current Feature
+# Current Feature: Check Pro Badge on Sidebar
 
-<!-- Feature name and short description -->
+Check if the PRO badge on the Files/Images item types in the sidebar meets the requirements below. Only make changes if a requirement is not already met.
 
 ## Status
 
-<!-- Not Started | In Progress | Completed -->
+Completed
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Uses the ShadCN UI `Badge` component
+- Badge is clean and subtle
+- "PRO" text is all uppercase
 
 ## Notes
 
-<!-- Any extra notes -->
+- This is a verification/audit task, not a new feature — only touch the code if one of the goals above is not already satisfied.
+- Relevant code: `AppSidebar` (Item Types section, PRO badge on Files/Images) per the 2026-07-14 stats-sidebar history entry.
+- Audit result: all 3 goals already met in `src/components/dashboard/AppSidebar.tsx` (`<Badge variant="secondary" className="ml-auto">PRO</Badge>`) — no code changes required.
 
 ## History
 
