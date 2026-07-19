@@ -1,7 +1,6 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-
-// No auth is wired up yet, so all dashboard data is scoped to the seeded demo user.
-const DEMO_USER_ID = "demo-user";
+import { DEMO_USER_ID } from "@/lib/constants";
 
 export type CollectionItemType = {
   id: string;
@@ -21,14 +20,26 @@ export type CollectionSummary = {
   dominantColor: string | null;
 };
 
-export async function getCollectionsWithStats(): Promise<CollectionSummary[]> {
+export const getCollectionsWithStats = cache(async (): Promise<CollectionSummary[]> => {
   const collections = await prisma.collection.findMany({
     where: { userId: DEMO_USER_ID },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      isFavorite: true,
+      updatedAt: true,
       items: {
-        include: {
+        select: {
           item: {
-            include: { type: true },
+            select: {
+              typeId: true,
+              lastUsedAt: true,
+              updatedAt: true,
+              type: {
+                select: { id: true, name: true, icon: true, color: true },
+              },
+            },
           },
         },
       },
@@ -74,4 +85,4 @@ export async function getCollectionsWithStats(): Promise<CollectionSummary[]> {
       };
     })
     .sort((a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime());
-}
+});

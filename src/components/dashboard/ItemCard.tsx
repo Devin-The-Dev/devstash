@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Pin, Star } from "lucide-react";
+import { Pin, Star, Box } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { itemTypeIconMap } from "@/lib/item-type-icons";
@@ -7,7 +7,7 @@ import { formatRelativeTime } from "@/lib/format";
 import type { ItemSummary } from "@/lib/db/items";
 
 export function ItemCard({ item }: { item: ItemSummary }) {
-  const Icon = itemTypeIconMap[item.type.icon];
+  const Icon = itemTypeIconMap[item.type.icon] ?? Box;
   const href = item.collectionId ? `/collections/${item.collectionId}` : "/dashboard";
 
   return (
@@ -20,7 +20,7 @@ export function ItemCard({ item }: { item: ItemSummary }) {
         <CardContent className="space-y-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2">
-              {Icon && <Icon className="size-4 shrink-0" style={{ color: item.type.color }} />}
+              <Icon className="size-4 shrink-0" style={{ color: item.type.color }} />
               <span className="truncate text-sm font-medium">{item.title}</span>
             </div>
             <div className="flex shrink-0 items-center gap-1 text-muted-foreground">

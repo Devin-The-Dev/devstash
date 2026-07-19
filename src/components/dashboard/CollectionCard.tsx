@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { Star } from "lucide-react";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { itemTypeIconMap } from "@/lib/item-type-icons";
+import { getItemTypeIcon } from "@/lib/item-type-icons";
 import { formatRelativeTime } from "@/lib/format";
 import type { CollectionSummary } from "@/lib/db/collections";
 
 export function CollectionCard({ collection }: { collection: CollectionSummary }) {
   return (
     <Link href={`/collections/${collection.id}`}>
+      {/* Default (not "sm") card size: this card has a header/title, unlike
+          the denser ItemCard, so it keeps the roomier default spacing. */}
       <Card
         className="h-full border-l-4 transition-colors hover:bg-accent/50"
         style={{ borderLeftColor: collection.dominantColor ?? undefined }}
@@ -25,7 +27,7 @@ export function CollectionCard({ collection }: { collection: CollectionSummary }
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
               {collection.types.map((type) => {
-                const Icon = itemTypeIconMap[type.icon];
+                const Icon = getItemTypeIcon(type.icon);
                 return <Icon key={type.id} className="size-3.5" style={{ color: type.color }} />;
               })}
             </div>

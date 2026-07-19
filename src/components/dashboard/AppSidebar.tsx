@@ -15,10 +15,10 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { currentUser } from "@/lib/mock-data";
-import { itemTypeIconMap } from "@/lib/item-type-icons";
+import { getItemTypeIcon } from "@/lib/item-type-icons";
 import { getCollectionsWithStats } from "@/lib/db/collections";
 import { getSystemItemTypes } from "@/lib/db/items";
+import { getCurrentUser } from "@/lib/db/user";
 
 const proItemTypeNames = new Set(["File", "Image"]);
 
@@ -29,9 +29,10 @@ const navItems = [
 ];
 
 export async function AppSidebar() {
-  const [itemTypes, collections] = await Promise.all([
+  const [itemTypes, collections, currentUser] = await Promise.all([
     getSystemItemTypes(),
     getCollectionsWithStats(),
+    getCurrentUser(),
   ]);
 
   const favoriteCollections = collections.filter((c) => c.isFavorite);
@@ -76,7 +77,7 @@ export async function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {itemTypes.map((type) => {
-                const Icon = itemTypeIconMap[type.icon];
+                const Icon = getItemTypeIcon(type.icon);
                 const slug = `${type.name.toLowerCase()}s`;
                 const isPro = proItemTypeNames.has(type.name) && !currentUser.isPro;
                 return (
