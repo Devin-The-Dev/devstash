@@ -1,18 +1,22 @@
-# Current Feature
+# Current Feature: Favorite Items & Collections Seed Data
 
-<!-- Feature name and short description -->
+Add seed data marking a subset of items and collections as favorites so the dashboard's Favorites sections (stats cards, sidebar, main content) render real data instead of showing empty state.
 
 ## Status
 
-<!-- Not Started | In Progress | Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Mark 2-3 existing seeded collections as `isFavorite: true` (spread across different item-type themes)
+- Mark 2-3 existing seeded items as `isFavorite: true` (spread across different collections/types)
+- Re-run `prisma db seed` against the dev branch and confirm row-level favorite flags landed
+- Verify `/dashboard` renders non-empty Favorites section(s) and correct favorite counts in stats cards
 
 ## Notes
 
-<!-- Any extra notes -->
+- Seed is idempotent (upserts by stable id) — favoriting existing items/collections just means adding `isFavorite: true` to their existing `seedItem`/`seedCollection` calls, no new records needed.
+- Per history (2026-07-14 Stats & Sidebar entry), the sidebar Favorites section was previously empty because no DB collections were favorited — this closes that gap.
 
 ## History
 
