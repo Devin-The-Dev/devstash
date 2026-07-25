@@ -1,40 +1,18 @@
-# Current Feature: Auth Phase 2 - Credentials (Email/Password) Provider
+# Current Feature
 
-Add Credentials provider for email/password authentication with registration, building on Phase 1's GitHub OAuth setup.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started | In Progress | Completed -->
 
 ## Goals
 
-- Add Credentials provider using bcryptjs for password hashing (already installed)
-- Add `password` field to the `User` model via Prisma migration, if not already present
-- Update `src/auth.config.ts` with a Credentials provider placeholder (`authorize: () => null`)
-- Update `src/auth.ts` to override the Credentials provider with real bcrypt validation logic
-- Create a registration API route at `POST /api/auth/register` that:
-  - Accepts `name`, `email`, `password`, `confirmPassword`
-  - Validates passwords match
-  - Checks if user already exists
-  - Hashes password with bcryptjs
-  - Creates the user in the database
-  - Returns a success/error response
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Split config pattern (per Phase 1): keep `auth.config.ts` edge-compatible with a Credentials placeholder (`authorize: () => null`); put actual bcrypt validation logic in `auth.ts`.
-- Reference: Credentials provider docs — https://authjs.dev/getting-started/authentication/credentials
-- Testing plan from spec:
-  1. Register via curl:
-     ```bash
-     curl -X POST http://localhost:3000/api/auth/register \
-       -H "Content-Type: application/json" \
-       -d '{"name":"Test","email":"test@test.com","password":"password123","confirmPassword":"password123"}'
-     ```
-  2. Go to `/api/auth/signin`
-  3. Sign in with email/password
-  4. Verify redirect to `/dashboard`
-  5. Verify GitHub OAuth still works (regression check on Phase 1)
+<!-- Any extra notes -->
 
 ## History
 
@@ -53,3 +31,4 @@ In Progress
 - **2026-07-18** — Checked Pro Badge on Sidebar completed on `feature/pro-badge-sidebar-check` per `context/features/pro-badge-sidebar-check.md`. Pure audit task — verified the PRO badge on Files/Images in `AppSidebar` (`<Badge variant="secondary" className="ml-auto">PRO</Badge>`) already used the ShadCN `Badge` component, was clean/subtle (secondary variant, small pill), and had "PRO" in all uppercase. All three requirements were already met, so no source code changes were made. Verified with `npm run build`.
 - **2026-07-19** — Audit quick-wins cleanup completed on `feature/audit-quick-wins`, addressing the low-risk subset of the 2026-07-18 code-scanner audit (1 High, 4 Medium, 3 Low findings). Extracted the duplicated `DEMO_USER_ID` into `src/lib/constants.ts`. Wrapped `getCollectionsWithStats()`, `getSystemItemTypes()`, and the new `getDashboardItems()`/`getCurrentUser()` in React's `cache()` so the sidebar layout and dashboard page share one query instead of running it twice per render. Added `select` projections to all dashboard Prisma queries to stop over-fetching unused columns (`content`, `fileUrl`, `url`, `description`). Added `orderBy: { addedAt: "asc" }` to the `collections` include in `getDashboardItems()` so `item.collections[0]` is deterministic. Added `getItemTypeIcon()` (falls back to `Box`) to `src/lib/item-type-icons.tsx` and used it in `CollectionCard`/`AppSidebar`; `ItemCard` uses an equivalent inline `itemTypeIconMap[...] ?? Box` lookup instead of a helper call, since the repo's `react-hooks/static-components` ESLint rule flags a function call assigned to a capitalized variable at a component's top level (but not inside a `.map()` closure) as "creating a component during render." `formatRelativeTime` now clamps future/negative diffs to "just now". Added a comment documenting why `CollectionCard` intentionally keeps the default (non-`sm`) `Card` size. Added `src/lib/db/user.ts` with `getCurrentUser()`, replacing the mismatched mock "Alex Doe" identity in `AppSidebar`/`DashboardPage` with the real seeded "Demo User" (`mock-data.ts` itself was left in place, unused, for future reuse per user request). Verified with `tsc --noEmit`, `npm run lint`, `npm run build`, and a live `/dashboard` check via `npm run dev` + curl (no headless browser tooling available in this environment) confirming real seeded collections/items and the corrected user identity render with no server errors. Separately surfaced (not fixed, out of scope): `npm run start` reads `.env.production`, which points at an unseeded Neon branch different from dev's, and `/dashboard` is statically prerendered at build time rather than rendered per-request — both pre-existing issues unrelated to this feature.
 - **2026-07-24** — Auth Setup Phase 1 of 3 completed on `feature/auth-phase-1` per `context/features/auth-phase-1-spec.md`. Installed `next-auth@5.0.0-beta.32` and `@auth/prisma-adapter`. Added the split edge-compatible config pattern: `src/auth.config.ts` (GitHub provider only) and `src/auth.ts` (`PrismaAdapter`, `session: { strategy: "jwt" }`, `jwt`/`session` callbacks exposing `session.user.id`). Added `src/app/api/auth/[...nextauth]/route.ts` exporting the `GET`/`POST` handlers, `src/proxy.ts` protecting `/dashboard/:path*` and redirecting unauthenticated requests to NextAuth's default `/api/auth/signin` (with `callbackUrl` preserved), and `src/types/next-auth.d.ts` extending `Session.user` with `id`. Used Context7 to confirm the current NextAuth v5 split-config and proxy patterns before implementing, per spec instructions. The `User`/`Account`/`Session`/`VerificationToken` Prisma models already existed from the original schema, so no migration was needed. Added `AUTH_SECRET` to `.env` (existing `AUTH_GITHUB_ID`/`AUTH_GITHUB_SECRET` were reused as-is; `.env.example` already documented all three). Verified with `tsc --noEmit`, `npm run lint`, `npm run build` (confirms `ƒ Proxy (Middleware)` registered), and a live `npm run dev` + curl check: `/dashboard` returns a 302 to `/api/auth/signin?callbackUrl=...`, the default sign-in page renders the GitHub button, and unrelated routes (`/`) are unaffected by the proxy matcher. Full GitHub OAuth round-trip was not exercised (no browser/OAuth callback available in this environment) — full sign-in flow should be manually verified in-browser before Phase 2.
+- **2026-07-24** — Auth Setup Phase 2 of 3 completed on `feature/auth-phase-2` per `context/features/auth-phase-2-spec.md`. Added a Credentials (email/password) provider alongside GitHub: `src/auth.config.ts` gets an Edge-safe `authorize: () => null` placeholder (bcrypt/Prisma aren't Edge-compatible, and this config is imported by `src/proxy.ts`), and `src/auth.ts` overrides `providers` with the real implementation — Zod-validated input, `prisma.user.findUnique` scoped to only the fields needed, `bcrypt.compare` against the stored hash, returning just `{id, name, email, image}` so the password hash never reaches the JWT/session. The `password` field already existed on `User` from the Phase 1 migration, so no new migration was needed. Added `POST /api/auth/register` (`src/app/api/auth/register/route.ts`): Zod-validates `name`/`email`/`password`/`confirmPassword` (including a `.refine` password-match check), checks for an existing user (409 on conflict), hashes with `bcryptjs` at 12 rounds (matching the seed convention), creates the user, and returns `{success, data/error}`. Added `src/lib/validations/auth.ts` (`signInSchema`, `registerSchema`) and installed `zod` (not previously a dependency) after confirming the v4 API via Context7. Used Context7 to confirm the current NextAuth v5 Credentials/`authorize` pattern and Zod v4's `safeParse`/`issues` shape before implementing. Verified with `tsc --noEmit`, `npm run lint`, `npm run build`, and a live `npm run dev` + curl run covering the full spec test plan: registration success/duplicate-email (409)/password-mismatch (400)/invalid-email (400), credentials sign-in producing a correct session (`id`/`name`/`email`/`image`, no password leak), `/dashboard` still gated by the proxy for unauthenticated requests, and the GitHub button still rendering on `/api/auth/signin` (Phase 1 regression check). Custom sign-in/register UI and wiring the signed-in user's identity into the dashboard/sidebar (replacing `DEMO_USER_ID`) are deferred to Phase 3 per `context/features/auth-phase-3-spec.md`. Excluded `.mcp.json` (contains a live API key) and `.playwright-mcp/`/`.claude/agent-memory/`/`.claude/agents/` (local tooling artifacts, unrelated to this feature) from the commit.
