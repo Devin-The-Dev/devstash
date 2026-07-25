@@ -1,0 +1,1 @@
+- See `.claude/agent-memory/nextjs-codebase-auditor/MEMORY.md` for DevStash-specific findings (project state, conventions) — this agent audits the same repo under a different invocation name.
