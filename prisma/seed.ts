@@ -103,11 +103,12 @@ async function seedCollection(
   userId: string,
   name: string,
   description: string,
+  isFavorite = false,
 ) {
   return prisma.collection.upsert({
     where: { id },
-    update: { name, description },
-    create: { id, userId, name, description },
+    update: { name, description, isFavorite },
+    create: { id, userId, name, description, isFavorite },
   });
 }
 
@@ -164,6 +165,7 @@ async function main() {
       user.id,
       "React Patterns",
       "Reusable React patterns and hooks",
+      true,
     ),
     aiWorkflows: await seedCollection(
       "collection-ai-workflows",
@@ -188,6 +190,7 @@ async function main() {
       user.id,
       "Design Resources",
       "UI/UX resources and references",
+      true,
     ),
   };
 
@@ -230,6 +233,7 @@ export function useDebounce<T>(value: T, delayMs: number): T {
       description: "Sync state with localStorage",
       contentType: "TEXT",
       language: "typescript",
+      isFavorite: true,
       lastUsedAt: hoursAgo(26),
       content: `import { useEffect, useState } from "react";
 
@@ -313,6 +317,7 @@ Diff:
       title: "Documentation generation prompt",
       description: "Generate API documentation from source code",
       contentType: "TEXT",
+      isFavorite: true,
       lastUsedAt: hoursAgo(96),
       content: `Generate concise API documentation for the following module. For each exported function, include: a one-line summary, parameter types and descriptions, return type, and one usage example. Skip internal/unexported members.
 
@@ -496,6 +501,7 @@ volumes:
       title: "shadcn/ui",
       description: "Composable component library built on Radix and Tailwind",
       contentType: "URL",
+      isFavorite: true,
       lastUsedAt: hoursAgo(340),
       url: "https://ui.shadcn.com",
     },
