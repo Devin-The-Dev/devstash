@@ -1,40 +1,18 @@
-# Current Feature: Auth Setup - NextAuth + GitHub Provider (Phase 1 of 3)
+# Current Feature
 
 <!-- Feature name and short description -->
 
-Set up NextAuth v5 with Prisma adapter and GitHub OAuth. Use NextAuth's default pages for testing.
-
 ## Status
 
-In Progress
+<!-- Not Started | In Progress | Completed -->
 
 ## Goals
 
-- Install NextAuth v5 (`next-auth@beta`) and `@auth/prisma-adapter`
-- Set up split auth config pattern for edge compatibility
-- Add GitHub OAuth provider
-- Protect `/dashboard/*` routes using Next.js 16 proxy
-- Redirect unauthenticated users to sign-in
-- Files to create:
-  1. `src/auth.config.ts` - Edge-compatible config (providers only, no adapter)
-  2. `src/auth.ts` - Full config with Prisma adapter and JWT strategy
-  3. `src/app/api/auth/[...nextauth]/route.ts` - Export handlers from auth.ts
-  4. `src/proxy.ts` - Route protection with redirect logic
-  5. `src/types/next-auth.d.ts` - Extend Session type with user.id
+<!-- Goals and requirements -->
 
 ## Notes
 
 <!-- Any extra notes -->
-
-- Use Context7 to verify the newest NextAuth v5 config and conventions before implementing.
-- Use `next-auth@beta` (not `@latest`, which installs v4).
-- Proxy file must be at `src/proxy.ts` (same level as `app/`).
-- Use named export: `export const proxy = auth(...)`, not a default export.
-- Use `session: { strategy: 'jwt' }` with the split config pattern.
-- Don't set a custom `pages.signIn` — use NextAuth's default page.
-- Env vars needed: `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`.
-- Testing plan: visiting `/dashboard` should redirect to sign-in; "Sign in with GitHub" should redirect back to `/dashboard` after auth.
-- References: https://authjs.dev/getting-started/installation#edge-compatibility, https://authjs.dev/getting-started/adapters/prisma
 
 ## History
 
@@ -52,3 +30,4 @@ In Progress
 - **2026-07-14** — Stats & Sidebar completed on `feature/stats-sidebar` per `context/features/stats-sidebar-spec.md`. Dashboard stats already read from the DB as of the prior two features, so no change was needed there. Added `getSystemItemTypes()` to `src/lib/db/items.ts` (returns `isSystem` item types, sorted to a fixed display order since DB row order isn't guaranteed). `AppSidebar` is now an async server component that fetches real item types (`getSystemItemTypes()`) and collections (`getCollectionsWithStats()`, already used by the dashboard page) instead of `mock-data`. Item Types section links to `/items/[typename]` with real icons/colors; PRO badge check now keys off type name (`File`/`Image`) since DB ids differ from the old mock ids. Recent collections show a colored circle (from `dominantColor`) instead of the clock icon; a "View all collections" link to `/collections` was added under the Recent list. Removed the now-unused `itemTypes`/`Collection` mock exports from `src/lib/mock-data.ts`, keeping only `currentUser`. Verified with `tsc --noEmit`, `npm run lint`, `npm run build`, and headless-Chrome screenshots of `/dashboard` confirming real item types/icons, an empty Favorites section (no DB collections are favorited yet, which is correct), colored-circle recents, and the new "View all collections" link.
 - **2026-07-18** — Checked Pro Badge on Sidebar completed on `feature/pro-badge-sidebar-check` per `context/features/pro-badge-sidebar-check.md`. Pure audit task — verified the PRO badge on Files/Images in `AppSidebar` (`<Badge variant="secondary" className="ml-auto">PRO</Badge>`) already used the ShadCN `Badge` component, was clean/subtle (secondary variant, small pill), and had "PRO" in all uppercase. All three requirements were already met, so no source code changes were made. Verified with `npm run build`.
 - **2026-07-19** — Audit quick-wins cleanup completed on `feature/audit-quick-wins`, addressing the low-risk subset of the 2026-07-18 code-scanner audit (1 High, 4 Medium, 3 Low findings). Extracted the duplicated `DEMO_USER_ID` into `src/lib/constants.ts`. Wrapped `getCollectionsWithStats()`, `getSystemItemTypes()`, and the new `getDashboardItems()`/`getCurrentUser()` in React's `cache()` so the sidebar layout and dashboard page share one query instead of running it twice per render. Added `select` projections to all dashboard Prisma queries to stop over-fetching unused columns (`content`, `fileUrl`, `url`, `description`). Added `orderBy: { addedAt: "asc" }` to the `collections` include in `getDashboardItems()` so `item.collections[0]` is deterministic. Added `getItemTypeIcon()` (falls back to `Box`) to `src/lib/item-type-icons.tsx` and used it in `CollectionCard`/`AppSidebar`; `ItemCard` uses an equivalent inline `itemTypeIconMap[...] ?? Box` lookup instead of a helper call, since the repo's `react-hooks/static-components` ESLint rule flags a function call assigned to a capitalized variable at a component's top level (but not inside a `.map()` closure) as "creating a component during render." `formatRelativeTime` now clamps future/negative diffs to "just now". Added a comment documenting why `CollectionCard` intentionally keeps the default (non-`sm`) `Card` size. Added `src/lib/db/user.ts` with `getCurrentUser()`, replacing the mismatched mock "Alex Doe" identity in `AppSidebar`/`DashboardPage` with the real seeded "Demo User" (`mock-data.ts` itself was left in place, unused, for future reuse per user request). Verified with `tsc --noEmit`, `npm run lint`, `npm run build`, and a live `/dashboard` check via `npm run dev` + curl (no headless browser tooling available in this environment) confirming real seeded collections/items and the corrected user identity render with no server errors. Separately surfaced (not fixed, out of scope): `npm run start` reads `.env.production`, which points at an unseeded Neon branch different from dev's, and `/dashboard` is statically prerendered at build time rather than rendered per-request — both pre-existing issues unrelated to this feature.
+- **2026-07-24** — Auth Setup Phase 1 of 3 completed on `feature/auth-phase-1` per `context/features/auth-phase-1-spec.md`. Installed `next-auth@5.0.0-beta.32` and `@auth/prisma-adapter`. Added the split edge-compatible config pattern: `src/auth.config.ts` (GitHub provider only) and `src/auth.ts` (`PrismaAdapter`, `session: { strategy: "jwt" }`, `jwt`/`session` callbacks exposing `session.user.id`). Added `src/app/api/auth/[...nextauth]/route.ts` exporting the `GET`/`POST` handlers, `src/proxy.ts` protecting `/dashboard/:path*` and redirecting unauthenticated requests to NextAuth's default `/api/auth/signin` (with `callbackUrl` preserved), and `src/types/next-auth.d.ts` extending `Session.user` with `id`. Used Context7 to confirm the current NextAuth v5 split-config and proxy patterns before implementing, per spec instructions. The `User`/`Account`/`Session`/`VerificationToken` Prisma models already existed from the original schema, so no migration was needed. Added `AUTH_SECRET` to `.env` (existing `AUTH_GITHUB_ID`/`AUTH_GITHUB_SECRET` were reused as-is; `.env.example` already documented all three). Verified with `tsc --noEmit`, `npm run lint`, `npm run build` (confirms `ƒ Proxy (Middleware)` registered), and a live `npm run dev` + curl check: `/dashboard` returns a 302 to `/api/auth/signin?callbackUrl=...`, the default sign-in page renders the GitHub button, and unrelated routes (`/`) are unaffected by the proxy matcher. Full GitHub OAuth round-trip was not exercised (no browser/OAuth callback available in this environment) — full sign-in flow should be manually verified in-browser before Phase 2.
