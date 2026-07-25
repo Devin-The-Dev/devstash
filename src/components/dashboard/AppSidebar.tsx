@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Box, LayoutDashboard, Star, Clock } from "lucide-react";
+import { ArrowRight, Box, LayoutDashboard, LogOut, Star, Clock, User } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,13 +12,23 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { UserAvatar } from "@/components/auth/UserAvatar";
 import { getItemTypeIcon } from "@/lib/item-type-icons";
 import { getCollectionsWithStats } from "@/lib/db/collections";
 import { getSystemItemTypes } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
+import { signOutAction } from "@/actions/auth";
 
 const proItemTypeNames = new Set(["File", "Image"]);
 
@@ -37,11 +47,6 @@ export async function AppSidebar() {
 
   const favoriteCollections = collections.filter((c) => c.isFavorite);
   const recentCollections = collections.filter((c) => !c.isFavorite).slice(0, 4);
-
-  const initials = currentUser.name
-    .split(" ")
-    .map((part) => part[0])
-    .join("");
 
   return (
     <Sidebar collapsible="icon">
@@ -159,12 +164,41 @@ export async function AppSidebar() {
         )}
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" tooltip={currentUser.name}>
-              <Avatar className="size-6">
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-              <span>{currentUser.name}</span>
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={<SidebarMenuButton size="lg" tooltip={currentUser.name} />}
+              >
+                <UserAvatar name={currentUser.name} image={currentUser.image} className="size-6" />
+                <span>{currentUser.name}</span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" side="top" className="w-56">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="flex items-center gap-2 px-1.5 py-1 font-normal">
+                    <UserAvatar name={currentUser.name} image={currentUser.image} className="size-8" />
+                    <div className="flex flex-col overflow-hidden">
+                      <span className="truncate text-sm font-medium text-foreground">
+                        {currentUser.name}
+                      </span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {currentUser.email}
+                      </span>
+                    </div>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem render={<Link href="/profile" />}>
+                  <User />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" render={<form action={signOutAction} />}>
+                  <button type="submit" className="flex w-full items-center gap-1.5">
+                    <LogOut />
+                    Sign out
+                  </button>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
