@@ -44,6 +44,13 @@ App Router only — no Pages Router. All routes live under `src/app/`. The root 
 
 **DB rule:** Never use `prisma db push`. All schema changes go through `prisma migrate dev` → `prisma migrate deploy` in prod.
 
+## Neon MCP
+
+- Project: **devStash** (`shy-snow-30486025`)
+- Default branch for all Neon MCP tool calls: **development** (`br-muddy-frost-a6d8ttw0`)
+- Never run Neon MCP operations against **production** (`br-lingering-credit-a679qo32`) unless the user explicitly names "production" in the same request.
+- Any destructive SQL (`DROP`, `DELETE`, `TRUNCATE`, unscoped `UPDATE`) requires explicit user confirmation regardless of branch.
+
 ## Project Context
 
 Full project spec, data model, and feature list are in `context/project-overview.md`. Coding standards are in `context/coding-standards.md`. Workflow rules are in `context/ai-interaction.md`.
