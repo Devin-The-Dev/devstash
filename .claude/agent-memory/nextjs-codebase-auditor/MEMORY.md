@@ -1,0 +1,2 @@
+- [DevStash project state](devstash_project_state.md) — dashboard-only build so far; no auth/actions/stripe/r2/openai code exists yet, don't flag as missing
+- [DevStash conventions](devstash_conventions.md) — `src/lib/db/*.ts` data-fetching pattern, shared icon map crash risk, tooling limitations note
