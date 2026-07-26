@@ -27,7 +27,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // Overrides the auth.config.ts Credentials placeholder — bcrypt/Prisma
   // aren't Edge-compatible, so the real authorize logic only lives here.
   providers: [
-    GitHub,
+    GitHub({ allowDangerousEmailAccountLinking: true }),
     Credentials({
       credentials: { email: {}, password: {} },
       authorize: async (credentials) => {
