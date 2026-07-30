@@ -23,3 +23,16 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
 
   return { ...user, name: user.name ?? user.email };
 });
+
+export async function findResetEligibleUser(email: string) {
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { name: true, email: true, password: true },
+  });
+
+  if (!user?.password) {
+    return null;
+  }
+
+  return { name: user.name ?? user.email };
+}
