@@ -24,6 +24,21 @@ export async function POST(request: Request) {
       );
     }
 
+    try {
+      const token = await createVerificationToken(email);
+      const verifyUrl = `${await getBaseUrl()}/verify-email?token=${token}`;
+      await sendVerificationEmail(email, name, verifyUrl);
+    } catch (error) {
+      console.error("Failed to send verification email:", error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "We couldn't send a verification email. Please try again.",
+        },
+        { status: 502 },
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
@@ -31,17 +46,7 @@ export async function POST(request: Request) {
       select: { id: true, name: true, email: true },
     });
 
-    let emailSent = true;
-    try {
-      const token = await createVerificationToken(email);
-      const verifyUrl = `${await getBaseUrl()}/verify-email?token=${token}`;
-      await sendVerificationEmail(email, name, verifyUrl);
-    } catch (error) {
-      emailSent = false;
-      console.error("Failed to send verification email:", error);
-    }
-
-    return NextResponse.json({ success: true, data: { ...user, emailSent } }, { status: 201 });
+    return NextResponse.json({ success: true, data: user }, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
