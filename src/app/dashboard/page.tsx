@@ -7,8 +7,12 @@ import { getDashboardItems } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
 
 export default async function DashboardPage() {
-  const [recentCollections, { totalItems, favoriteItems, pinnedItems, recentItems }, currentUser] =
-    await Promise.all([getCollectionsWithStats(), getDashboardItems(), getCurrentUser()]);
+  const currentUser = await getCurrentUser();
+  const [recentCollections, { totalItems, favoriteItems, pinnedItems, recentItems }] =
+    await Promise.all([
+      getCollectionsWithStats(currentUser.id),
+      getDashboardItems(currentUser.id),
+    ]);
 
   const totalCollections = recentCollections.length;
   const favoriteCollections = recentCollections.filter((collection) => collection.isFavorite).length;

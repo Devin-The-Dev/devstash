@@ -1,6 +1,5 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import { DEMO_USER_ID } from "@/lib/constants";
 
 export type ItemTypeSummary = {
   id: string;
@@ -43,9 +42,9 @@ export const getSystemItemTypes = cache(async (): Promise<ItemTypeSummary[]> => 
 });
 
 export const getDashboardItems = cache(
-  async (recentLimit = 10): Promise<DashboardItems> => {
+  async (userId: string, recentLimit = 10): Promise<DashboardItems> => {
     const items = await prisma.item.findMany({
-      where: { userId: DEMO_USER_ID },
+      where: { userId },
       select: {
         id: true,
         title: true,
