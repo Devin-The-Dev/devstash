@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: Forgot Password
 
-<!-- Feature name and short description -->
+Add a "Forgot password?" flow to credentials sign-in, reusing the existing `VerificationToken` model for reset tokens (no schema changes).
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Add a "Forgot password?" link on `/sign-in` (next to or below the password field) linking to `/forgot-password`.
+- `/forgot-password` page: a form to enter an email address and request a reset link.
+- A server action/route handles the request: looks up the user, and if found *and* has a password set (i.e. not a GitHub-only account), issues a reset token and emails a reset link via Resend (matching the existing `sendVerificationEmail` pattern in `src/lib/email/`).
+- Always show the same generic "If an account exists for that email, we've sent a reset link" response regardless of whether the email exists, is unverified, or is GitHub-only — do not leak account existence.
+- `/reset-password?token=...` page: a form for new password + confirm password (mirrors register's password/confirmPassword validation).
+- A server action/route consumes the token: validates it exists and isn't expired, hashes the new password with `bcryptjs` at 12 rounds (matching seed/register convention), updates `User.password`, deletes the token, and redirects to `/sign-in` with a success state.
+- Invalid or expired tokens on `/reset-password` render an inline error state (mirroring `/verify-email`'s success/expired/invalid states).
+- Add Zod schemas for both steps (request + reset) in `src/lib/validations/auth.ts`.
 
 ## Notes
 
-<!-- Any extra notes -->
+- **Token purpose collision:** `VerificationToken` has only `identifier`/`token`/`expires` — no "purpose" column — and `src/lib/db/verification.ts`'s `createVerificationToken()`/`consumeVerificationToken()` already use `identifier = email` for email-verification and hard-delete-by-identifier on reissue, plus `consumeVerificationToken()` sets `User.emailVerified` as a side effect. Reusing the same table for password resets needs a distinct identifier namespace (e.g. `identifier = "reset:" + email`) and its own create/consume functions in `src/lib/db/verification.ts` (or a new file) so a reset request can't stomp a pending email-verify token (or vice versa) and consuming a reset token never touches `emailVerified`.
+- **Reset token TTL:** shorter-lived than the 24h email-verification token — 1 hour is the common convention for password resets. Confirm with user if a different window is preferred.
+- **GitHub-only accounts:** users with no `password` set (OAuth-only) should not receive a reset email or be able to set a password this way; still return the generic success message so this isn't distinguishable from the outside.
+- Reuse existing conventions: `bcryptjs` (12 rounds), Resend client (`src/lib/resend.ts`), `useActionState` form pattern (`SignInForm`), shadcn `Card`/`Alert` components, and the `/verify-email` page's success/expired/invalid pattern.
+- Out of scope: invalidating existing sessions after a reset (NextAuth JWT sessions aren't server-tracked, so old sessions on other devices would remain valid — flag as a known gap, not a blocker).
 
 ## History
 

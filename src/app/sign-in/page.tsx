@@ -7,9 +7,9 @@ import { signInWithGitHub } from "@/actions/auth";
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string }>;
+  searchParams: Promise<{ callbackUrl?: string; reset?: string }>;
 }) {
-  const { callbackUrl } = await searchParams;
+  const { callbackUrl, reset } = await searchParams;
 
   return (
     <div className="flex min-h-svh items-center justify-center p-6">
@@ -19,7 +19,7 @@ export default async function SignInPage({
           <CardDescription>Welcome back. Sign in to continue.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <SignInForm callbackUrl={callbackUrl} />
+          <SignInForm callbackUrl={callbackUrl} justReset={reset === "success"} />
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <div className="h-px flex-1 bg-border" />
