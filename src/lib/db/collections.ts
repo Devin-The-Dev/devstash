@@ -1,6 +1,5 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import { DEMO_USER_ID } from "@/lib/constants";
 
 export type CollectionItemType = {
   id: string;
@@ -20,9 +19,9 @@ export type CollectionSummary = {
   dominantColor: string | null;
 };
 
-export const getCollectionsWithStats = cache(async (): Promise<CollectionSummary[]> => {
+export const getCollectionsWithStats = cache(async (userId: string): Promise<CollectionSummary[]> => {
   const collections = await prisma.collection.findMany({
-    where: { userId: DEMO_USER_ID },
+    where: { userId },
     select: {
       id: true,
       name: true,

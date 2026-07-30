@@ -39,10 +39,10 @@ const navItems = [
 ];
 
 export async function AppSidebar() {
-  const [itemTypes, collections, currentUser] = await Promise.all([
+  const currentUser = await getCurrentUser();
+  const [itemTypes, collections] = await Promise.all([
     getSystemItemTypes(),
-    getCollectionsWithStats(),
-    getCurrentUser(),
+    getCollectionsWithStats(currentUser.id),
   ]);
 
   const favoriteCollections = collections.filter((c) => c.isFavorite);
