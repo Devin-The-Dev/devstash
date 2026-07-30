@@ -1,19 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, MailCheck } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [sentTo, setSentTo] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -21,6 +20,7 @@ export default function RegisterPage() {
     setPending(true);
 
     const formData = new FormData(event.currentTarget);
+    const email = formData.get("email")?.toString() ?? "";
 
     try {
       const res = await fetch("/api/auth/register", {
@@ -28,7 +28,7 @@ export default function RegisterPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.get("name"),
-          email: formData.get("email"),
+          email,
           password: formData.get("password"),
           confirmPassword: formData.get("confirmPassword"),
         }),
@@ -40,12 +40,34 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/sign-in");
+      setSentTo(email);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setPending(false);
     }
+  }
+
+  if (sentTo) {
+    return (
+      <div className="flex min-h-svh items-center justify-center p-6">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="items-center text-center">
+            <MailCheck className="mb-2 size-10 text-muted-foreground" />
+            <CardTitle className="text-xl">Check your email</CardTitle>
+            <CardDescription>
+              We sent a verification link to <span className="text-foreground">{sentTo}</span>.
+              Click it to confirm your account.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/sign-in" className={buttonVariants({ className: "w-full" })}>
+              Go to sign in
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

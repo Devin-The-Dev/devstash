@@ -3,6 +3,9 @@ import bcrypt from "bcryptjs";
 import { ZodError } from "zod";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations/auth";
+import { createVerificationToken } from "@/lib/db/verification";
+import { sendVerificationEmail } from "@/lib/email/send-verification-email";
+import { getBaseUrl } from "@/lib/url";
 
 export async function POST(request: Request) {
   try {
@@ -28,7 +31,17 @@ export async function POST(request: Request) {
       select: { id: true, name: true, email: true },
     });
 
-    return NextResponse.json({ success: true, data: user }, { status: 201 });
+    let emailSent = true;
+    try {
+      const token = await createVerificationToken(email);
+      const verifyUrl = `${await getBaseUrl()}/verify-email?token=${token}`;
+      await sendVerificationEmail(email, name, verifyUrl);
+    } catch (error) {
+      emailSent = false;
+      console.error("Failed to send verification email:", error);
+    }
+
+    return NextResponse.json({ success: true, data: { ...user, emailSent } }, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
