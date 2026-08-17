@@ -8,6 +8,8 @@ export type CurrentUser = {
   email: string;
   image: string | null;
   isPro: boolean;
+  hasPassword: boolean;
+  createdAt: Date;
 };
 
 export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
@@ -16,12 +18,20 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
     throw new Error("getCurrentUser() requires an authenticated session");
   }
 
-  const user = await prisma.user.findUniqueOrThrow({
+  const { password, ...user } = await prisma.user.findUniqueOrThrow({
     where: { id: session.user.id },
-    select: { id: true, name: true, email: true, image: true, isPro: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      isPro: true,
+      password: true,
+      createdAt: true,
+    },
   });
 
-  return { ...user, name: user.name ?? user.email };
+  return { ...user, name: user.name ?? user.email, hasPassword: password !== null };
 });
 
 export async function findResetEligibleUser(email: string) {
