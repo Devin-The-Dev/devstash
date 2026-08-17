@@ -19,6 +19,10 @@ export function formatRelativeTime(date: Date | string): string {
   return `${months}mo ago`;
 }
 
+export function formatDate(date: Date | string): string {
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "long" }).format(new Date(date));
+}
+
 export function getInitials(name: string): string {
   return name
     .trim()
