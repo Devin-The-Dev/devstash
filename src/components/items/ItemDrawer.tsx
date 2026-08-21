@@ -13,9 +13,19 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { itemTypeIconMap } from "@/lib/item-type-icons";
 import { formatDate } from "@/lib/format";
-import { toggleItemFavorite, toggleItemPinned, updateItem } from "@/actions/items";
+import { deleteItem, toggleItemFavorite, toggleItemPinned, updateItem } from "@/actions/items";
 import type { ItemDetail } from "@/lib/db/items";
 
 type DrawerItem = Omit<ItemDetail, "lastUsedAt" | "createdAt" | "updatedAt"> & {
@@ -58,12 +68,14 @@ export function ItemDrawer() {
   const [isPending, startTransition] = useTransition();
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [editForm, setEditForm] = useState<EditForm | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [lastOpenItemId, setLastOpenItemId] = useState(openItemId);
 
   if (openItemId !== lastOpenItemId) {
     setLastOpenItemId(openItemId);
     setMode("view");
     setEditForm(null);
+    setDeleteDialogOpen(false);
   }
 
   useEffect(() => {
@@ -184,6 +196,21 @@ export function ItemDrawer() {
     });
   }
 
+  function handleDelete() {
+    if (!item) return;
+    startTransition(async () => {
+      const actionResult = await deleteItem(item.id);
+      if (!actionResult.success) {
+        toast.error(actionResult.error);
+        return;
+      }
+      setDeleteDialogOpen(false);
+      toast.success("Item deleted");
+      close();
+      router.refresh();
+    });
+  }
+
   const Icon = item ? (itemTypeIconMap[item.type.icon] ?? Box) : Box;
 
   return (
@@ -265,8 +292,9 @@ export function ItemDrawer() {
                       variant="ghost"
                       size="icon-sm"
                       aria-label="Delete"
-                      disabled
+                      disabled={isPending}
                       className="text-destructive"
+                      onClick={() => setDeleteDialogOpen(true)}
                     >
                       <Trash2 className="size-4" />
                     </Button>
@@ -411,6 +439,23 @@ export function ItemDrawer() {
           </>
         )}
       </SheetContent>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this item?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {item ? `"${item.title}" will be permanently deleted.` : "This item will be permanently deleted."}{" "}
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" disabled={isPending} onClick={handleDelete}>
+              {isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }

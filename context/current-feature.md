@@ -1,18 +1,26 @@
-# Current Feature
+# Current Feature: Item Delete
 
-<!-- Feature name and short description -->
+Delete functionality for items, enabled from the item drawer's currently-disabled Delete button, gated behind a shadcn confirmation dialog with a success toast.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Enable the Delete button in `ItemDrawer.tsx` (currently `disabled`, `src/components/items/ItemDrawer.tsx:264-272`)
+- Clicking Delete opens a shadcn `AlertDialog` confirming the destructive action (irreversible, no undo) before anything is deleted
+- Confirming the dialog deletes the item, closes the drawer, and shows a success toast (`sonner`, already wired app-wide)
+- The underlying item list (dashboard sections, `/items/[type]` grid) reflects the deletion without a manual reload
+- Canceling the dialog leaves the item untouched and the drawer open in view mode
 
 ## Notes
 
-<!-- Any extra notes -->
+- Add a `deleteItem(itemId)` server action to `src/actions/items.ts`, following the existing `toggleItemFavorite`/`toggleItemPinned`/`updateItem` pattern: session check via `auth()`, ownership-scoped `findFirst` before mutating, `ActionResult<T>` return shape
+- Add the DB-layer delete to `src/lib/db/items.ts` alongside `getItemDetail`/`updateItem`/`getItemsByType` (a thin Prisma call — per this repo's existing convention, thin DB-layer functions are left unit-tested at the action layer only, not directly)
+- shadcn `alert-dialog` is already installed (used by `DeleteAccountDialog` on the profile page — `src/components/profile/DeleteAccountDialog.tsx` is a good reference for the confirm-dialog pattern, though this one needs no typed confirmation text, just Cancel/Delete)
+- On success: call `close()` from `useItemDrawer()` to dismiss the drawer, `toast.success(...)`, and `router.refresh()` to sync server-rendered lists — mirroring the pattern `handleSave`/`handleToggleFavorite` already use in `ItemDrawer.tsx`
+- Add unit tests for the new `deleteItem` action to `src/actions/items.test.ts`, mirroring existing coverage (unauthorized, not-found/ownership, success)
 
 ## History
 
