@@ -9,6 +9,14 @@ import { findResetEligibleUser } from "@/lib/db/user";
 import { createPasswordResetToken, consumePasswordResetToken } from "@/lib/db/verification";
 import { sendPasswordResetEmail } from "@/lib/email/send-password-reset-email";
 import { getBaseUrl } from "@/lib/url";
+import {
+  checkRateLimit,
+  forgotPasswordRateLimit,
+  getClientIp,
+  loginRateLimit,
+  rateLimitMessage,
+  resetPasswordRateLimit,
+} from "@/lib/rate-limit";
 
 export type SignInState = { error: string } | undefined;
 
@@ -23,6 +31,13 @@ export async function signInWithCredentials(
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  const ip = await getClientIp();
+  const rateLimit = await checkRateLimit(loginRateLimit, `${ip}:${parsed.data.email}`);
+
+  if (!rateLimit.success) {
+    return { error: rateLimitMessage(rateLimit.reset) };
   }
 
   const callbackUrl = formData.get("callbackUrl")?.toString() || "/dashboard";
@@ -64,6 +79,13 @@ export async function requestPasswordReset(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
+  const ip = await getClientIp();
+  const rateLimit = await checkRateLimit(forgotPasswordRateLimit, ip);
+
+  if (!rateLimit.success) {
+    return { error: rateLimitMessage(rateLimit.reset) };
+  }
+
   const { email } = parsed.data;
   const user = await findResetEligibleUser(email);
 
@@ -90,6 +112,13 @@ export async function resetPassword(
 
   if (!token) {
     return { error: "Invalid or missing reset token" };
+  }
+
+  const ip = await getClientIp();
+  const rateLimit = await checkRateLimit(resetPasswordRateLimit, ip);
+
+  if (!rateLimit.success) {
+    return { error: rateLimitMessage(rateLimit.reset) };
   }
 
   const parsed = resetPasswordSchema.safeParse({
