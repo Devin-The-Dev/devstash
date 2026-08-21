@@ -2,7 +2,11 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { updateItem as updateItemQuery, type ItemDetail } from "@/lib/db/items";
+import {
+  deleteItem as deleteItemQuery,
+  updateItem as updateItemQuery,
+  type ItemDetail,
+} from "@/lib/db/items";
 import { updateItemSchema } from "@/lib/validations/items";
 
 type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
@@ -82,4 +86,23 @@ export async function updateItem(
   const updated = await updateItemQuery(session.user.id, itemId, parsed.data);
 
   return { success: true, data: updated };
+}
+
+export async function deleteItem(itemId: string): Promise<ActionResult<{ id: string }>> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const item = await prisma.item.findFirst({
+    where: { id: itemId, userId: session.user.id },
+    select: { id: true },
+  });
+  if (!item) {
+    return { success: false, error: "Item not found" };
+  }
+
+  await deleteItemQuery(session.user.id, itemId);
+
+  return { success: true, data: { id: itemId } };
 }
