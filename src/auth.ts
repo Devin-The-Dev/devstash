@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
@@ -7,6 +7,10 @@ import { ZodError } from "zod";
 import { prisma } from "@/lib/prisma";
 import authConfig from "@/auth.config";
 import { signInSchema } from "@/lib/validations/auth";
+
+export class EmailNotVerifiedError extends CredentialsSignin {
+  code = "email_not_verified";
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -42,7 +46,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // Overrides the auth.config.ts Credentials placeholder — bcrypt/Prisma
   // aren't Edge-compatible, so the real authorize logic only lives here.
   providers: [
-    GitHub({ allowDangerousEmailAccountLinking: true }),
+    GitHub,
     Credentials({
       credentials: { email: {}, password: {} },
       authorize: async (credentials) => {
@@ -51,7 +55,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           const user = await prisma.user.findUnique({
             where: { email },
-            select: { id: true, name: true, email: true, image: true, password: true },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+              password: true,
+              emailVerified: true,
+            },
           });
 
           if (!user?.password) {
@@ -61,6 +72,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const isValid = await bcrypt.compare(password, user.password);
           if (!isValid) {
             return null;
+          }
+
+          if (!user.emailVerified) {
+            throw new EmailNotVerifiedError();
           }
 
           return { id: user.id, name: user.name, email: user.email, image: user.image };

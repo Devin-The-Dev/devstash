@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
-import { signIn, signOut } from "@/auth";
+import { signIn, signOut, EmailNotVerifiedError } from "@/auth";
 import { signInSchema, forgotPasswordSchema, resetPasswordSchema } from "@/lib/validations/auth";
 import { findResetEligibleUser } from "@/lib/db/user";
 import { createPasswordResetToken, consumePasswordResetToken } from "@/lib/db/verification";
@@ -49,6 +49,9 @@ export async function signInWithCredentials(
       redirectTo: callbackUrl,
     });
   } catch (error) {
+    if (error instanceof EmailNotVerifiedError) {
+      return { error: "Please verify your email before signing in. Check your inbox for the verification link." };
+    }
     if (error instanceof AuthError) {
       return { error: "Invalid email or password" };
     }
@@ -92,7 +95,7 @@ export async function requestPasswordReset(
   if (user) {
     try {
       const token = await createPasswordResetToken(email);
-      const resetUrl = `${await getBaseUrl()}/reset-password?token=${token}`;
+      const resetUrl = `${getBaseUrl()}/reset-password?token=${token}`;
       await sendPasswordResetEmail(email, user.name, resetUrl);
     } catch (error) {
       console.error("Failed to send password reset email:", error);
