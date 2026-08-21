@@ -1,20 +1,18 @@
 # Current Feature
 
-Fix Critical findings from `docs/audit-results/AUTH_SECURITY_REVIEW.md` (auth-auditor agent, 2026-08-17).
+<!-- Feature name and short description -->
 
 ## Status
 
-Complete
+<!-- Not Started | In Progress | Complete -->
 
 ## Goals
 
-- Critical #1: Stop building password-reset/verification links from unvalidated `Host`/`X-Forwarded-Host` request headers (`src/lib/url.ts`). Use a fixed, server-configured `APP_URL` instead.
-- Critical #2: Close the pre-account-takeover chain — enforce `emailVerified` in the Credentials `authorize()` (`src/auth.ts`) and remove `allowDangerousEmailAccountLinking` from the GitHub provider so an unverified credentials account can no longer be silently linked to (and later reused to access) a victim's GitHub identity.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- The 2026-07-29 `email-verification-on-register` feature deliberately left `authorize()` ungated on `emailVerified` (user-directed reversal, to keep seeded/test accounts working). That decision is being explicitly overridden now per the security audit + user approval. The seeded demo user (`demo@devstash.io`) already has `emailVerified` set in `prisma/seed.ts`, so it's unaffected by the new gate.
-- Only the 2 Critical findings are in scope for this pass — High/Medium/Low findings in the same report are not being addressed here.
+<!-- Any extra notes -->
 
 ## History
 
