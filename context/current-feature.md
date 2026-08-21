@@ -1,18 +1,30 @@
-# Current Feature
+# Current Feature: Item Create
 
-<!-- Feature name and short description -->
+Add new items via a modal dialog, opened from the "New Item" button in the top bar.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Modal opens from the existing "New Item" button in the top bar, using the shadcn `Dialog` component
+- Type selector for snippet, prompt, command, note, link
+- Fields shown conditionally based on selected type:
+  - All types: title (required), description, tags
+  - snippet/command: content, language
+  - prompt/note: content
+  - link: URL (required)
+- Optional Collection selector (dropdown of the user's collections) shown for all types, per the reference screenshot — not in the written spec but confirmed with the user; items can also be created uncollected
+- Server action `createItem` (Zod-validated) calling a new `createItem` query function in `lib/db/items.ts`
+- On success: toast, close modal, refresh (matching the existing edit/delete pattern of `router.refresh()`)
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec source: `context/features/item-create-spec.md`
+- Reference screenshot: `context/screenshots/dashboard-ui-popup.png`
+- This is the first in-app create flow — per the 2026-07-30 History entry, new users currently have no way to populate their own dashboard. Should follow the ownership-scoped, session-checked pattern established by `updateItem`/`deleteItem` in `src/actions/items.ts`.
+- Likely reuses `ITEM_DETAIL_SELECT`/validation conventions already established in `src/lib/validations/items.ts` and `src/lib/db/items.ts` for the edit flow.
 
 ## History
 
