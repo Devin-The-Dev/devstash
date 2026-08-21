@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: Item Drawer — Edit Mode
 
-<!-- Feature name and short description -->
+Clicking the Edit button (pencil icon) in the item drawer's action bar switches from view mode to edit mode inline, in the same drawer, without navigating away.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Edit button toggles the drawer into edit mode; action bar is replaced with Save/Cancel buttons
+- Cancel discards changes and returns to view mode
+- Save persists changes via server action, returns to view mode, refreshes drawer data, and shows a toast on success or error
+- Editable for all types: Title (text, required), Description (textarea, optional), Tags (comma-separated text input → array on save)
+- Editable per type: Content (textarea) for snippet/prompt/command/note; Language (text) for snippet/command; URL (text) for link
+- Display-only in edit mode: item type, collections, created/updated dates
+- Add `updateItem(itemId, data)` server action in `src/actions/items.ts` — Zod-validates input, checks session via `auth()`, validates ownership, calls the DB query function, returns `{ success, data, error }`
+- Add `updateItem` query function in `src/lib/db/items.ts` — on tag update, disconnect all existing tags and connect-or-create new ones; returns updated `ItemDetail`
 
 ## Notes
 
-<!-- Any extra notes -->
+- Zod schema per spec: `title` non-empty trimmed string; `description` string|null optional; `content` string|null optional; `url` valid URL string|null optional; `language` string|null optional; `tags` array of trimmed non-empty strings. Return Zod errors in `{ success: false, error }`.
+- Keep it simple — controlled inputs with local state, no form library
+- Client-side: disable Save when title is empty (basic UX guard); server-side Zod validation is the source of truth
+- Content textarea is plain, not a code editor (deferred)
+- After save, call `router.refresh()` so the underlying card list reflects changes
 
 ## History
 

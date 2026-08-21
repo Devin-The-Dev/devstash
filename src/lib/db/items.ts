@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import type { UpdateItemInput } from "@/lib/validations/items";
 
 export type ItemTypeSummary = {
   id: string;
@@ -105,44 +106,85 @@ export const getItemsByType = cache(
   },
 );
 
+const ITEM_DETAIL_SELECT = {
+  id: true,
+  title: true,
+  description: true,
+  contentType: true,
+  content: true,
+  fileUrl: true,
+  fileName: true,
+  fileSize: true,
+  url: true,
+  language: true,
+  isFavorite: true,
+  isPinned: true,
+  lastUsedAt: true,
+  createdAt: true,
+  updatedAt: true,
+  type: { select: { id: true, name: true, icon: true, color: true } },
+  tags: { select: { tag: { select: { name: true } } } },
+  collections: {
+    select: { collection: { select: { id: true, name: true } } },
+    orderBy: { addedAt: "asc" },
+  },
+} as const;
+
+function toItemDetail(item: {
+  tags: { tag: { name: string } }[];
+  collections: { collection: { id: string; name: string } }[];
+  [key: string]: unknown;
+}): ItemDetail {
+  return {
+    ...item,
+    tags: item.tags.map(({ tag }) => tag.name),
+    collections: item.collections.map(({ collection }) => collection),
+  } as ItemDetail;
+}
+
 export async function getItemDetail(
   userId: string,
   itemId: string,
 ): Promise<ItemDetail | null> {
   const item = await prisma.item.findFirst({
     where: { id: itemId, userId },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      contentType: true,
-      content: true,
-      fileUrl: true,
-      fileName: true,
-      fileSize: true,
-      url: true,
-      language: true,
-      isFavorite: true,
-      isPinned: true,
-      lastUsedAt: true,
-      createdAt: true,
-      updatedAt: true,
-      type: { select: { id: true, name: true, icon: true, color: true } },
-      tags: { select: { tag: { select: { name: true } } } },
-      collections: {
-        select: { collection: { select: { id: true, name: true } } },
-        orderBy: { addedAt: "asc" },
-      },
-    },
+    select: ITEM_DETAIL_SELECT,
   });
 
   if (!item) return null;
 
-  return {
-    ...item,
-    tags: item.tags.map(({ tag }) => tag.name),
-    collections: item.collections.map(({ collection }) => collection),
-  };
+  return toItemDetail(item);
+}
+
+export async function updateItem(
+  userId: string,
+  itemId: string,
+  data: UpdateItemInput,
+): Promise<ItemDetail> {
+  const item = await prisma.item.update({
+    where: { id: itemId },
+    data: {
+      title: data.title,
+      description: data.description,
+      content: data.content,
+      url: data.url,
+      language: data.language,
+      tags: {
+        deleteMany: {},
+        create: data.tags.map((name) => ({
+          tag: {
+            connectOrCreate: {
+              where: { name_userId: { name, userId } },
+              create: { name, userId },
+            },
+          },
+        })),
+      },
+    },
+    select: ITEM_DETAIL_SELECT,
+  });
+
+  return toItemDetail(item);
 }
 
 export const getDashboardItems = cache(
