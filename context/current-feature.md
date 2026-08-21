@@ -1,22 +1,26 @@
 # Current Feature
 
-<!-- Feature name and short description -->
+Fix Critical findings from `docs/audit-results/AUTH_SECURITY_REVIEW.md` (auth-auditor agent, 2026-08-17).
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
+Complete
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Critical #1: Stop building password-reset/verification links from unvalidated `Host`/`X-Forwarded-Host` request headers (`src/lib/url.ts`). Use a fixed, server-configured `APP_URL` instead.
+- Critical #2: Close the pre-account-takeover chain — enforce `emailVerified` in the Credentials `authorize()` (`src/auth.ts`) and remove `allowDangerousEmailAccountLinking` from the GitHub provider so an unverified credentials account can no longer be silently linked to (and later reused to access) a victim's GitHub identity.
 
 ## Notes
 
-<!-- Any extra notes -->
+- The 2026-07-29 `email-verification-on-register` feature deliberately left `authorize()` ungated on `emailVerified` (user-directed reversal, to keep seeded/test accounts working). That decision is being explicitly overridden now per the security audit + user approval. The seeded demo user (`demo@devstash.io`) already has `emailVerified` set in `prisma/seed.ts`, so it's unaffected by the new gate.
+- Only the 2 Critical findings are in scope for this pass — High/Medium/Low findings in the same report are not being addressed here.
 
 ## History
 
 <!-- Keep this updated. Earliest to latest -->
+
+- **2026-08-21** — Fixed both Critical findings from the 2026-08-17 auth security audit, on `fix/critical-auth-findings`. `src/lib/url.ts`'s `getBaseUrl()` no longer reads `x-forwarded-host`/`host` from the request at all — it now returns a fixed `APP_URL` env var (falling back to `http://localhost:3000`), closing the Host Header Injection → password-reset-poisoning vector (Critical #1). Added `APP_URL="https://devstash-lilac-eta.vercel.app"` to `.env.production` (user-provided; gitignored, untracked) and documented the var in `.env.example`. For Critical #2 (pre-account-takeover via unverified Credentials signup + `allowDangerousEmailAccountLinking`), removed `allowDangerousEmailAccountLinking: true` from the GitHub provider in `src/auth.ts` (now just `GitHub`) and added an `emailVerified` check to the Credentials `authorize()` — selects `emailVerified` in the Prisma lookup and throws a new `EmailNotVerifiedError` (extends `CredentialsSignin`, `code: "email_not_verified"`) when a password-valid user hasn't verified their email. `signInWithCredentials` (`src/actions/auth.ts`) catches this specific error before the generic `AuthError` branch and returns a distinct "Please verify your email..." message, reusing the existing `Alert`-based error UI with zero component changes. This explicitly reverses the 2026-07-29 decision to leave `authorize()` ungated — the seeded demo user (`demo@devstash.io`) already has `emailVerified` set in `prisma/seed.ts` so it's unaffected. Also dropped two now-redundant `await`s on the newly-synchronous `getBaseUrl()` (`src/actions/auth.ts`, `src/app/api/auth/register/route.ts`). Verified with `tsc --noEmit`, `npm run lint`, `npm run build`, and a live Playwright + Neon MCP pass: demo account still signs in and reaches `/dashboard` unaffected; a freshly registered account correctly blocked at sign-in with the new "please verify your email" message while unverified; verifying via the emailed token then signing in again succeeds; grepped `src/` afterward to confirm zero remaining references to `x-forwarded-host`/request `Host` headers anywhere in the codebase. Test account and its verification token deleted from the dev branch afterward. Only the 2 Critical findings were addressed — the report's High/Medium/Low findings remain open for a future pass.
 
 - **2026-06-03** — Initial Next.js 16.2.6 project scaffolded via Create Next App. Stack includes React 19, TypeScript (strict), Tailwind CSS v4, Prisma 7 + Neon, NextAuth v5, Cloudflare R2, OpenAI, shadcn/ui, and Stripe. Project context, CLAUDE.md, and coding standards added.
 - **2026-06-13** — Dashboard UI Phase 1 of 3 completed. Initialized ShadCN UI, added base components, created the /dashboard route with dark mode by default, a top bar (DevStash branding, sidebar toggle, search, "New collection" and "New item" buttons), and placeholder Sidebar/Main sections.

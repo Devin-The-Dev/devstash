@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
     try {
       const token = await createVerificationToken(email);
-      const verifyUrl = `${await getBaseUrl()}/verify-email?token=${token}`;
+      const verifyUrl = `${getBaseUrl()}/verify-email?token=${token}`;
       await sendVerificationEmail(email, name, verifyUrl);
     } catch (error) {
       console.error("Failed to send verification email:", error);
