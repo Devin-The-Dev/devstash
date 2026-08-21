@@ -90,6 +90,14 @@ Example v4 configuration:
 - Return `{ success, data, error }` pattern from actions
 - Display user-friendly error messages via toast
 
+## Testing
+
+- Vitest for unit tests. Run with `npm run test` (single run) or `npm run test:watch`
+- Only test **server actions** (`src/actions/`) and **utilities/validations** (`src/lib/`) — no component tests
+- Colocate tests next to the code as `*.test.ts` (e.g. `src/lib/format.ts` → `src/lib/format.test.ts`)
+- Mock external dependencies (`@/lib/prisma`, `@/auth`, email, rate-limit) with `vi.mock` — tests must not hit the real database or send real emails
+- Environment is Node (no `jsdom`) since components aren't tested here
+
 ## Code Quality
 
 - No commented-out code unless specified
