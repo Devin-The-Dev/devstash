@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/auth/UserAvatar";
 import { getItemTypeIcon } from "@/lib/item-type-icons";
 import { getCollectionsWithStats } from "@/lib/db/collections";
-import { getSystemItemTypes } from "@/lib/db/items";
+import { getSystemItemTypes, itemTypeSlug } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
 import { signOutAction } from "@/actions/auth";
 
@@ -83,7 +83,7 @@ export async function AppSidebar() {
             <SidebarMenu>
               {itemTypes.map((type) => {
                 const Icon = getItemTypeIcon(type.icon);
-                const slug = `${type.name.toLowerCase()}s`;
+                const slug = itemTypeSlug(type.name);
                 const isPro = proItemTypeNames.has(type.name) && !currentUser.isPro;
                 return (
                   <SidebarMenuItem key={type.id}>

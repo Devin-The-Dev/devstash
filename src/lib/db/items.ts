@@ -41,6 +41,55 @@ export const getSystemItemTypes = cache(async (): Promise<ItemTypeSummary[]> => 
   );
 });
 
+export function itemTypeSlug(name: string): string {
+  return `${name.toLowerCase()}s`;
+}
+
+export const getItemsByType = cache(
+  async (
+    userId: string,
+    typeSlug: string,
+  ): Promise<{ type: ItemTypeSummary; items: ItemSummary[] } | null> => {
+    const types = await getSystemItemTypes();
+    const type = types.find((t) => itemTypeSlug(t.name) === typeSlug);
+    if (!type) return null;
+
+    const items = await prisma.item.findMany({
+      where: { userId, typeId: type.id },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        isFavorite: true,
+        isPinned: true,
+        lastUsedAt: true,
+        updatedAt: true,
+        tags: { select: { tag: { select: { name: true } } } },
+        collections: {
+          select: { collectionId: true },
+          orderBy: { addedAt: "asc" },
+        },
+      },
+    });
+
+    const summaries: ItemSummary[] = items
+      .map((item) => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        type,
+        tags: item.tags.map(({ tag }) => tag.name),
+        isFavorite: item.isFavorite,
+        isPinned: item.isPinned,
+        lastUsedAt: item.lastUsedAt ?? item.updatedAt,
+        collectionId: item.collections[0]?.collectionId ?? null,
+      }))
+      .sort((a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime());
+
+    return { type, items: summaries };
+  },
+);
+
 export const getDashboardItems = cache(
   async (userId: string, recentLimit = 10): Promise<DashboardItems> => {
     const items = await prisma.item.findMany({

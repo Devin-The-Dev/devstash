@@ -74,6 +74,8 @@ const ITEM_TAGS: Record<string, string[]> = {
   "item-link-shadcn": ["tag-components", "tag-ui"],
   "item-link-radix-themes": ["tag-components", "tag-accessibility"],
   "item-link-lucide": ["tag-icons", "tag-ui"],
+  "item-note-deploy-checklist": ["tag-deploy", "tag-ci"],
+  "item-note-hook-guidelines": ["tag-react", "tag-hooks"],
 };
 
 // Computed relative to seed run time so "recently used" stays plausible on reseed.
@@ -532,6 +534,39 @@ volumes:
       contentType: "URL",
       lastUsedAt: hoursAgo(420),
       url: "https://lucide.dev/icons/",
+    },
+  );
+
+  // ─── Notes (2 notes) ─────────────────────────────────────────────────────
+
+  await seedItem(
+    "item-note-deploy-checklist",
+    user.id,
+    "system-note",
+    collections.devOps.id,
+    {
+      title: "Pre-deploy checklist",
+      description: "Steps to run through before shipping to production",
+      contentType: "TEXT",
+      isPinned: true,
+      lastUsedAt: hoursAgo(10),
+      content:
+        "1. Run migrations against staging first\n2. Check error budget / recent alerts\n3. Confirm rollback plan\n4. Deploy during low-traffic window",
+    },
+  );
+
+  await seedItem(
+    "item-note-hook-guidelines",
+    user.id,
+    "system-note",
+    collections.reactPatterns.id,
+    {
+      title: "Custom hook naming guidelines",
+      description: "Conventions for naming and structuring shared hooks",
+      contentType: "TEXT",
+      lastUsedAt: hoursAgo(45),
+      content:
+        "Prefix all shared hooks with use. Return arrays for order-dependent pairs (like useState), objects for named fields. Keep side effects colocated with the state they manage.",
     },
   );
 
