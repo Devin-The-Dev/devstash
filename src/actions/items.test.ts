@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const { authMock, prismaMock, updateItemQueryMock } = vi.hoisted(() => ({
+const { authMock, prismaMock, updateItemQueryMock, deleteItemQueryMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
   prismaMock: {
     item: {
@@ -9,6 +9,7 @@ const { authMock, prismaMock, updateItemQueryMock } = vi.hoisted(() => ({
     },
   },
   updateItemQueryMock: vi.fn(),
+  deleteItemQueryMock: vi.fn(),
 }));
 
 vi.mock("@/auth", () => ({
@@ -21,9 +22,12 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/db/items", () => ({
   updateItem: updateItemQueryMock,
+  deleteItem: deleteItemQueryMock,
 }));
 
-const { toggleItemFavorite, toggleItemPinned, updateItem } = await import("@/actions/items");
+const { toggleItemFavorite, toggleItemPinned, updateItem, deleteItem } = await import(
+  "@/actions/items"
+);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -183,5 +187,42 @@ describe("updateItem", () => {
 
     expect(result).toEqual({ success: true, data: updated });
     expect(updateItemQueryMock).toHaveBeenCalledWith("user-1", "item-1", validInput);
+  });
+});
+
+describe("deleteItem", () => {
+  it("returns an error when there is no authenticated session", async () => {
+    authMock.mockResolvedValue(null);
+
+    const result = await deleteItem("item-1");
+
+    expect(result).toEqual({ success: false, error: "Unauthorized" });
+    expect(prismaMock.item.findFirst).not.toHaveBeenCalled();
+    expect(deleteItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("returns an error when the item doesn't belong to the user", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    prismaMock.item.findFirst.mockResolvedValue(null);
+
+    const result = await deleteItem("item-1");
+
+    expect(result).toEqual({ success: false, error: "Item not found" });
+    expect(prismaMock.item.findFirst).toHaveBeenCalledWith({
+      where: { id: "item-1", userId: "user-1" },
+      select: { id: true },
+    });
+    expect(deleteItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("deletes the item and returns its id on success", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    prismaMock.item.findFirst.mockResolvedValue({ id: "item-1" });
+    deleteItemQueryMock.mockResolvedValue(undefined);
+
+    const result = await deleteItem("item-1");
+
+    expect(result).toEqual({ success: true, data: { id: "item-1" } });
+    expect(deleteItemQueryMock).toHaveBeenCalledWith("user-1", "item-1");
   });
 });
