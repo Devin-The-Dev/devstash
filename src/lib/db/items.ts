@@ -187,6 +187,12 @@ export async function updateItem(
   return toItemDetail(item);
 }
 
+export async function deleteItem(userId: string, itemId: string): Promise<void> {
+  await prisma.item.delete({
+    where: { id: itemId },
+  });
+}
+
 export const getDashboardItems = cache(
   async (userId: string, recentLimit = 10): Promise<DashboardItems> => {
     const items = await prisma.item.findMany({
