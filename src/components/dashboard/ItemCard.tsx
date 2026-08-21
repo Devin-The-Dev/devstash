@@ -1,17 +1,19 @@
-import Link from "next/link";
+"use client";
+
 import { Pin, Star, Box } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { itemTypeIconMap } from "@/lib/item-type-icons";
 import { formatRelativeTime } from "@/lib/format";
+import { useItemDrawer } from "@/components/items/ItemDrawerProvider";
 import type { ItemSummary } from "@/lib/db/items";
 
 export function ItemCard({ item }: { item: ItemSummary }) {
   const Icon = itemTypeIconMap[item.type.icon] ?? Box;
-  const href = item.collectionId ? `/collections/${item.collectionId}` : "/dashboard";
+  const { openItem } = useItemDrawer();
 
   return (
-    <Link href={href}>
+    <button type="button" className="block w-full text-left" onClick={() => openItem(item.id)}>
       <Card
         size="sm"
         className="h-full border-l-4 transition-colors hover:bg-accent/50"
@@ -43,6 +45,6 @@ export function ItemCard({ item }: { item: ItemSummary }) {
           </div>
         </CardContent>
       </Card>
-    </Link>
+    </button>
   );
 }
