@@ -1,15 +1,27 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const { authMock, prismaMock, updateItemQueryMock, deleteItemQueryMock } = vi.hoisted(() => ({
+const {
+  authMock,
+  prismaMock,
+  createItemQueryMock,
+  updateItemQueryMock,
+  deleteItemQueryMock,
+  getSystemItemTypesMock,
+} = vi.hoisted(() => ({
   authMock: vi.fn(),
   prismaMock: {
     item: {
       findFirst: vi.fn(),
       update: vi.fn(),
     },
+    collection: {
+      findFirst: vi.fn(),
+    },
   },
+  createItemQueryMock: vi.fn(),
   updateItemQueryMock: vi.fn(),
   deleteItemQueryMock: vi.fn(),
+  getSystemItemTypesMock: vi.fn(),
 }));
 
 vi.mock("@/auth", () => ({
@@ -21,13 +33,19 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 vi.mock("@/lib/db/items", () => ({
+  createItem: createItemQueryMock,
   updateItem: updateItemQueryMock,
   deleteItem: deleteItemQueryMock,
+  getSystemItemTypes: getSystemItemTypesMock,
 }));
 
-const { toggleItemFavorite, toggleItemPinned, updateItem, deleteItem } = await import(
+const { createItem, toggleItemFavorite, toggleItemPinned, updateItem, deleteItem } = await import(
   "@/actions/items"
 );
+
+const SNIPPET_TYPE = { id: "type-snippet", name: "Snippet", icon: "code", color: "#000" };
+const LINK_TYPE = { id: "type-link", name: "Link", icon: "link", color: "#000" };
+const FILE_TYPE = { id: "type-file", name: "File", icon: "file", color: "#000" };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -120,6 +138,133 @@ describe("toggleItemPinned", () => {
       where: { id: "item-1" },
       data: { isPinned: true },
       select: { isPinned: true },
+    });
+  });
+});
+
+describe("createItem", () => {
+  const validInput = {
+    typeId: "type-snippet",
+    collectionId: null,
+    title: "useDebounce hook",
+    description: null,
+    content: "const x = 1;",
+    url: null,
+    language: "typescript",
+    tags: ["react"],
+  };
+
+  it("returns an error when there is no authenticated session", async () => {
+    authMock.mockResolvedValue(null);
+
+    const result = await createItem(validInput);
+
+    expect(result).toEqual({ success: false, error: "Unauthorized" });
+    expect(getSystemItemTypesMock).not.toHaveBeenCalled();
+    expect(createItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("returns a validation error for an empty title", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+
+    const result = await createItem({ ...validInput, title: "  " });
+
+    expect(result).toEqual({ success: false, error: "Title is required" });
+    expect(getSystemItemTypesMock).not.toHaveBeenCalled();
+    expect(createItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("returns a validation error for an invalid url", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+
+    const result = await createItem({ ...validInput, url: "not-a-url" });
+
+    expect(result.success).toBe(false);
+    expect(getSystemItemTypesMock).not.toHaveBeenCalled();
+    expect(createItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("returns an error for an unknown or non-creatable type id", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE, LINK_TYPE, FILE_TYPE]);
+
+    const result = await createItem({ ...validInput, typeId: FILE_TYPE.id });
+
+    expect(result).toEqual({ success: false, error: "Invalid item type" });
+    expect(createItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("returns an error when a link item has no url", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE, LINK_TYPE]);
+
+    const result = await createItem({ ...validInput, typeId: LINK_TYPE.id, url: null });
+
+    expect(result).toEqual({ success: false, error: "URL is required for link items" });
+    expect(createItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("returns an error when the collection doesn't belong to the user", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE]);
+    prismaMock.collection.findFirst.mockResolvedValue(null);
+
+    const result = await createItem({ ...validInput, collectionId: "collection-1" });
+
+    expect(result).toEqual({ success: false, error: "Collection not found" });
+    expect(prismaMock.collection.findFirst).toHaveBeenCalledWith({
+      where: { id: "collection-1", userId: "user-1" },
+      select: { id: true },
+    });
+    expect(createItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("creates a text item and returns the detail on success", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE]);
+    const created = { id: "item-1", title: "useDebounce hook" };
+    createItemQueryMock.mockResolvedValue(created);
+
+    const result = await createItem(validInput);
+
+    expect(result).toEqual({ success: true, data: created });
+    expect(createItemQueryMock).toHaveBeenCalledWith("user-1", {
+      typeId: SNIPPET_TYPE.id,
+      collectionId: null,
+      title: "useDebounce hook",
+      description: null,
+      contentType: "TEXT",
+      content: "const x = 1;",
+      url: null,
+      language: "typescript",
+      tags: ["react"],
+    });
+  });
+
+  it("creates a link item with URL contentType and no content", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    getSystemItemTypesMock.mockResolvedValue([LINK_TYPE]);
+    const created = { id: "item-2", title: "shadcn/ui" };
+    createItemQueryMock.mockResolvedValue(created);
+
+    const result = await createItem({
+      ...validInput,
+      typeId: LINK_TYPE.id,
+      title: "shadcn/ui",
+      url: "https://ui.shadcn.com",
+    });
+
+    expect(result).toEqual({ success: true, data: created });
+    expect(createItemQueryMock).toHaveBeenCalledWith("user-1", {
+      typeId: LINK_TYPE.id,
+      collectionId: null,
+      title: "shadcn/ui",
+      description: null,
+      contentType: "URL",
+      content: null,
+      url: "https://ui.shadcn.com",
+      language: "typescript",
+      tags: ["react"],
     });
   });
 });
