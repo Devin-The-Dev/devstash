@@ -1,18 +1,40 @@
-# Current Feature
+# Current Feature: Rate Limiting for Auth
 
-<!-- Feature name and short description -->
+Implement rate limiting on authentication endpoints to prevent brute force attacks, credential stuffing, and abuse of email-sending endpoints.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Add rate limiting to auth-related entry points (routes and server actions)
+- Use Upstash Redis with `@upstash/ratelimit` for serverless-compatible limiting (sliding window algorithm)
+- Create a reusable rate limiting utility (`src/lib/rate-limit.ts`) with an Upstash client
+- Return `429 Too Many Requests` with `{ error: "Too many attempts. Please try again in X minutes." }` and an appropriate `Retry-After` header (for server actions, the equivalent shape via `useActionState` error state)
+- Display user-friendly error messages on the frontend — implemented as inline form errors via the existing `Alert` pattern used by `SignInForm`/`ForgotPasswordForm`/`ResetPasswordForm`/`register/page.tsx`, not a toast (no toast library exists in the repo, and the existing Alert-based error display already surfaces the rate-limit message with no UI changes needed)
+- Protect the following:
+  | Entry point | Limit | Window | Key By |
+  |----------|-------|--------|--------|
+  | Credentials sign-in (`signInWithCredentials` action, `src/actions/auth.ts`) | 5 attempts | 15 min | IP + email |
+  | `POST /api/auth/register` | 3 attempts | 1 hour | IP |
+  | `requestPasswordReset()` action (`src/actions/auth.ts`) | 3 attempts | 1 hour | IP |
+  | `resetPassword()` action (`src/actions/auth.ts`) | 5 attempts | 15 min | IP |
 
 ## Notes
 
-<!-- Any extra notes -->
+- Extract client IP from `x-forwarded-for` header (Vercel) or the request itself
+- Combine IP + identifier (email) for tighter limits where specified above
+- Rate limit checks should return `{ success, remaining, reset }`
+- Rate limiting should fail open (allow requests) if Upstash is unavailable
+- Env vars needed: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` (add to `.env.example`)
+- Upstash free tier allows 10k requests/day — sufficient for auth limiting
+- Decisions made resolving spec vs. codebase mismatches (confirmed with user before implementation):
+  - `resend-verification` is out of scope — no such feature exists yet (registration only auto-sends one verification email on signup); building one just to rate-limit it would be scope creep beyond this feature's goal.
+  - `reset-password` window is 15 min, not the spec's literal "15 hours" (treated as a typo, consistent with every other endpoint using minutes).
+  - `register`, `forgot-password`, and `reset-password` are rate-limited at their real code entry points — `POST /api/auth/register` (a route) and the `requestPasswordReset()`/`resetPassword()` server actions (`src/actions/auth.ts`) — since forgot/reset-password aren't API routes in this codebase.
+- Login rate limiting is tricky with NextAuth credentials — limiting happens inside `signInWithCredentials` (the server action that calls NextAuth's `signIn()`), not the NextAuth callback route itself, since that route isn't directly reachable as a discrete rate-limitable entry point in this codebase's flow
+- Consider adding rate limiting middleware (`src/proxy.ts` already exists as the NextAuth proxy) for cleaner implementation later — noted as a future improvement, not required for this pass
 
 ## History
 

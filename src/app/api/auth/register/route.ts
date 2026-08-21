@@ -6,8 +6,25 @@ import { registerSchema } from "@/lib/validations/auth";
 import { createVerificationToken } from "@/lib/db/verification";
 import { sendVerificationEmail } from "@/lib/email/send-verification-email";
 import { getBaseUrl } from "@/lib/url";
+import {
+  checkRateLimit,
+  getClientIp,
+  rateLimitMessage,
+  registerRateLimit,
+  retryAfterSeconds,
+} from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const ip = await getClientIp();
+  const rateLimit = await checkRateLimit(registerRateLimit, ip);
+
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { success: false, error: rateLimitMessage(rateLimit.reset) },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds(rateLimit.reset)) } },
+    );
+  }
+
   try {
     const body = await request.json();
     const { name, email, password } = await registerSchema.parseAsync(body);
