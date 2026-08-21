@@ -3,15 +3,19 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Check, Copy, Pencil, Pin, Star, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { useItemDrawer } from "@/components/items/ItemDrawerProvider";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { itemTypeIconMap } from "@/lib/item-type-icons";
 import { formatDate } from "@/lib/format";
-import { toggleItemFavorite, toggleItemPinned } from "@/actions/items";
+import { toggleItemFavorite, toggleItemPinned, updateItem } from "@/actions/items";
 import type { ItemDetail } from "@/lib/db/items";
 
 type DrawerItem = Omit<ItemDetail, "lastUsedAt" | "createdAt" | "updatedAt"> & {
@@ -22,12 +26,45 @@ type DrawerItem = Omit<ItemDetail, "lastUsedAt" | "createdAt" | "updatedAt"> & {
 
 type FetchResult = { id: string; item: DrawerItem } | { id: string; error: true };
 
+const CONTENT_TYPES = ["Snippet", "Prompt", "Command", "Note"];
+const LANGUAGE_TYPES = ["Snippet", "Command"];
+const URL_TYPES = ["Link"];
+
+type EditForm = {
+  title: string;
+  description: string;
+  content: string;
+  url: string;
+  language: string;
+  tags: string;
+};
+
+function toEditForm(item: DrawerItem): EditForm {
+  return {
+    title: item.title,
+    description: item.description ?? "",
+    content: item.content ?? "",
+    url: item.url ?? "",
+    language: item.language ?? "",
+    tags: item.tags.join(", "),
+  };
+}
+
 export function ItemDrawer() {
   const { openItemId, close } = useItemDrawer();
   const router = useRouter();
   const [result, setResult] = useState<FetchResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [editForm, setEditForm] = useState<EditForm | null>(null);
+  const [lastOpenItemId, setLastOpenItemId] = useState(openItemId);
+
+  if (openItemId !== lastOpenItemId) {
+    setLastOpenItemId(openItemId);
+    setMode("view");
+    setEditForm(null);
+  }
 
   useEffect(() => {
     if (!openItemId) return;
@@ -97,6 +134,56 @@ export function ItemDrawer() {
     setTimeout(() => setCopied(false), 1500);
   }
 
+  function handleStartEdit() {
+    if (!item) return;
+    setEditForm(toEditForm(item));
+    setMode("edit");
+  }
+
+  function handleCancelEdit() {
+    setEditForm(null);
+    setMode("view");
+  }
+
+  function handleSave() {
+    if (!item || !editForm) return;
+    const title = editForm.title.trim();
+    if (!title) return;
+
+    const tags = editForm.tags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+
+    const payload = {
+      title,
+      description: editForm.description.trim() || null,
+      content: editForm.content.trim() || null,
+      url: editForm.url.trim() || null,
+      language: editForm.language.trim() || null,
+      tags,
+    };
+
+    startTransition(async () => {
+      const actionResult = await updateItem(item.id, payload);
+      if (!actionResult.success) {
+        toast.error(actionResult.error);
+        return;
+      }
+      const updated = actionResult.data;
+      patchItem({
+        ...updated,
+        lastUsedAt: updated.lastUsedAt ? new Date(updated.lastUsedAt).toISOString() : null,
+        createdAt: new Date(updated.createdAt).toISOString(),
+        updatedAt: new Date(updated.updatedAt).toISOString(),
+      });
+      setMode("view");
+      setEditForm(null);
+      toast.success("Item updated");
+      router.refresh();
+    });
+  }
+
   const Icon = item ? (itemTypeIconMap[item.type.icon] ?? Box) : Box;
 
   return (
@@ -126,96 +213,181 @@ export function ItemDrawer() {
             </SheetHeader>
 
             <div className="flex items-center justify-between px-4">
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
-                  disabled={isPending}
-                  onClick={handleToggleFavorite}
-                >
-                  <Star
-                    className={
-                      item.isFavorite ? "size-4 fill-yellow-400 text-yellow-400" : "size-4"
-                    }
-                  />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={item.isPinned ? "Unpin item" : "Pin item"}
-                  disabled={isPending}
-                  onClick={handleTogglePinned}
-                >
-                  <Pin
-                    className={item.isPinned ? "size-4 fill-current text-primary" : "size-4"}
-                  />
-                </Button>
-                <Button variant="ghost" size="icon-sm" aria-label="Copy" onClick={handleCopy}>
-                  {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-                </Button>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon-sm" aria-label="Edit" disabled>
-                  <Pencil className="size-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Delete"
-                  disabled
-                  className="text-destructive"
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
+              {mode === "edit" ? (
+                <div className="flex w-full items-center justify-end gap-2">
+                  <Button variant="outline" size="sm" disabled={isPending} onClick={handleCancelEdit}>
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={isPending || !editForm || editForm.title.trim().length === 0}
+                    onClick={handleSave}
+                  >
+                    Save
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                      disabled={isPending}
+                      onClick={handleToggleFavorite}
+                    >
+                      <Star
+                        className={
+                          item.isFavorite ? "size-4 fill-yellow-400 text-yellow-400" : "size-4"
+                        }
+                      />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={item.isPinned ? "Unpin item" : "Pin item"}
+                      disabled={isPending}
+                      onClick={handleTogglePinned}
+                    >
+                      <Pin
+                        className={item.isPinned ? "size-4 fill-current text-primary" : "size-4"}
+                      />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" aria-label="Copy" onClick={handleCopy}>
+                      {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon-sm" aria-label="Edit" onClick={handleStartEdit}>
+                      <Pencil className="size-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Delete"
+                      disabled
+                      className="text-destructive"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
 
             <Separator />
 
             <div className="flex flex-1 flex-col gap-4 px-4 pb-4">
-              {item.description && (
-                <p className="text-sm text-muted-foreground">{item.description}</p>
-              )}
+              {mode === "edit" && editForm ? (
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-title">Title</Label>
+                    <Input
+                      id="edit-title"
+                      value={editForm.title}
+                      onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                    />
+                  </div>
 
-              {item.content && (
-                <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap">
-                  {item.content}
-                </pre>
-              )}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-description">Description</Label>
+                    <Textarea
+                      id="edit-description"
+                      value={editForm.description}
+                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    />
+                  </div>
 
-              {item.url && (
-                <a
-                  href={item.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="truncate text-sm text-primary hover:underline"
-                >
-                  {item.url}
-                </a>
-              )}
+                  {CONTENT_TYPES.includes(item.type.name) && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="edit-content">Content</Label>
+                      <Textarea
+                        id="edit-content"
+                        className="min-h-32 font-mono text-xs"
+                        value={editForm.content}
+                        onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
+                      />
+                    </div>
+                  )}
 
-              {item.fileName && (
-                <p className="text-sm text-muted-foreground">
-                  {item.fileName}
-                  {item.fileSize ? ` · ${Math.round(item.fileSize / 1024)} KB` : ""}
-                </p>
-              )}
+                  {LANGUAGE_TYPES.includes(item.type.name) && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="edit-language">Language</Label>
+                      <Input
+                        id="edit-language"
+                        value={editForm.language}
+                        onChange={(e) => setEditForm({ ...editForm, language: e.target.value })}
+                      />
+                    </div>
+                  )}
 
-              {item.language && (
-                <Badge variant="secondary" className="w-fit text-xs">
-                  {item.language}
-                </Badge>
-              )}
+                  {URL_TYPES.includes(item.type.name) && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="edit-url">URL</Label>
+                      <Input
+                        id="edit-url"
+                        value={editForm.url}
+                        onChange={(e) => setEditForm({ ...editForm, url: e.target.value })}
+                      />
+                    </div>
+                  )}
 
-              {item.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {item.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
-                      {tag}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-tags">Tags</Label>
+                    <Input
+                      id="edit-tags"
+                      placeholder="Comma-separated"
+                      value={editForm.tags}
+                      onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  {item.description && (
+                    <p className="text-sm text-muted-foreground">{item.description}</p>
+                  )}
+
+                  {item.content && (
+                    <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap">
+                      {item.content}
+                    </pre>
+                  )}
+
+                  {item.url && (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="truncate text-sm text-primary hover:underline"
+                    >
+                      {item.url}
+                    </a>
+                  )}
+
+                  {item.fileName && (
+                    <p className="text-sm text-muted-foreground">
+                      {item.fileName}
+                      {item.fileSize ? ` · ${Math.round(item.fileSize / 1024)} KB` : ""}
+                    </p>
+                  )}
+
+                  {item.language && (
+                    <Badge variant="secondary" className="w-fit text-xs">
+                      {item.language}
                     </Badge>
-                  ))}
-                </div>
+                  )}
+
+                  {item.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {item.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
 
               {item.collections.length > 0 && (

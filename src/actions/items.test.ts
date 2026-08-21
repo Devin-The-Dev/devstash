@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const { authMock, prismaMock } = vi.hoisted(() => ({
+const { authMock, prismaMock, updateItemQueryMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
   prismaMock: {
     item: {
@@ -8,6 +8,7 @@ const { authMock, prismaMock } = vi.hoisted(() => ({
       update: vi.fn(),
     },
   },
+  updateItemQueryMock: vi.fn(),
 }));
 
 vi.mock("@/auth", () => ({
@@ -18,7 +19,11 @@ vi.mock("@/lib/prisma", () => ({
   prisma: prismaMock,
 }));
 
-const { toggleItemFavorite, toggleItemPinned } = await import("@/actions/items");
+vi.mock("@/lib/db/items", () => ({
+  updateItem: updateItemQueryMock,
+}));
+
+const { toggleItemFavorite, toggleItemPinned, updateItem } = await import("@/actions/items");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -112,5 +117,71 @@ describe("toggleItemPinned", () => {
       data: { isPinned: true },
       select: { isPinned: true },
     });
+  });
+});
+
+describe("updateItem", () => {
+  const validInput = {
+    title: "Updated title",
+    description: "Updated description",
+    content: null,
+    url: null,
+    language: null,
+    tags: ["react", "hooks"],
+  };
+
+  it("returns an error when there is no authenticated session", async () => {
+    authMock.mockResolvedValue(null);
+
+    const result = await updateItem("item-1", validInput);
+
+    expect(result).toEqual({ success: false, error: "Unauthorized" });
+    expect(prismaMock.item.findFirst).not.toHaveBeenCalled();
+    expect(updateItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("returns a validation error for an empty title", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+
+    const result = await updateItem("item-1", { ...validInput, title: "  " });
+
+    expect(result).toEqual({ success: false, error: "Title is required" });
+    expect(prismaMock.item.findFirst).not.toHaveBeenCalled();
+    expect(updateItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("returns a validation error for an invalid url", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+
+    const result = await updateItem("item-1", { ...validInput, url: "not-a-url" });
+
+    expect(result.success).toBe(false);
+    expect(updateItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("returns an error when the item doesn't belong to the user", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    prismaMock.item.findFirst.mockResolvedValue(null);
+
+    const result = await updateItem("item-1", validInput);
+
+    expect(result).toEqual({ success: false, error: "Item not found" });
+    expect(prismaMock.item.findFirst).toHaveBeenCalledWith({
+      where: { id: "item-1", userId: "user-1" },
+      select: { id: true },
+    });
+    expect(updateItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("updates the item and returns the detail on success", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    prismaMock.item.findFirst.mockResolvedValue({ id: "item-1" });
+    const updated = { id: "item-1", title: "Updated title" };
+    updateItemQueryMock.mockResolvedValue(updated);
+
+    const result = await updateItem("item-1", validInput);
+
+    expect(result).toEqual({ success: true, data: updated });
+    expect(updateItemQueryMock).toHaveBeenCalledWith("user-1", "item-1", validInput);
   });
 });
