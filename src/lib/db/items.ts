@@ -17,7 +17,27 @@ export type ItemSummary = {
   isFavorite: boolean;
   isPinned: boolean;
   lastUsedAt: Date;
-  collectionId: string | null;
+};
+
+export type ItemDetail = {
+  id: string;
+  title: string;
+  description: string | null;
+  contentType: "TEXT" | "FILE" | "URL";
+  content: string | null;
+  fileUrl: string | null;
+  fileName: string | null;
+  fileSize: number | null;
+  url: string | null;
+  language: string | null;
+  isFavorite: boolean;
+  isPinned: boolean;
+  lastUsedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  type: ItemTypeSummary;
+  tags: string[];
+  collections: { id: string; name: string }[];
 };
 
 export type DashboardItems = {
@@ -65,10 +85,6 @@ export const getItemsByType = cache(
         lastUsedAt: true,
         updatedAt: true,
         tags: { select: { tag: { select: { name: true } } } },
-        collections: {
-          select: { collectionId: true },
-          orderBy: { addedAt: "asc" },
-        },
       },
     });
 
@@ -82,13 +98,52 @@ export const getItemsByType = cache(
         isFavorite: item.isFavorite,
         isPinned: item.isPinned,
         lastUsedAt: item.lastUsedAt ?? item.updatedAt,
-        collectionId: item.collections[0]?.collectionId ?? null,
       }))
       .sort((a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime());
 
     return { type, items: summaries };
   },
 );
+
+export async function getItemDetail(
+  userId: string,
+  itemId: string,
+): Promise<ItemDetail | null> {
+  const item = await prisma.item.findFirst({
+    where: { id: itemId, userId },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      contentType: true,
+      content: true,
+      fileUrl: true,
+      fileName: true,
+      fileSize: true,
+      url: true,
+      language: true,
+      isFavorite: true,
+      isPinned: true,
+      lastUsedAt: true,
+      createdAt: true,
+      updatedAt: true,
+      type: { select: { id: true, name: true, icon: true, color: true } },
+      tags: { select: { tag: { select: { name: true } } } },
+      collections: {
+        select: { collection: { select: { id: true, name: true } } },
+        orderBy: { addedAt: "asc" },
+      },
+    },
+  });
+
+  if (!item) return null;
+
+  return {
+    ...item,
+    tags: item.tags.map(({ tag }) => tag.name),
+    collections: item.collections.map(({ collection }) => collection),
+  };
+}
 
 export const getDashboardItems = cache(
   async (userId: string, recentLimit = 10): Promise<DashboardItems> => {
@@ -104,10 +159,6 @@ export const getDashboardItems = cache(
         updatedAt: true,
         type: { select: { id: true, name: true, icon: true, color: true } },
         tags: { select: { tag: { select: { name: true } } } },
-        collections: {
-          select: { collectionId: true },
-          orderBy: { addedAt: "asc" },
-        },
       },
     });
 
@@ -126,7 +177,6 @@ export const getDashboardItems = cache(
         isFavorite: item.isFavorite,
         isPinned: item.isPinned,
         lastUsedAt: item.lastUsedAt ?? item.updatedAt,
-        collectionId: item.collections[0]?.collectionId ?? null,
       }))
       .sort((a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime());
 
