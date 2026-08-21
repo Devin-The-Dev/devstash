@@ -2,6 +2,18 @@ import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import type { UpdateItemInput } from "@/lib/validations/items";
 
+export type NewItemInput = {
+  typeId: string;
+  collectionId: string | null;
+  title: string;
+  description: string | null;
+  contentType: "TEXT" | "URL";
+  content: string | null;
+  url: string | null;
+  language: string | null;
+  tags: string[];
+};
+
 export type ItemTypeSummary = {
   id: string;
   name: string;
@@ -152,6 +164,37 @@ export async function getItemDetail(
   });
 
   if (!item) return null;
+
+  return toItemDetail(item);
+}
+
+export async function createItem(userId: string, data: NewItemInput): Promise<ItemDetail> {
+  const item = await prisma.item.create({
+    data: {
+      userId,
+      typeId: data.typeId,
+      title: data.title,
+      description: data.description,
+      contentType: data.contentType,
+      content: data.content,
+      url: data.url,
+      language: data.language,
+      tags: {
+        create: data.tags.map((name) => ({
+          tag: {
+            connectOrCreate: {
+              where: { name_userId: { name, userId } },
+              create: { name, userId },
+            },
+          },
+        })),
+      },
+      collections: data.collectionId
+        ? { create: [{ collectionId: data.collectionId }] }
+        : undefined,
+    },
+    select: ITEM_DETAIL_SELECT,
+  });
 
   return toItemDetail(item);
 }
