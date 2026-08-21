@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 
@@ -15,10 +16,10 @@ export type CurrentUser = {
 export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("getCurrentUser() requires an authenticated session");
+    redirect("/sign-in");
   }
 
-  const { password, ...user } = await prisma.user.findUniqueOrThrow({
+  const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
       id: true,
@@ -31,6 +32,12 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
     },
   });
 
+  // Session (JWT) can outlive the DB row, e.g. after a dev DB reset — treat as unauthenticated.
+  if (!dbUser) {
+    redirect("/sign-in");
+  }
+
+  const { password, ...user } = dbUser;
   return { ...user, name: user.name ?? user.email, hasPassword: password !== null };
 });
 
