@@ -23,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { CodeEditor } from "@/components/items/CodeEditor";
 import { itemTypeIconMap } from "@/lib/item-type-icons";
 import { formatDate } from "@/lib/format";
 import { deleteItem, toggleItemFavorite, toggleItemPinned, updateItem } from "@/actions/items";
@@ -37,6 +38,7 @@ type DrawerItem = Omit<ItemDetail, "lastUsedAt" | "createdAt" | "updatedAt"> & {
 type FetchResult = { id: string; item: DrawerItem } | { id: string; error: true };
 
 const CONTENT_TYPES = ["Snippet", "Prompt", "Command", "Note"];
+const CODE_TYPES = ["Snippet", "Command"];
 const LANGUAGE_TYPES = ["Snippet", "Command"];
 const URL_TYPES = ["Link"];
 
@@ -326,16 +328,27 @@ export function ItemDrawer() {
                     />
                   </div>
 
-                  {CONTENT_TYPES.includes(item.type.name) && (
+                  {CODE_TYPES.includes(item.type.name) ? (
                     <div className="space-y-1.5">
-                      <Label htmlFor="edit-content">Content</Label>
-                      <Textarea
-                        id="edit-content"
-                        className="min-h-32 font-mono text-xs"
+                      <Label>Content</Label>
+                      <CodeEditor
                         value={editForm.content}
-                        onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
+                        language={editForm.language}
+                        onChange={(content) => setEditForm({ ...editForm, content })}
                       />
                     </div>
+                  ) : (
+                    CONTENT_TYPES.includes(item.type.name) && (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="edit-content">Content</Label>
+                        <Textarea
+                          id="edit-content"
+                          className="min-h-32 font-mono text-xs"
+                          value={editForm.content}
+                          onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
+                        />
+                      </div>
+                    )
                   )}
 
                   {LANGUAGE_TYPES.includes(item.type.name) && (
@@ -376,7 +389,11 @@ export function ItemDrawer() {
                     <p className="text-sm text-muted-foreground">{item.description}</p>
                   )}
 
-                  {item.content && (
+                  {item.content && CODE_TYPES.includes(item.type.name) && (
+                    <CodeEditor value={item.content} language={item.language} readOnly />
+                  )}
+
+                  {item.content && !CODE_TYPES.includes(item.type.name) && (
                     <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap">
                       {item.content}
                     </pre>
@@ -400,7 +417,7 @@ export function ItemDrawer() {
                     </p>
                   )}
 
-                  {item.language && (
+                  {item.language && !(item.content && CODE_TYPES.includes(item.type.name)) && (
                     <Badge variant="secondary" className="w-fit text-xs">
                       {item.language}
                     </Badge>

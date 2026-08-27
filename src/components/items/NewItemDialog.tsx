@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { CodeEditor } from "@/components/items/CodeEditor";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,7 @@ import { CREATABLE_ITEM_TYPES } from "@/lib/validations/items";
 import type { ItemTypeSummary } from "@/lib/db/items";
 
 const CONTENT_TYPES = ["Snippet", "Prompt", "Command", "Note"];
+const CODE_TYPES = ["Snippet", "Command"];
 const LANGUAGE_TYPES = ["Snippet", "Command"];
 const URL_TYPES = ["Link"];
 
@@ -198,17 +200,28 @@ export function NewItemDialog({
             />
           </div>
 
-          {CONTENT_TYPES.includes(typeName) && (
+          {CODE_TYPES.includes(typeName) ? (
             <div className="space-y-1.5">
-              <Label htmlFor="new-item-content">Content</Label>
-              <Textarea
-                id="new-item-content"
-                className="min-h-32 font-mono text-xs"
-                placeholder="Paste code, prompt, command, or notes…"
+              <Label>Content</Label>
+              <CodeEditor
                 value={form.content}
-                onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
+                language={form.language}
+                onChange={(content) => setForm((f) => ({ ...f, content }))}
               />
             </div>
+          ) : (
+            CONTENT_TYPES.includes(typeName) && (
+              <div className="space-y-1.5">
+                <Label htmlFor="new-item-content">Content</Label>
+                <Textarea
+                  id="new-item-content"
+                  className="min-h-32 font-mono text-xs"
+                  placeholder="Paste code, prompt, command, or notes…"
+                  value={form.content}
+                  onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
+                />
+              </div>
+            )
           )}
 
           {LANGUAGE_TYPES.includes(typeName) && (

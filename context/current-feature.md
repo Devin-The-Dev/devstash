@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: Code Editor (Monaco)
 
-<!-- Feature name and short description -->
+Add a Monaco Editor component for snippets and commands, with a copy button and macOS-style window styling.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Create a `CodeEditor` component using Monaco Editor with a dark theme
+- Replace `Textarea` with `CodeEditor` for snippets and commands only
+- Keep `Textarea` for notes, prompts, and other non-code types
+- Add macOS-style window dots (red/yellow/green) at the top of the editor
+- Add a quick copy button in the editor header
+- Show the language in the editor header next to the copy button
+- Support both display (readonly) and edit modes
+- Fluid height with a max height of 400px, with a themed scrollbar
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec source: `context/features/code-editor-spec.md`
+- Content/type conventions to reuse: this repo already distinguishes code vs. non-code types via `CONTENT_TYPES`/`LANGUAGE_TYPES` arrays (used in `ItemDrawer` edit form and the New Item dialog) — snippet/command are the code types, notes/prompts/links are not
+- Both the item drawer (view + edit mode) and the New Item dialog currently use a plain `Textarea` for content — this feature likely touches both call sites
+- No Monaco dependency installed yet; will need to pick a package (e.g. `@monaco-editor/react`) and confirm current API/setup via Context7 before implementing
+- Implemented: installed `@monaco-editor/react`; added `src/components/items/CodeEditor.tsx` (dynamic-imported, `ssr:false`, custom dark theme, macOS dots, copy button, language label, fluid 128–400px height via `onDidContentSizeChange`) and `src/lib/monaco-language.ts` (`resolveMonacoLanguage`, alias-mapped, unit-tested in `monaco-language.test.ts`). Wired into `ItemDrawer.tsx` (view + edit) and `NewItemDialog.tsx` via a new `CODE_TYPES = ["Snippet", "Command"]` split from `CONTENT_TYPES`. Verified with `tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` (45/45), and a live Playwright pass (syntax highlighting, copy, live editing, height cap/scroll, create→view→delete round trip, no console errors).
 
 ## History
 
