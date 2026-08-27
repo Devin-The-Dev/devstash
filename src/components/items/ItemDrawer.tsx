@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { CodeEditor } from "@/components/items/CodeEditor";
+import { MarkdownEditor } from "@/components/items/MarkdownEditor";
 import { itemTypeIconMap } from "@/lib/item-type-icons";
 import { formatDate } from "@/lib/format";
 import { deleteItem, toggleItemFavorite, toggleItemPinned, updateItem } from "@/actions/items";
@@ -39,6 +40,7 @@ type FetchResult = { id: string; item: DrawerItem } | { id: string; error: true 
 
 const CONTENT_TYPES = ["Snippet", "Prompt", "Command", "Note"];
 const CODE_TYPES = ["Snippet", "Command"];
+const MARKDOWN_TYPES = ["Note", "Prompt"];
 const LANGUAGE_TYPES = ["Snippet", "Command"];
 const URL_TYPES = ["Link"];
 
@@ -337,6 +339,14 @@ export function ItemDrawer() {
                         onChange={(content) => setEditForm({ ...editForm, content })}
                       />
                     </div>
+                  ) : MARKDOWN_TYPES.includes(item.type.name) ? (
+                    <div className="space-y-1.5">
+                      <Label>Content</Label>
+                      <MarkdownEditor
+                        value={editForm.content}
+                        onChange={(content) => setEditForm({ ...editForm, content })}
+                      />
+                    </div>
                   ) : (
                     CONTENT_TYPES.includes(item.type.name) && (
                       <div className="space-y-1.5">
@@ -393,11 +403,17 @@ export function ItemDrawer() {
                     <CodeEditor value={item.content} language={item.language} readOnly />
                   )}
 
-                  {item.content && !CODE_TYPES.includes(item.type.name) && (
-                    <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap">
-                      {item.content}
-                    </pre>
+                  {item.content && MARKDOWN_TYPES.includes(item.type.name) && (
+                    <MarkdownEditor value={item.content} readOnly />
                   )}
+
+                  {item.content &&
+                    !CODE_TYPES.includes(item.type.name) &&
+                    !MARKDOWN_TYPES.includes(item.type.name) && (
+                      <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap">
+                        {item.content}
+                      </pre>
+                    )}
 
                   {item.url && (
                     <a
