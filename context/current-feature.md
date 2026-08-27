@@ -1,18 +1,32 @@
-# Current Feature
+# Current Feature: Markdown Editor
 
-<!-- Feature name and short description -->
+Add a Markdown editor component for notes and prompts with Write/Preview tabs and proper dark theme styling.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Create a `MarkdownEditor` component with a tabbed Write/Preview interface
+- Replace `Textarea` with `MarkdownEditor` for Note and Prompt content only (Snippet/Command keep `CodeEditor`, unchanged)
+- Render markdown via `react-markdown` + `remark-gfm` (GitHub Flavored Markdown)
+- Match existing dark theme styling: `bg-[#1e1e1e]` container, `bg-[#2d2d2d]` header
+- Add a copy button in the header, styled like `CodeEditor`'s
+- Support both display (readonly) and edit modes
+  - Readonly mode: show only the Preview tab
+  - Edit mode: default to Write tab, with Preview available
+- Wire into all three integration points:
+  - `NewItemDialog` — note/prompt content field
+  - `ItemDrawer` (edit mode) — note/prompt content field
+  - `ItemDrawer` (view mode) — readonly mode, note/prompt content
 
 ## Notes
 
-<!-- Any extra notes -->
+- Styling requirements: h1–h6 visually distinct (size/weight), dark code blocks with monospace font, inline code with subtle background highlight, ordered/unordered lists with proper indentation, blockquotes with left border accent, links in blue with hover state, tables with borders + header background
+- Use a custom CSS class (e.g. `.markdown-preview`) for reliable dark-mode styling rather than relying solely on Tailwind prose defaults
+- Fluid height, max 400px — same height behavior as `CodeEditor` (see `src/components/items/CodeEditor.tsx` from the 2026-08-26 Code Editor feature)
+- Full spec: `context/features/markdown-editor-spec.md`
 
 ## History
 

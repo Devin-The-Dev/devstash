@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { CodeEditor } from "@/components/items/CodeEditor";
+import { MarkdownEditor } from "@/components/items/MarkdownEditor";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ import type { ItemTypeSummary } from "@/lib/db/items";
 
 const CONTENT_TYPES = ["Snippet", "Prompt", "Command", "Note"];
 const CODE_TYPES = ["Snippet", "Command"];
+const MARKDOWN_TYPES = ["Note", "Prompt"];
 const LANGUAGE_TYPES = ["Snippet", "Command"];
 const URL_TYPES = ["Link"];
 
@@ -206,6 +208,14 @@ export function NewItemDialog({
               <CodeEditor
                 value={form.content}
                 language={form.language}
+                onChange={(content) => setForm((f) => ({ ...f, content }))}
+              />
+            </div>
+          ) : MARKDOWN_TYPES.includes(typeName) ? (
+            <div className="space-y-1.5">
+              <Label>Content</Label>
+              <MarkdownEditor
+                value={form.content}
                 onChange={(content) => setForm((f) => ({ ...f, content }))}
               />
             </div>
