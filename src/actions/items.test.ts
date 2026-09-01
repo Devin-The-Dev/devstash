@@ -7,6 +7,8 @@ const {
   updateItemQueryMock,
   deleteItemQueryMock,
   getSystemItemTypesMock,
+  deleteFromR2Mock,
+  keyFromPublicUrlMock,
 } = vi.hoisted(() => ({
   authMock: vi.fn(),
   prismaMock: {
@@ -22,6 +24,8 @@ const {
   updateItemQueryMock: vi.fn(),
   deleteItemQueryMock: vi.fn(),
   getSystemItemTypesMock: vi.fn(),
+  deleteFromR2Mock: vi.fn(),
+  keyFromPublicUrlMock: vi.fn(),
 }));
 
 vi.mock("@/auth", () => ({
@@ -39,6 +43,11 @@ vi.mock("@/lib/db/items", () => ({
   getSystemItemTypes: getSystemItemTypesMock,
 }));
 
+vi.mock("@/lib/r2", () => ({
+  deleteFromR2: deleteFromR2Mock,
+  keyFromPublicUrl: keyFromPublicUrlMock,
+}));
+
 const { createItem, toggleItemFavorite, toggleItemPinned, updateItem, deleteItem } = await import(
   "@/actions/items"
 );
@@ -46,6 +55,7 @@ const { createItem, toggleItemFavorite, toggleItemPinned, updateItem, deleteItem
 const SNIPPET_TYPE = { id: "type-snippet", name: "Snippet", icon: "code", color: "#000" };
 const LINK_TYPE = { id: "type-link", name: "Link", icon: "link", color: "#000" };
 const FILE_TYPE = { id: "type-file", name: "File", icon: "file", color: "#000" };
+const NON_CREATABLE_TYPE = { id: "type-video", name: "Video", icon: "video", color: "#000" };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -186,9 +196,9 @@ describe("createItem", () => {
 
   it("returns an error for an unknown or non-creatable type id", async () => {
     authMock.mockResolvedValue({ user: { id: "user-1" } });
-    getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE, LINK_TYPE, FILE_TYPE]);
+    getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE, LINK_TYPE, NON_CREATABLE_TYPE]);
 
-    const result = await createItem({ ...validInput, typeId: FILE_TYPE.id });
+    const result = await createItem({ ...validInput, typeId: NON_CREATABLE_TYPE.id });
 
     expect(result).toEqual({ success: false, error: "Invalid item type" });
     expect(createItemQueryMock).not.toHaveBeenCalled();
@@ -236,6 +246,9 @@ describe("createItem", () => {
       contentType: "TEXT",
       content: "const x = 1;",
       url: null,
+      fileUrl: null,
+      fileName: null,
+      fileSize: null,
       language: "typescript",
       tags: ["react"],
     });
@@ -263,6 +276,52 @@ describe("createItem", () => {
       contentType: "URL",
       content: null,
       url: "https://ui.shadcn.com",
+      fileUrl: null,
+      fileName: null,
+      fileSize: null,
+      language: "typescript",
+      tags: ["react"],
+    });
+  });
+
+  it("returns an error when a file item has no fileUrl", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE, FILE_TYPE]);
+
+    const result = await createItem({ ...validInput, typeId: FILE_TYPE.id, content: null });
+
+    expect(result).toEqual({ success: false, error: "A file upload is required" });
+    expect(createItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("creates a file item with FILE contentType and no text content", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE, FILE_TYPE]);
+    const created = { id: "item-3", title: "Pre-deploy checklist.pdf" };
+    createItemQueryMock.mockResolvedValue(created);
+
+    const result = await createItem({
+      ...validInput,
+      typeId: FILE_TYPE.id,
+      title: "Pre-deploy checklist.pdf",
+      content: null,
+      fileUrl: "https://files.example.com/user-1/abc.pdf",
+      fileName: "checklist.pdf",
+      fileSize: 1024,
+    });
+
+    expect(result).toEqual({ success: true, data: created });
+    expect(createItemQueryMock).toHaveBeenCalledWith("user-1", {
+      typeId: FILE_TYPE.id,
+      collectionId: null,
+      title: "Pre-deploy checklist.pdf",
+      description: null,
+      contentType: "FILE",
+      content: null,
+      url: null,
+      fileUrl: "https://files.example.com/user-1/abc.pdf",
+      fileName: "checklist.pdf",
+      fileSize: 1024,
       language: "typescript",
       tags: ["react"],
     });
@@ -363,11 +422,26 @@ describe("deleteItem", () => {
   it("deletes the item and returns its id on success", async () => {
     authMock.mockResolvedValue({ user: { id: "user-1" } });
     prismaMock.item.findFirst.mockResolvedValue({ id: "item-1" });
-    deleteItemQueryMock.mockResolvedValue(undefined);
+    deleteItemQueryMock.mockResolvedValue({ fileUrl: null });
 
     const result = await deleteItem("item-1");
 
     expect(result).toEqual({ success: true, data: { id: "item-1" } });
     expect(deleteItemQueryMock).toHaveBeenCalledWith("user-1", "item-1");
+    expect(deleteFromR2Mock).not.toHaveBeenCalled();
+  });
+
+  it("also deletes the R2 object when the item had a file", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    prismaMock.item.findFirst.mockResolvedValue({ id: "item-1" });
+    deleteItemQueryMock.mockResolvedValue({ fileUrl: "https://files.example.com/user-1/abc.pdf" });
+    keyFromPublicUrlMock.mockReturnValue("user-1/abc.pdf");
+    deleteFromR2Mock.mockResolvedValue(undefined);
+
+    const result = await deleteItem("item-1");
+
+    expect(result).toEqual({ success: true, data: { id: "item-1" } });
+    expect(keyFromPublicUrlMock).toHaveBeenCalledWith("https://files.example.com/user-1/abc.pdf");
+    expect(deleteFromR2Mock).toHaveBeenCalledWith("user-1/abc.pdf");
   });
 });

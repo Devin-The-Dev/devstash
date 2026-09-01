@@ -2,11 +2,11 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Check, Copy, Pencil, Pin, Star, Trash2 } from "lucide-react";
+import { Box, Check, Copy, Download, Pencil, Pin, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useItemDrawer } from "@/components/items/ItemDrawerProvider";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -26,7 +26,7 @@ import {
 import { CodeEditor } from "@/components/items/CodeEditor";
 import { MarkdownEditor } from "@/components/items/MarkdownEditor";
 import { itemTypeIconMap } from "@/lib/item-type-icons";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatFileSize } from "@/lib/format";
 import { deleteItem, toggleItemFavorite, toggleItemPinned, updateItem } from "@/actions/items";
 import type { ItemDetail } from "@/lib/db/items";
 
@@ -426,11 +426,31 @@ export function ItemDrawer() {
                     </a>
                   )}
 
+                  {item.type.name === "Image" && item.fileUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.fileUrl}
+                      alt={item.title}
+                      className="max-h-64 w-full rounded-md object-contain"
+                    />
+                  )}
+
                   {item.fileName && (
-                    <p className="text-sm text-muted-foreground">
-                      {item.fileName}
-                      {item.fileSize ? ` · ${Math.round(item.fileSize / 1024)} KB` : ""}
-                    </p>
+                    <div className="flex items-center justify-between gap-2 rounded-md border p-3">
+                      <p className="min-w-0 truncate text-sm text-muted-foreground">
+                        {item.fileName}
+                        {item.fileSize ? ` · ${formatFileSize(item.fileSize)}` : ""}
+                      </p>
+                      {item.type.name === "File" && (
+                        <a
+                          href={`/api/items/${item.id}/download`}
+                          className={buttonVariants({ variant: "outline", size: "sm" })}
+                        >
+                          <Download className="size-4" />
+                          Download
+                        </a>
+                      )}
+                    </div>
                   )}
 
                   {item.language && !(item.content && CODE_TYPES.includes(item.type.name)) && (

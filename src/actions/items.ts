@@ -10,6 +10,7 @@ import {
   type ItemDetail,
 } from "@/lib/db/items";
 import { createItemSchema, updateItemSchema, CREATABLE_ITEM_TYPES } from "@/lib/validations/items";
+import { deleteFromR2, keyFromPublicUrl } from "@/lib/r2";
 
 type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -34,6 +35,11 @@ export async function createItem(input: unknown): Promise<ActionResult<ItemDetai
     return { success: false, error: "URL is required for link items" };
   }
 
+  const isFileType = type.name === "File" || type.name === "Image";
+  if (isFileType && !parsed.data.fileUrl) {
+    return { success: false, error: "A file upload is required" };
+  }
+
   if (parsed.data.collectionId) {
     const collection = await prisma.collection.findFirst({
       where: { id: parsed.data.collectionId, userId: session.user.id },
@@ -50,9 +56,12 @@ export async function createItem(input: unknown): Promise<ActionResult<ItemDetai
     collectionId: parsed.data.collectionId ?? null,
     title: parsed.data.title,
     description: parsed.data.description || null,
-    contentType: isLink ? "URL" : "TEXT",
-    content: isLink ? null : parsed.data.content || null,
+    contentType: isFileType ? "FILE" : isLink ? "URL" : "TEXT",
+    content: isFileType || isLink ? null : parsed.data.content || null,
     url: isLink ? (parsed.data.url ?? null) : null,
+    fileUrl: isFileType ? (parsed.data.fileUrl ?? null) : null,
+    fileName: isFileType ? (parsed.data.fileName ?? null) : null,
+    fileSize: isFileType ? (parsed.data.fileSize ?? null) : null,
     language: parsed.data.language || null,
     tags: parsed.data.tags,
   });
@@ -151,7 +160,16 @@ export async function deleteItem(itemId: string): Promise<ActionResult<{ id: str
     return { success: false, error: "Item not found" };
   }
 
-  await deleteItemQuery(session.user.id, itemId);
+  const deleted = await deleteItemQuery(session.user.id, itemId);
+
+  if (deleted.fileUrl) {
+    const key = keyFromPublicUrl(deleted.fileUrl);
+    if (key) {
+      await deleteFromR2(key).catch((error) => {
+        console.error("Failed to delete R2 object", key, error);
+      });
+    }
+  }
 
   return { success: true, data: { id: itemId } };
 }
