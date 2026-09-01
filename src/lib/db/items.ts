@@ -7,9 +7,12 @@ export type NewItemInput = {
   collectionId: string | null;
   title: string;
   description: string | null;
-  contentType: "TEXT" | "URL";
+  contentType: "TEXT" | "URL" | "FILE";
   content: string | null;
   url: string | null;
+  fileUrl: string | null;
+  fileName: string | null;
+  fileSize: number | null;
   language: string | null;
   tags: string[];
 };
@@ -178,6 +181,9 @@ export async function createItem(userId: string, data: NewItemInput): Promise<It
       contentType: data.contentType,
       content: data.content,
       url: data.url,
+      fileUrl: data.fileUrl,
+      fileName: data.fileName,
+      fileSize: data.fileSize,
       language: data.language,
       tags: {
         create: data.tags.map((name) => ({
@@ -230,9 +236,13 @@ export async function updateItem(
   return toItemDetail(item);
 }
 
-export async function deleteItem(userId: string, itemId: string): Promise<void> {
-  await prisma.item.delete({
-    where: { id: itemId },
+export async function deleteItem(
+  userId: string,
+  itemId: string,
+): Promise<{ fileUrl: string | null }> {
+  return prisma.item.delete({
+    where: { id: itemId, userId },
+    select: { fileUrl: true },
   });
 }
 

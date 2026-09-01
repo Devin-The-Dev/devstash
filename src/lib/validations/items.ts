@@ -1,6 +1,14 @@
 import * as z from "zod";
 
-export const CREATABLE_ITEM_TYPES: string[] = ["Snippet", "Prompt", "Command", "Note", "Link"];
+export const CREATABLE_ITEM_TYPES: string[] = [
+  "Snippet",
+  "Prompt",
+  "Command",
+  "Note",
+  "Link",
+  "File",
+  "Image",
+];
 
 export const createItemSchema = z.object({
   typeId: z.string().min(1, "Type is required"),
@@ -9,6 +17,9 @@ export const createItemSchema = z.object({
   description: z.string().nullable().optional(),
   content: z.string().nullable().optional(),
   url: z.union([z.url(), z.null()]).optional(),
+  fileUrl: z.union([z.url(), z.null()]).optional(),
+  fileName: z.string().nullable().optional(),
+  fileSize: z.number().nullable().optional(),
   language: z.string().nullable().optional(),
   tags: z.array(z.string().trim().min(1)),
 });

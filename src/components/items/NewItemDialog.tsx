@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { CodeEditor } from "@/components/items/CodeEditor";
 import { MarkdownEditor } from "@/components/items/MarkdownEditor";
+import { FileUpload, type UploadedFile } from "@/components/items/FileUpload";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ const CODE_TYPES = ["Snippet", "Command"];
 const MARKDOWN_TYPES = ["Note", "Prompt"];
 const LANGUAGE_TYPES = ["Snippet", "Command"];
 const URL_TYPES = ["Link"];
+const FILE_TYPES = ["File", "Image"];
 
 type CollectionOption = { id: string; name: string };
 
@@ -41,6 +43,7 @@ type FormState = {
   content: string;
   language: string;
   url: string;
+  file: UploadedFile | null;
 };
 
 function emptyForm(typeId: string): FormState {
@@ -53,6 +56,7 @@ function emptyForm(typeId: string): FormState {
     content: "",
     language: "",
     url: "",
+    file: null,
   };
 }
 
@@ -81,7 +85,8 @@ export function NewItemDialog({
   const canSubmit =
     form.title.trim().length > 0 &&
     form.typeId.length > 0 &&
-    (typeName !== "Link" || form.url.trim().length > 0);
+    (typeName !== "Link" || form.url.trim().length > 0) &&
+    (!FILE_TYPES.includes(typeName) || form.file !== null);
 
   function handleSubmit() {
     if (!canSubmit) return;
@@ -98,6 +103,9 @@ export function NewItemDialog({
       description: form.description.trim() || null,
       content: form.content.trim() || null,
       url: form.url.trim() || null,
+      fileUrl: form.file?.fileUrl ?? null,
+      fileName: form.file?.fileName ?? null,
+      fileSize: form.file?.fileSize ?? null,
       language: form.language.trim() || null,
       tags,
     };
@@ -202,7 +210,16 @@ export function NewItemDialog({
             />
           </div>
 
-          {CODE_TYPES.includes(typeName) ? (
+          {FILE_TYPES.includes(typeName) ? (
+            <div className="space-y-1.5">
+              <Label>File</Label>
+              <FileUpload
+                kind={typeName === "Image" ? "image" : "file"}
+                value={form.file}
+                onChange={(file) => setForm((f) => ({ ...f, file }))}
+              />
+            </div>
+          ) : CODE_TYPES.includes(typeName) ? (
             <div className="space-y-1.5">
               <Label>Content</Label>
               <CodeEditor
