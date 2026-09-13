@@ -437,8 +437,8 @@ graph LR
 - Hover states on cards
 - Toast notifications for CRUD actions
 - Loading skeletons for async data
-- Syntax highlighting in code blocks (e.g. [Shiki](https://shiki.style/) or [highlight.js](https://highlightjs.org/))
-- Markdown editor for text types (e.g. [Tiptap](https://tiptap.dev/) or [Milkdown](https://milkdown.dev/))
+- Syntax highlighting in code blocks via [Monaco Editor](https://microsoft.github.io/monaco-editor/) (`@monaco-editor/react`)
+- Markdown editor for text types via [react-markdown](https://github.com/remarkjs/react-markdown) + `remark-gfm` (tabbed Write/Preview)
 
 ---
 
@@ -461,4 +461,4 @@ graph LR
 
 ---
 
-*Last updated: 2026-05-28*
+*Last updated: 2026-09-13*
