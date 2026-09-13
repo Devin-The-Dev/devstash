@@ -76,6 +76,9 @@ const ITEM_TAGS: Record<string, string[]> = {
   "item-link-lucide": ["tag-icons", "tag-ui"],
   "item-note-deploy-checklist": ["tag-deploy", "tag-ci"],
   "item-note-hook-guidelines": ["tag-react", "tag-hooks"],
+  "cmtz9nft00003oauur0qv7lbw": ["tag-css", "tag-ui"],
+  "cmtz9oahr0004oauunuf8ux8d": ["tag-css", "tag-ui"],
+  "cmtz9p4s50005oauumskt40w8": ["tag-css", "tag-ui"],
 };
 
 // Computed relative to seed run time so "recently used" stays plausible on reseed.
@@ -478,7 +481,7 @@ volumes:
     },
   );
 
-  // ─── Design Resources (4 links) ─────────────────────────────────────────────
+  // ─── Design Resources (4 links, 3 images) ──────────────────────────────────
 
   await seedItem(
     "item-link-tailwind-docs",
@@ -534,6 +537,59 @@ volumes:
       contentType: "URL",
       lastUsedAt: hoursAgo(420),
       url: "https://lucide.dev/icons/",
+    },
+  );
+
+  // IDs match the R2 objects actually uploaded during the image-gallery-view feature build,
+  // so re-seeding never orphans those files in the bucket.
+  await seedItem(
+    "cmtz9nft00003oauur0qv7lbw",
+    user.id,
+    "system-image",
+    collections.designResources.id,
+    {
+      title: "Ocean blue color swatch",
+      description: "Primary accent color reference for the redesign",
+      contentType: "FILE",
+      lastUsedAt: hoursAgo(50),
+      fileUrl:
+        "https://pub-f20ad168c3254a21817001a8fe7e36c9.r2.dev/demo-user/a02285c1-cb89-45c0-bc2b-5aed89662bca.png",
+      fileName: "test-image.png",
+      fileSize: 1212,
+    },
+  );
+
+  await seedItem(
+    "cmtz9oahr0004oauunuf8ux8d",
+    user.id,
+    "system-image",
+    collections.designResources.id,
+    {
+      title: "Sunset red color swatch",
+      description: "Warning/error state color reference",
+      contentType: "FILE",
+      lastUsedAt: hoursAgo(55),
+      fileUrl:
+        "https://pub-f20ad168c3254a21817001a8fe7e36c9.r2.dev/demo-user/57b6a542-782c-427d-9a17-93424b3b94d7.png",
+      fileName: "test-image-2.png",
+      fileSize: 1213,
+    },
+  );
+
+  await seedItem(
+    "cmtz9p4s50005oauumskt40w8",
+    user.id,
+    "system-image",
+    collections.designResources.id,
+    {
+      title: "Mint green color swatch",
+      description: "Success state color reference",
+      contentType: "FILE",
+      lastUsedAt: hoursAgo(60),
+      fileUrl:
+        "https://pub-f20ad168c3254a21817001a8fe7e36c9.r2.dev/demo-user/65953a8c-644c-43d4-a095-80af0815d22f.png",
+      fileName: "test-image-3.png",
+      fileSize: 1212,
     },
   );
 
