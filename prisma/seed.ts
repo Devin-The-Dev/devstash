@@ -79,6 +79,8 @@ const ITEM_TAGS: Record<string, string[]> = {
   "cmtz9nft00003oauur0qv7lbw": ["tag-css", "tag-ui"],
   "cmtz9oahr0004oauunuf8ux8d": ["tag-css", "tag-ui"],
   "cmtz9p4s50005oauumskt40w8": ["tag-css", "tag-ui"],
+  "cmtzarorz0008oauue0v4wxtp": ["tag-deploy", "tag-docs"],
+  "cmtzasqnx0009oauufb1hcs7n": ["tag-deploy", "tag-docs"],
 };
 
 // Computed relative to seed run time so "recently used" stays plausible on reseed.
@@ -590,6 +592,42 @@ volumes:
         "https://pub-f20ad168c3254a21817001a8fe7e36c9.r2.dev/demo-user/65953a8c-644c-43d4-a095-80af0815d22f.png",
       fileName: "test-image-3.png",
       fileSize: 1212,
+    },
+  );
+
+  // IDs match the R2 objects actually uploaded during the file-list-view feature build,
+  // so re-seeding never orphans those files in the bucket.
+  await seedItem(
+    "cmtzarorz0008oauue0v4wxtp",
+    user.id,
+    "system-file",
+    collections.devOps.id,
+    {
+      title: "Release notes",
+      description: "v2.4 release notes for the deploy pipeline",
+      contentType: "FILE",
+      lastUsedAt: hoursAgo(20),
+      fileUrl:
+        "https://pub-f20ad168c3254a21817001a8fe7e36c9.r2.dev/demo-user/6a7d8fde-b34c-4145-afb1-0c1178b8302b.md",
+      fileName: "release-notes.md",
+      fileSize: 70,
+    },
+  );
+
+  await seedItem(
+    "cmtzasqnx0009oauufb1hcs7n",
+    user.id,
+    "system-file",
+    collections.devOps.id,
+    {
+      title: "Inventory export",
+      description: "Warehouse inventory snapshot exported for the deploy runbook",
+      contentType: "FILE",
+      lastUsedAt: hoursAgo(25),
+      fileUrl:
+        "https://pub-f20ad168c3254a21817001a8fe7e36c9.r2.dev/demo-user/a0d1babd-5150-4185-9817-70f48e35cec2.csv",
+      fileName: "inventory.csv",
+      fileSize: 27,
     },
   );
 

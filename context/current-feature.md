@@ -1,18 +1,27 @@
-# Current Feature
+# Current Feature: File List View
 
-<!-- Feature name and short description -->
+Update `/items/files` to display as a single-column list (like Google Drive/Dropbox) instead of grid cards.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Single-column list layout with rows (replacing the current grid cards on `/items/files`)
+- Each row shows: file icon (by extension), file name, file size, upload date, download button
+- Row hover highlight
+- Click row opens ItemDrawer
+- Download button triggers direct download (stop propagation so it doesn't also open the drawer)
+- Responsive: stack info vertically on mobile
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec file: `context/features/file-display-spec.md`
+- Scope is limited to the `Image`-typed... no, specifically the `File` item type route (`/items/files`) — `/items/images` (gallery thumbnails, per the 2026-09-12 Image Gallery View feature) is unaffected
+- Existing file-size/date formatting helpers already exist in `src/lib/format.ts` (`formatFileSize`, `formatDate`/`formatRelativeTime`) — reuse rather than re-deriving
+- Download should reuse the existing `GET /api/items/[id]/download` proxy route added in the 2026-09-01 File Upload feature
+- File icon by extension will need a new mapping (existing `itemTypeIconMap`/`getItemTypeIcon()` is keyed by item *type*, not file extension)
 
 ## History
 
