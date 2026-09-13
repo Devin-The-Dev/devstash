@@ -33,7 +33,10 @@ export type ItemSummary = {
   isFavorite: boolean;
   isPinned: boolean;
   lastUsedAt: Date;
+  createdAt: Date;
   fileUrl: string | null;
+  fileName: string | null;
+  fileSize: number | null;
 };
 
 export type ItemDetail = {
@@ -100,8 +103,11 @@ export const getItemsByType = cache(
         isFavorite: true,
         isPinned: true,
         lastUsedAt: true,
+        createdAt: true,
         updatedAt: true,
         fileUrl: true,
+        fileName: true,
+        fileSize: true,
         tags: { select: { tag: { select: { name: true } } } },
       },
     });
@@ -116,7 +122,10 @@ export const getItemsByType = cache(
         isFavorite: item.isFavorite,
         isPinned: item.isPinned,
         lastUsedAt: item.lastUsedAt ?? item.updatedAt,
+        createdAt: item.createdAt,
         fileUrl: item.fileUrl,
+        fileName: item.fileName,
+        fileSize: item.fileSize,
       }))
       .sort((a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime());
 
@@ -260,8 +269,11 @@ export const getDashboardItems = cache(
         isFavorite: true,
         isPinned: true,
         lastUsedAt: true,
+        createdAt: true,
         updatedAt: true,
         fileUrl: true,
+        fileName: true,
+        fileSize: true,
         type: { select: { id: true, name: true, icon: true, color: true } },
         tags: { select: { tag: { select: { name: true } } } },
       },
@@ -282,7 +294,10 @@ export const getDashboardItems = cache(
         isFavorite: item.isFavorite,
         isPinned: item.isPinned,
         lastUsedAt: item.lastUsedAt ?? item.updatedAt,
+        createdAt: item.createdAt,
         fileUrl: item.fileUrl,
+        fileName: item.fileName,
+        fileSize: item.fileSize,
       }))
       .sort((a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime());
 

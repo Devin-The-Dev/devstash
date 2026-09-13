@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Box } from "lucide-react";
 import { ItemCard } from "@/components/dashboard/ItemCard";
 import { ImageThumbnailCard } from "@/components/dashboard/ImageThumbnailCard";
+import { FileListItem } from "@/components/dashboard/FileListItem";
 import { itemTypeIconMap } from "@/lib/item-type-icons";
 import { getItemsByType } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
@@ -20,6 +21,7 @@ export default async function ItemsByTypePage({
   const { type, items } = result;
   const Icon = itemTypeIconMap[type.icon] ?? Box;
   const isImageType = type.name === "Image";
+  const isFileType = type.name === "File";
 
   return (
     <main className="flex-1 space-y-6 p-6">
@@ -35,6 +37,12 @@ export default async function ItemsByTypePage({
 
       {items.length === 0 ? (
         <p className="text-muted-foreground">No {type.name.toLowerCase()}s yet.</p>
+      ) : isFileType ? (
+        <div className="rounded-lg border">
+          {items.map((item) => (
+            <FileListItem key={item.id} item={item} />
+          ))}
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {items.map((item) =>
