@@ -1,19 +1,45 @@
 "use client";
 
-import { Pin, Star, Box } from "lucide-react";
+import { useState } from "react";
+import { Pin, Star, Box, Copy, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { itemTypeIconMap } from "@/lib/item-type-icons";
 import { formatRelativeTime } from "@/lib/format";
 import { useItemDrawer } from "@/components/items/ItemDrawerProvider";
-import type { ItemSummary } from "@/lib/db/items";
+import type { ItemDetail, ItemSummary } from "@/lib/db/items";
 
 export function ItemCard({ item }: { item: ItemSummary }) {
   const Icon = itemTypeIconMap[item.type.icon] ?? Box;
   const { openItem } = useItemDrawer();
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy(event: React.MouseEvent) {
+    event.stopPropagation();
+    const response = await fetch(`/api/items/${item.id}`);
+    const result: { success: boolean; data?: ItemDetail } = await response.json();
+    if (!result.success || !result.data) return;
+    const value = result.data.content ?? result.data.url ?? result.data.fileUrl ?? "";
+    if (!value) return;
+    await navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
 
   return (
-    <button type="button" className="block w-full text-left" onClick={() => openItem(item.id)}>
+    <div
+      role="button"
+      tabIndex={0}
+      className="block w-full text-left"
+      onClick={() => openItem(item.id)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openItem(item.id);
+        }
+      }}
+    >
       <Card
         size="sm"
         className="h-full border-l-4 transition-colors hover:bg-accent/50"
@@ -26,6 +52,15 @@ export function ItemCard({ item }: { item: ItemSummary }) {
               <span className="truncate text-sm font-medium">{item.title}</span>
             </div>
             <div className="flex shrink-0 items-center gap-1 text-muted-foreground">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Copy"
+                className="size-5 text-muted-foreground hover:text-foreground"
+                onClick={handleCopy}
+              >
+                {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+              </Button>
               {item.isPinned && <Pin className="size-3.5" />}
               {item.isFavorite && <Star className="size-3.5 fill-yellow-400 text-yellow-400" />}
             </div>
@@ -45,6 +80,6 @@ export function ItemCard({ item }: { item: ItemSummary }) {
           </div>
         </CardContent>
       </Card>
-    </button>
+    </div>
   );
 }
