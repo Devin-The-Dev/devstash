@@ -1,2 +1,3 @@
-- [DevStash project state](devstash_project_state.md) — dashboard-only build so far; no auth/actions/stripe/r2/openai code exists yet, don't flag as missing
+- [DevStash project state](devstash_project_state.md) — as of 2026-09-13: auth/item-CRUD/R2/editors/rate-limiting shipped; Stripe/AI/search/collections-CRUD still not built
 - [DevStash conventions](devstash_conventions.md) — `src/lib/db/*.ts` data-fetching pattern, shared icon map crash risk, tooling limitations note
+- [DevStash decomposition findings](devstash_decomposition_findings.md) — ItemDrawer 514 lines, duplicated type-conditional field rendering, duplicated copy-to-clipboard/drawer-row-click patterns

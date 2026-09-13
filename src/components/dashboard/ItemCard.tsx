@@ -1,45 +1,33 @@
 "use client";
 
-import { useState } from "react";
 import { Pin, Star, Box, Copy, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { itemTypeIconMap } from "@/lib/item-type-icons";
 import { formatRelativeTime } from "@/lib/format";
-import { useItemDrawer } from "@/components/items/ItemDrawerProvider";
+import { getCopyableValue } from "@/lib/item-content";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { useDrawerRowProps } from "@/hooks/use-drawer-row";
 import type { ItemDetail, ItemSummary } from "@/lib/db/items";
 
 export function ItemCard({ item }: { item: ItemSummary }) {
   const Icon = itemTypeIconMap[item.type.icon] ?? Box;
-  const { openItem } = useItemDrawer();
-  const [copied, setCopied] = useState(false);
+  const drawerRowProps = useDrawerRowProps(item.id);
+  const { copied, copy } = useCopyToClipboard();
 
   async function handleCopy(event: React.MouseEvent) {
     event.stopPropagation();
     const response = await fetch(`/api/items/${item.id}`);
     const result: { success: boolean; data?: ItemDetail } = await response.json();
     if (!result.success || !result.data) return;
-    const value = result.data.content ?? result.data.url ?? result.data.fileUrl ?? "";
+    const value = getCopyableValue(result.data);
     if (!value) return;
-    await navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    await copy(value);
   }
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      className="block w-full text-left"
-      onClick={() => openItem(item.id)}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          openItem(item.id);
-        }
-      }}
-    >
+    <div className="block w-full text-left" {...drawerRowProps}>
       <Card
         size="sm"
         className="h-full border-l-4 transition-colors hover:bg-accent/50"

@@ -85,6 +85,42 @@ export function itemTypeSlug(name: string): string {
   return `${name.toLowerCase()}s`;
 }
 
+type RawItemRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  isFavorite: boolean;
+  isPinned: boolean;
+  lastUsedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  fileUrl: string | null;
+  fileName: string | null;
+  fileSize: number | null;
+  tags: { tag: { name: string } }[];
+};
+
+function toItemSummary(item: RawItemRow, type: ItemTypeSummary): ItemSummary {
+  return {
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    type,
+    tags: item.tags.map(({ tag }) => tag.name),
+    isFavorite: item.isFavorite,
+    isPinned: item.isPinned,
+    lastUsedAt: item.lastUsedAt ?? item.updatedAt,
+    createdAt: item.createdAt,
+    fileUrl: item.fileUrl,
+    fileName: item.fileName,
+    fileSize: item.fileSize,
+  };
+}
+
+function sortByLastUsed(items: ItemSummary[]): ItemSummary[] {
+  return items.sort((a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime());
+}
+
 export const getItemsByType = cache(
   async (
     userId: string,
@@ -112,22 +148,7 @@ export const getItemsByType = cache(
       },
     });
 
-    const summaries: ItemSummary[] = items
-      .map((item) => ({
-        id: item.id,
-        title: item.title,
-        description: item.description,
-        type,
-        tags: item.tags.map(({ tag }) => tag.name),
-        isFavorite: item.isFavorite,
-        isPinned: item.isPinned,
-        lastUsedAt: item.lastUsedAt ?? item.updatedAt,
-        createdAt: item.createdAt,
-        fileUrl: item.fileUrl,
-        fileName: item.fileName,
-        fileSize: item.fileSize,
-      }))
-      .sort((a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime());
+    const summaries = sortByLastUsed(items.map((item) => toItemSummary(item, type)));
 
     return { type, items: summaries };
   },
@@ -279,27 +300,7 @@ export const getDashboardItems = cache(
       },
     });
 
-    const summaries: ItemSummary[] = items
-      .map((item) => ({
-        id: item.id,
-        title: item.title,
-        description: item.description,
-        type: {
-          id: item.type.id,
-          name: item.type.name,
-          icon: item.type.icon,
-          color: item.type.color,
-        },
-        tags: item.tags.map(({ tag }) => tag.name),
-        isFavorite: item.isFavorite,
-        isPinned: item.isPinned,
-        lastUsedAt: item.lastUsedAt ?? item.updatedAt,
-        createdAt: item.createdAt,
-        fileUrl: item.fileUrl,
-        fileName: item.fileName,
-        fileSize: item.fileSize,
-      }))
-      .sort((a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime());
+    const summaries = sortByLastUsed(items.map((item) => toItemSummary(item, item.type)));
 
     return {
       totalItems: summaries.length,

@@ -6,6 +6,7 @@ import type { OnMount } from "@monaco-editor/react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { resolveMonacoLanguage } from "@/lib/monaco-language";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
@@ -50,7 +51,7 @@ export function CodeEditor({
   readOnly?: boolean;
 }) {
   const [height, setHeight] = useState(MIN_HEIGHT);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoLanguage = resolveMonacoLanguage(language);
 
@@ -68,9 +69,7 @@ export function CodeEditor({
   };
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    await copy(value);
   }
 
   return (

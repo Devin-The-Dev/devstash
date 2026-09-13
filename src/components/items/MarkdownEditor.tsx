@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 
 const MIN_HEIGHT = 128;
 const MAX_HEIGHT = 400;
@@ -31,7 +32,7 @@ export function MarkdownEditor({
   readOnly?: boolean;
 }) {
   const [tab, setTab] = useState<"write" | "preview">("write");
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
   const [height, setHeight] = useState(MIN_HEIGHT);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -44,9 +45,7 @@ export function MarkdownEditor({
   }, [value, tab, readOnly]);
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    await copy(value);
   }
 
   const copyButton = (
