@@ -68,7 +68,7 @@ Example v4 configuration:
 
 - Tailwind CSS for all styling
 - Use shadcn/ui components where applicable
-- No inline styles
+- Avoid inline styles except for genuinely dynamic values that can't be expressed as Tailwind classes (e.g. a per-item-type color pulled from the DB, as in `ItemCard`/`CollectionCard`)
 - Dark mode first, light mode as option
 
 ## Database
