@@ -6,10 +6,8 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { CodeEditor } from "@/components/items/CodeEditor";
-import { MarkdownEditor } from "@/components/items/MarkdownEditor";
+import { ItemContentFields } from "@/components/items/ItemContentFields";
 import { FileUpload, type UploadedFile } from "@/components/items/FileUpload";
 import {
   Dialog,
@@ -23,14 +21,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createItem } from "@/actions/items";
 import { CREATABLE_ITEM_TYPES } from "@/lib/validations/items";
+import { FILE_TYPES } from "@/lib/item-type-groups";
 import type { ItemTypeSummary } from "@/lib/db/items";
-
-const CONTENT_TYPES = ["Snippet", "Prompt", "Command", "Note"];
-const CODE_TYPES = ["Snippet", "Command"];
-const MARKDOWN_TYPES = ["Note", "Prompt"];
-const LANGUAGE_TYPES = ["Snippet", "Command"];
-const URL_TYPES = ["Link"];
-const FILE_TYPES = ["File", "Image"];
 
 type CollectionOption = { id: string; name: string };
 
@@ -219,60 +211,18 @@ export function NewItemDialog({
                 onChange={(file) => setForm((f) => ({ ...f, file }))}
               />
             </div>
-          ) : CODE_TYPES.includes(typeName) ? (
-            <div className="space-y-1.5">
-              <Label>Content</Label>
-              <CodeEditor
-                value={form.content}
-                language={form.language}
-                onChange={(content) => setForm((f) => ({ ...f, content }))}
-              />
-            </div>
-          ) : MARKDOWN_TYPES.includes(typeName) ? (
-            <div className="space-y-1.5">
-              <Label>Content</Label>
-              <MarkdownEditor
-                value={form.content}
-                onChange={(content) => setForm((f) => ({ ...f, content }))}
-              />
-            </div>
           ) : (
-            CONTENT_TYPES.includes(typeName) && (
-              <div className="space-y-1.5">
-                <Label htmlFor="new-item-content">Content</Label>
-                <Textarea
-                  id="new-item-content"
-                  className="min-h-32 font-mono text-xs"
-                  placeholder="Paste code, prompt, command, or notes…"
-                  value={form.content}
-                  onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
-                />
-              </div>
-            )
-          )}
-
-          {LANGUAGE_TYPES.includes(typeName) && (
-            <div className="space-y-1.5">
-              <Label htmlFor="new-item-language">Language</Label>
-              <Input
-                id="new-item-language"
-                placeholder="e.g. typescript"
-                value={form.language}
-                onChange={(e) => setForm((f) => ({ ...f, language: e.target.value }))}
-              />
-            </div>
-          )}
-
-          {URL_TYPES.includes(typeName) && (
-            <div className="space-y-1.5">
-              <Label htmlFor="new-item-url">URL</Label>
-              <Input
-                id="new-item-url"
-                placeholder="https://…"
-                value={form.url}
-                onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
-              />
-            </div>
+            <ItemContentFields
+              idPrefix="new-item"
+              typeName={typeName}
+              content={form.content}
+              language={form.language}
+              url={form.url}
+              onContentChange={(content) => setForm((f) => ({ ...f, content }))}
+              onLanguageChange={(language) => setForm((f) => ({ ...f, language }))}
+              onUrlChange={(url) => setForm((f) => ({ ...f, url }))}
+              contentPlaceholder="Paste code, prompt, command, or notes…"
+            />
           )}
         </div>
 
