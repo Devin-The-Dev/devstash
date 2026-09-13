@@ -28,10 +28,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const bytes = await object.Body.transformToByteArray();
 
+  // Strip quotes/control characters so a crafted filename can't break out of the
+  // quoted-string and inject extra Content-Disposition directives.
+  const safeFileName = (item.fileName ?? "download").replace(/[\x00-\x1f"\\]/g, "");
+
   return new NextResponse(Buffer.from(bytes), {
     headers: {
       "Content-Type": object.ContentType ?? "application/octet-stream",
-      "Content-Disposition": `attachment; filename="${item.fileName ?? "download"}"`,
+      "Content-Disposition": `attachment; filename="${safeFileName}"`,
       "Content-Length": String(bytes.length),
     },
   });

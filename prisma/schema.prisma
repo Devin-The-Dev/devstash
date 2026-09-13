@@ -134,6 +134,7 @@ model Item {
 
   @@index([userId])
   @@index([typeId])
+  @@index([userId, typeId])
   @@index([lastUsedAt])
   @@index([isFavorite])
   @@index([isPinned])

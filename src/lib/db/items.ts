@@ -223,7 +223,7 @@ export async function updateItem(
   data: UpdateItemInput,
 ): Promise<ItemDetail> {
   const item = await prisma.item.update({
-    where: { id: itemId },
+    where: { id: itemId, userId },
     data: {
       title: data.title,
       description: data.description,
