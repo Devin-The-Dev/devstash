@@ -1,18 +1,25 @@
-# Current Feature
+# Current Feature: Collections Pages & Linking
 
-<!-- Feature name and short description -->
+Add a collections list page and a per-collection detail page, and wire up the existing "View all collections" sidebar link and collection cards to point at them.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Create `/collections` page that lists all of the signed-in user's collections
+- Create `/collections/[id]` page that shows the items belonging to that collection
+- Reuse the existing `CollectionCard` and `ItemCard` components rather than building new ones
+- Link the sidebar's "View all collections" link to `/collections`
+- Link every collection card (dashboard and `/collections` list) to its specific `/collections/[id]` page
 
 ## Notes
 
-<!-- Any extra notes -->
+- Data should be scoped to the signed-in user, consistent with the existing per-user scoping convention (`getCurrentUser()` + `userId` params) used throughout `src/lib/db/*`
+- `CollectionCard` currently isn't a link (dashboard-only, no navigation) — this feature is what gives it a destination
+- `getCollectionsWithStats()` (`src/lib/db/collections.ts`) already computes item count / dominant type / etc. for cards; check whether it or a variant can back both the list page and detail page's item fetch
+- Follow the same app-shell pattern as `/items/[type]` (layout with `SidebarProvider`/`AppSidebar`/`TopBar`) unless a shared shell exists now — check before duplicating again
 
 ## History
 
