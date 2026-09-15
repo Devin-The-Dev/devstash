@@ -1,9 +1,11 @@
 "use client";
 
 import { ItemContentFields } from "@/components/items/ItemContentFields";
+import { CollectionMultiSelect } from "@/components/items/CollectionMultiSelect";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import type { CollectionOption } from "@/lib/db/collections";
 
 export type EditForm = {
   title: string;
@@ -12,6 +14,7 @@ export type EditForm = {
   url: string;
   language: string;
   tags: string;
+  collectionIds: string[];
 };
 
 export function toEditForm(item: {
@@ -21,6 +24,7 @@ export function toEditForm(item: {
   url: string | null;
   language: string | null;
   tags: string[];
+  collections: { id: string; name: string }[];
 }): EditForm {
   return {
     title: item.title,
@@ -29,16 +33,18 @@ export function toEditForm(item: {
     url: item.url ?? "",
     language: item.language ?? "",
     tags: item.tags.join(", "),
+    collectionIds: item.collections.map((collection) => collection.id),
   };
 }
 
 type ItemEditFormProps = {
   typeName: string;
   form: EditForm;
+  collections: CollectionOption[];
   onChange: (form: EditForm) => void;
 };
 
-export function ItemEditForm({ typeName, form, onChange }: ItemEditFormProps) {
+export function ItemEditForm({ typeName, form, collections, onChange }: ItemEditFormProps) {
   return (
     <>
       <div className="space-y-1.5">
@@ -77,6 +83,15 @@ export function ItemEditForm({ typeName, form, onChange }: ItemEditFormProps) {
           placeholder="Comma-separated"
           value={form.tags}
           onChange={(e) => onChange({ ...form, tags: e.target.value })}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Collections</Label>
+        <CollectionMultiSelect
+          collections={collections}
+          selectedIds={form.collectionIds}
+          onChange={(collectionIds) => onChange({ ...form, collectionIds })}
         />
       </div>
     </>

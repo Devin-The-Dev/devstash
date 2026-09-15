@@ -14,6 +14,15 @@ import { deleteFromR2, keyFromPublicUrl } from "@/lib/r2";
 
 type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
 
+async function assertOwnedCollections(userId: string, collectionIds: string[]): Promise<boolean> {
+  if (collectionIds.length === 0) return true;
+  const owned = await prisma.collection.findMany({
+    where: { id: { in: collectionIds }, userId },
+    select: { id: true },
+  });
+  return owned.length === collectionIds.length;
+}
+
 export async function createItem(input: unknown): Promise<ActionResult<ItemDetail>> {
   const session = await auth();
   if (!session?.user?.id) {
@@ -40,20 +49,14 @@ export async function createItem(input: unknown): Promise<ActionResult<ItemDetai
     return { success: false, error: "A file upload is required" };
   }
 
-  if (parsed.data.collectionId) {
-    const collection = await prisma.collection.findFirst({
-      where: { id: parsed.data.collectionId, userId: session.user.id },
-      select: { id: true },
-    });
-    if (!collection) {
-      return { success: false, error: "Collection not found" };
-    }
+  if (!(await assertOwnedCollections(session.user.id, parsed.data.collectionIds))) {
+    return { success: false, error: "Collection not found" };
   }
 
   const isLink = type.name === "Link";
   const created = await createItemQuery(session.user.id, {
     typeId: type.id,
-    collectionId: parsed.data.collectionId ?? null,
+    collectionIds: parsed.data.collectionIds,
     title: parsed.data.title,
     description: parsed.data.description || null,
     contentType: isFileType ? "FILE" : isLink ? "URL" : "TEXT",
@@ -139,6 +142,10 @@ export async function updateItem(
   });
   if (!existing) {
     return { success: false, error: "Item not found" };
+  }
+
+  if (!(await assertOwnedCollections(session.user.id, parsed.data.collectionIds))) {
+    return { success: false, error: "Collection not found" };
   }
 
   const updated = await updateItemQuery(session.user.id, itemId, parsed.data);

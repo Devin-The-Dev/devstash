@@ -17,7 +17,7 @@ const {
       update: vi.fn(),
     },
     collection: {
-      findFirst: vi.fn(),
+      findMany: vi.fn(),
     },
   },
   createItemQueryMock: vi.fn(),
@@ -155,7 +155,7 @@ describe("toggleItemPinned", () => {
 describe("createItem", () => {
   const validInput = {
     typeId: "type-snippet",
-    collectionId: null,
+    collectionIds: [],
     title: "useDebounce hook",
     description: null,
     content: "const x = 1;",
@@ -214,19 +214,38 @@ describe("createItem", () => {
     expect(createItemQueryMock).not.toHaveBeenCalled();
   });
 
-  it("returns an error when the collection doesn't belong to the user", async () => {
+  it("returns an error when a collection doesn't belong to the user", async () => {
     authMock.mockResolvedValue({ user: { id: "user-1" } });
     getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE]);
-    prismaMock.collection.findFirst.mockResolvedValue(null);
+    prismaMock.collection.findMany.mockResolvedValue([]);
 
-    const result = await createItem({ ...validInput, collectionId: "collection-1" });
+    const result = await createItem({ ...validInput, collectionIds: ["collection-1"] });
 
     expect(result).toEqual({ success: false, error: "Collection not found" });
-    expect(prismaMock.collection.findFirst).toHaveBeenCalledWith({
-      where: { id: "collection-1", userId: "user-1" },
+    expect(prismaMock.collection.findMany).toHaveBeenCalledWith({
+      where: { id: { in: ["collection-1"] }, userId: "user-1" },
       select: { id: true },
     });
     expect(createItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("creates the item with multiple collections when all are owned by the user", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE]);
+    prismaMock.collection.findMany.mockResolvedValue([{ id: "collection-1" }, { id: "collection-2" }]);
+    const created = { id: "item-1", title: "useDebounce hook" };
+    createItemQueryMock.mockResolvedValue(created);
+
+    const result = await createItem({
+      ...validInput,
+      collectionIds: ["collection-1", "collection-2"],
+    });
+
+    expect(result).toEqual({ success: true, data: created });
+    expect(createItemQueryMock).toHaveBeenCalledWith(
+      "user-1",
+      expect.objectContaining({ collectionIds: ["collection-1", "collection-2"] }),
+    );
   });
 
   it("creates a text item and returns the detail on success", async () => {
@@ -240,7 +259,7 @@ describe("createItem", () => {
     expect(result).toEqual({ success: true, data: created });
     expect(createItemQueryMock).toHaveBeenCalledWith("user-1", {
       typeId: SNIPPET_TYPE.id,
-      collectionId: null,
+      collectionIds: [],
       title: "useDebounce hook",
       description: null,
       contentType: "TEXT",
@@ -270,7 +289,7 @@ describe("createItem", () => {
     expect(result).toEqual({ success: true, data: created });
     expect(createItemQueryMock).toHaveBeenCalledWith("user-1", {
       typeId: LINK_TYPE.id,
-      collectionId: null,
+      collectionIds: [],
       title: "shadcn/ui",
       description: null,
       contentType: "URL",
@@ -313,7 +332,7 @@ describe("createItem", () => {
     expect(result).toEqual({ success: true, data: created });
     expect(createItemQueryMock).toHaveBeenCalledWith("user-1", {
       typeId: FILE_TYPE.id,
-      collectionId: null,
+      collectionIds: [],
       title: "Pre-deploy checklist.pdf",
       description: null,
       contentType: "FILE",
@@ -336,6 +355,7 @@ describe("updateItem", () => {
     url: null,
     language: null,
     tags: ["react", "hooks"],
+    collectionIds: [],
   };
 
   it("returns an error when there is no authenticated session", async () => {
@@ -381,6 +401,21 @@ describe("updateItem", () => {
     expect(updateItemQueryMock).not.toHaveBeenCalled();
   });
 
+  it("returns an error when a collection doesn't belong to the user", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    prismaMock.item.findFirst.mockResolvedValue({ id: "item-1" });
+    prismaMock.collection.findMany.mockResolvedValue([]);
+
+    const result = await updateItem("item-1", { ...validInput, collectionIds: ["collection-1"] });
+
+    expect(result).toEqual({ success: false, error: "Collection not found" });
+    expect(prismaMock.collection.findMany).toHaveBeenCalledWith({
+      where: { id: { in: ["collection-1"] }, userId: "user-1" },
+      select: { id: true },
+    });
+    expect(updateItemQueryMock).not.toHaveBeenCalled();
+  });
+
   it("updates the item and returns the detail on success", async () => {
     authMock.mockResolvedValue({ user: { id: "user-1" } });
     prismaMock.item.findFirst.mockResolvedValue({ id: "item-1" });
@@ -391,6 +426,20 @@ describe("updateItem", () => {
 
     expect(result).toEqual({ success: true, data: updated });
     expect(updateItemQueryMock).toHaveBeenCalledWith("user-1", "item-1", validInput);
+  });
+
+  it("updates the item's collection memberships when all collections are owned", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    prismaMock.item.findFirst.mockResolvedValue({ id: "item-1" });
+    prismaMock.collection.findMany.mockResolvedValue([{ id: "collection-1" }, { id: "collection-2" }]);
+    const updated = { id: "item-1", title: "Updated title" };
+    updateItemQueryMock.mockResolvedValue(updated);
+
+    const input = { ...validInput, collectionIds: ["collection-1", "collection-2"] };
+    const result = await updateItem("item-1", input);
+
+    expect(result).toEqual({ success: true, data: updated });
+    expect(updateItemQueryMock).toHaveBeenCalledWith("user-1", "item-1", input);
   });
 });
 

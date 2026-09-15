@@ -1,18 +1,26 @@
-# Current Feature
+# Current Feature: Multi-Collection Assignment on Item Forms
 
-<!-- Feature name and short description -->
+Add functionality to add an item to a single or multiple collections, via an input on both the new-item and edit-item forms. Displaying collection pages themselves is explicitly out of scope.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- New Item dialog (`NewItemDialog.tsx`): replace the current single-select "Collection" dropdown with a multi-select control that lets the user pick zero, one, or many collections.
+- Item Edit form (`ItemEditForm.tsx`, opened from `ItemDrawer`): add a collection multi-select — there is currently no collection field in edit mode at all.
+- `createItem` (`src/actions/items.ts` + `src/lib/db/items.ts`) accepts multiple collection ids instead of one, validating that every id belongs to the current user before creating the `ItemCollection` links.
+- `updateItem` (`src/actions/items.ts` + `src/lib/db/items.ts`) gains the ability to change an item's collection memberships (add/remove), following the same `deleteMany` + `create`/`connectOrCreate` replace-all pattern already used for `tags`.
+- Read paths (`getItemDetail`, view-mode display in `ItemDrawer`) already return/display `collections: {id, name}[]` — confirm the multi-select's initial state is seeded correctly from this existing shape.
 
 ## Notes
 
-<!-- Any extra notes -->
+- The schema already supports many-to-many: `ItemCollection` is a join table keyed on `[itemId, collectionId]` (`prisma/schema.prisma` — no migration should be needed).
+- Today only `createItem` wires a single optional `collectionId` (`src/lib/validations/items.ts:15`, `src/lib/db/items.ts:231-232`); `updateItem` doesn't touch collections at all. Both need to move from a singular `collectionId` to a plural `collectionIds: string[]`.
+- Follow this repo's established dialog/form conventions: shadcn components, `useTransition` + `sonner` toasts + `router.refresh()` on success (see `NewCollectionDialog`, `ItemEditForm`), Zod validation in `src/lib/validations/items.ts`, ownership checks in the action layer before touching Prisma.
+- No shadcn multi-select primitive exists yet in this codebase — decide during `start` whether to build one (e.g. checkboxes in a popover, or a simple multi-select list) or install a suitable component; check `node_modules/next/dist/docs/` and Context7 only if this touches a library API, not for this UI-pattern decision itself.
+- Displaying collection detail pages, or any other collection-page UI, is explicitly out of scope per the user's request.
 
 ## History
 

@@ -20,8 +20,9 @@ import { deleteItem, updateItem } from "@/actions/items";
 import { useItemDetail } from "@/hooks/use-item-detail";
 import { useItemFavoritePin } from "@/hooks/use-item-favorite-pin";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import type { CollectionOption } from "@/lib/db/collections";
 
-export function ItemDrawer() {
+export function ItemDrawer({ collections }: { collections: CollectionOption[] }) {
   const { openItemId, close } = useItemDrawer();
   const router = useRouter();
   const { item, status, patchItem } = useItemDetail(openItemId);
@@ -77,6 +78,7 @@ export function ItemDrawer() {
       url: editForm.url.trim() || null,
       language: editForm.language.trim() || null,
       tags,
+      collectionIds: editForm.collectionIds,
     };
 
     startTransition(async () => {
@@ -210,22 +212,28 @@ export function ItemDrawer() {
 
             <div className="flex flex-1 flex-col gap-4 px-4 pb-4">
               {mode === "edit" && editForm ? (
-                <ItemEditForm typeName={item.type.name} form={editForm} onChange={setEditForm} />
+                <ItemEditForm
+                  typeName={item.type.name}
+                  form={editForm}
+                  collections={collections}
+                  onChange={setEditForm}
+                />
               ) : (
-                <ItemDetailView item={item} />
-              )}
-
-              {item.collections.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground">Collections</p>
-                  <div className="flex flex-wrap gap-1">
-                    {item.collections.map((collection) => (
-                      <Badge key={collection.id} variant="outline" className="text-xs">
-                        {collection.name}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
+                <>
+                  <ItemDetailView item={item} />
+                  {item.collections.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground">Collections</p>
+                      <div className="flex flex-wrap gap-1">
+                        {item.collections.map((collection) => (
+                          <Badge key={collection.id} variant="outline" className="text-xs">
+                            {collection.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               <Separator className="mt-auto" />

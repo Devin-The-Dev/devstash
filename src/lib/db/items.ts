@@ -4,7 +4,7 @@ import type { UpdateItemInput } from "@/lib/validations/items";
 
 export type NewItemInput = {
   typeId: string;
-  collectionId: string | null;
+  collectionIds: string[];
   title: string;
   description: string | null;
   contentType: "TEXT" | "URL" | "FILE";
@@ -228,9 +228,10 @@ export async function createItem(userId: string, data: NewItemInput): Promise<It
           },
         })),
       },
-      collections: data.collectionId
-        ? { create: [{ collectionId: data.collectionId }] }
-        : undefined,
+      collections:
+        data.collectionIds.length > 0
+          ? { create: data.collectionIds.map((collectionId) => ({ collectionId })) }
+          : undefined,
     },
     select: ITEM_DETAIL_SELECT,
   });
@@ -261,6 +262,10 @@ export async function updateItem(
             },
           },
         })),
+      },
+      collections: {
+        deleteMany: {},
+        create: data.collectionIds.map((collectionId) => ({ collectionId })),
       },
     },
     select: ITEM_DETAIL_SELECT,
