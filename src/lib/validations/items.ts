@@ -12,7 +12,7 @@ export const CREATABLE_ITEM_TYPES: string[] = [
 
 export const createItemSchema = z.object({
   typeId: z.string().min(1, "Type is required"),
-  collectionId: z.string().nullable().optional(),
+  collectionIds: z.array(z.string()).default([]),
   title: z.string().trim().min(1, "Title is required"),
   description: z.string().nullable().optional(),
   content: z.string().nullable().optional(),
@@ -33,6 +33,7 @@ export const updateItemSchema = z.object({
   url: z.union([z.url(), z.null()]).optional(),
   language: z.string().nullable().optional(),
   tags: z.array(z.string().trim().min(1)),
+  collectionIds: z.array(z.string()),
 });
 
 export type UpdateItemInput = z.infer<typeof updateItemSchema>;

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useMemo, useState } from "react";
 import { ItemDrawer } from "@/components/items/ItemDrawer";
+import type { CollectionOption } from "@/lib/db/collections";
 
 type ItemDrawerContextValue = {
   openItemId: string | null;
@@ -19,7 +20,13 @@ export function useItemDrawer(): ItemDrawerContextValue {
   return context;
 }
 
-export function ItemDrawerProvider({ children }: { children: React.ReactNode }) {
+export function ItemDrawerProvider({
+  children,
+  collections,
+}: {
+  children: React.ReactNode;
+  collections: CollectionOption[];
+}) {
   const [openItemId, setOpenItemId] = useState<string | null>(null);
 
   const value = useMemo<ItemDrawerContextValue>(
@@ -34,7 +41,7 @@ export function ItemDrawerProvider({ children }: { children: React.ReactNode }) 
   return (
     <ItemDrawerContext.Provider value={value}>
       {children}
-      <ItemDrawer />
+      <ItemDrawer collections={collections} />
     </ItemDrawerContext.Provider>
   );
 }

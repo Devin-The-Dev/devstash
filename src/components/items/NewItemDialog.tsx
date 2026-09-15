@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ItemContentFields } from "@/components/items/ItemContentFields";
+import { CollectionMultiSelect } from "@/components/items/CollectionMultiSelect";
 import { FileUpload, type UploadedFile } from "@/components/items/FileUpload";
 import {
   Dialog,
@@ -23,12 +24,11 @@ import { createItem } from "@/actions/items";
 import { CREATABLE_ITEM_TYPES } from "@/lib/validations/items";
 import { FILE_TYPES } from "@/lib/item-type-groups";
 import type { ItemTypeSummary } from "@/lib/db/items";
-
-type CollectionOption = { id: string; name: string };
+import type { CollectionOption } from "@/lib/db/collections";
 
 type FormState = {
   typeId: string;
-  collectionId: string | null;
+  collectionIds: string[];
   title: string;
   description: string;
   tags: string;
@@ -41,7 +41,7 @@ type FormState = {
 function emptyForm(typeId: string): FormState {
   return {
     typeId,
-    collectionId: null,
+    collectionIds: [],
     title: "",
     description: "",
     tags: "",
@@ -90,7 +90,7 @@ export function NewItemDialog({
 
     const payload = {
       typeId: form.typeId,
-      collectionId: form.collectionId,
+      collectionIds: form.collectionIds,
       title: form.title.trim(),
       description: form.description.trim() || null,
       content: form.content.trim() || null,
@@ -150,25 +150,12 @@ export function NewItemDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label>Collection</Label>
-              <Select
-                value={form.collectionId ?? "none"}
-                onValueChange={(value) =>
-                  setForm((f) => ({ ...f, collectionId: value === "none" ? null : (value as string) }))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {collections.map((collection) => (
-                    <SelectItem key={collection.id} value={collection.id}>
-                      {collection.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Collections</Label>
+              <CollectionMultiSelect
+                collections={collections}
+                selectedIds={form.collectionIds}
+                onChange={(collectionIds) => setForm((f) => ({ ...f, collectionIds }))}
+              />
             </div>
           </div>
 

@@ -8,6 +8,11 @@ export type CollectionItemType = {
   color: string;
 };
 
+export type CollectionOption = {
+  id: string;
+  name: string;
+};
+
 export type NewCollectionInput = {
   name: string;
   description: string | null;
