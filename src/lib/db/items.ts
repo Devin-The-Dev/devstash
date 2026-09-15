@@ -154,6 +154,42 @@ export const getItemsByType = cache(
   },
 );
 
+export const getItemsByCollection = cache(
+  async (
+    userId: string,
+    collectionId: string,
+  ): Promise<{ collection: { id: string; name: string; description: string | null }; items: ItemSummary[] } | null> => {
+    const collection = await prisma.collection.findFirst({
+      where: { id: collectionId, userId },
+      select: { id: true, name: true, description: true },
+    });
+    if (!collection) return null;
+
+    const items = await prisma.item.findMany({
+      where: { userId, collections: { some: { collectionId } } },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        isFavorite: true,
+        isPinned: true,
+        lastUsedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        fileUrl: true,
+        fileName: true,
+        fileSize: true,
+        type: { select: { id: true, name: true, icon: true, color: true } },
+        tags: { select: { tag: { select: { name: true } } } },
+      },
+    });
+
+    const summaries = sortByLastUsed(items.map((item) => toItemSummary(item, item.type)));
+
+    return { collection, items: summaries };
+  },
+);
+
 const ITEM_DETAIL_SELECT = {
   id: true,
   title: true,
