@@ -1,8 +1,8 @@
-import { Search, FolderPlus } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NewItemDialog } from "@/components/items/NewItemDialog";
+import { NewCollectionDialog } from "@/components/collections/NewCollectionDialog";
 import { getCollectionsWithStats } from "@/lib/db/collections";
 import { getSystemItemTypes } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
@@ -21,10 +21,7 @@ export async function TopBar() {
         <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input placeholder="Search items, collections, tags..." className="pl-8" />
       </div>
-      <Button variant="outline">
-        <FolderPlus className="size-4" />
-        New collection
-      </Button>
+      <NewCollectionDialog />
       <NewItemDialog
         itemTypes={itemTypes}
         collections={collections.map((c) => ({ id: c.id, name: c.name }))}
