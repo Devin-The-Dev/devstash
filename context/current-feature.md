@@ -1,18 +1,30 @@
-# Current Feature
+# Current Feature: Collection Create
 
-<!-- Feature name and short description -->
+Add a "New collection" flow: a modal (opened from the existing top-bar button) to create a user-scoped collection with a name and description.
 
 ## Status
 
-<!-- Not Started | In Progress | Complete -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Wire up the existing static "New collection" button in `TopBar` (`src/components/dashboard/TopBar.tsx`) to open a create-collection modal (currently just a `Button` with no click handler).
+- Modal form fields: name (required) and description (optional), matching `Collection` model fields already used elsewhere (`name`, `description`).
+- On submit, call a client-side create request that hits a new API route (not a Server Action — explicitly requested, deviating from the `createItem` Server Action pattern).
+- Collections are user-scoped: the route must resolve the session user (`auth()`) and create the collection with `userId` set, same as every other per-user query in this codebase.
+- Show a toast on success and on failure (`sonner`, already installed/wired via `src/components/ui/sonner.tsx` in `src/app/layout.tsx`, `theme="dark"`).
+- On success, the UI must reflect the new collection immediately: sidebar collections list, dashboard Collections section, and the `NewItemDialog`'s collection dropdown all currently derive from `getCollectionsWithStats()` fetched in server components (`TopBar`, `AppSidebar`, `dashboard/page.tsx`) — use `router.refresh()` after success, matching the existing convention in `ItemDrawer`/`NewItemDialog` for keeping server-fetched lists in sync without a full reload.
 
 ## Notes
 
-<!-- Any extra notes -->
+**Patterns to mirror from items** (confirmed by reading the codebase):
+- Reads: `src/lib/db/collections.ts` already has `getCollectionsWithStats(userId)`, `cache()`-wrapped, called from server components (`TopBar`, `AppSidebar`, `dashboard/page.tsx`). No new read function should be needed for the modal itself — it doesn't need to fetch anything before opening.
+- Writes: user explicitly asked for an API route for the client-side create call (`POST /api/collections`), instead of a Server Action. This differs from `createItem` (a Server Action in `src/actions/items.ts`) and from CLAUDE.md's stated "Client components use Server Actions" convention — confirmed with the user as an intentional deviation for this feature. Route should follow the existing `src/app/api/items/[id]/route.ts` shape: `auth()` check → 401 if no session, Zod-validate the body, return `{ success, data, error }` JSON with appropriate status codes (401/400/201).
+- Validation: add a `createCollectionSchema` to a new `src/lib/validations/collections.ts` (or extend an existing file if one gets created first), mirroring `src/lib/validations/items.ts`'s style (`z.object`, trimmed required `name`, optional nullable `description`).
+- Modal component: mirror `src/components/items/NewItemDialog.tsx` — `"use client"`, shadcn `Dialog` + `Input`/`Textarea`/`Label`, `useState` for open/form state, `useTransition` for pending state, `toast.success`/`toast.error` from `sonner`, `router.refresh()` on success, reset form on open.
+- `Collection` Prisma model already exists (`userId`, `name`, `description`, `isFavorite`, timestamps) — no schema/migration changes expected.
+
+**Open items to verify during `start`:** confirm the exact `Collection` model fields (in case there's anything beyond name/description that must be set, e.g. defaults for `isFavorite`), and double check no existing partial "create collection" UI/route already exists beyond the static button.
 
 ## History
 

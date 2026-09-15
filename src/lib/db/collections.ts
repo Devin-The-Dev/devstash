@@ -8,6 +8,37 @@ export type CollectionItemType = {
   color: string;
 };
 
+export type NewCollectionInput = {
+  name: string;
+  description: string | null;
+};
+
+export type CollectionRecord = {
+  id: string;
+  name: string;
+  description: string | null;
+  isFavorite: boolean;
+};
+
+export async function createCollection(
+  userId: string,
+  data: NewCollectionInput,
+): Promise<CollectionRecord> {
+  return prisma.collection.create({
+    data: {
+      userId,
+      name: data.name,
+      description: data.description,
+    },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      isFavorite: true,
+    },
+  });
+}
+
 export type CollectionSummary = {
   id: string;
   name: string;
