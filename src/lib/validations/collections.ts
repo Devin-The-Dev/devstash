@@ -6,3 +6,7 @@ export const createCollectionSchema = z.object({
 });
 
 export type CreateCollectionInput = z.infer<typeof createCollectionSchema>;
+
+export const updateCollectionSchema = createCollectionSchema;
+
+export type UpdateCollectionInput = z.infer<typeof updateCollectionSchema>;

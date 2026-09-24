@@ -44,6 +44,37 @@ export async function createCollection(
   });
 }
 
+export async function updateCollection(
+  userId: string,
+  id: string,
+  data: NewCollectionInput,
+): Promise<CollectionRecord | null> {
+  const { count } = await prisma.collection.updateMany({
+    where: { id, userId },
+    data: {
+      name: data.name,
+      description: data.description,
+    },
+  });
+  if (count === 0) return null;
+
+  return prisma.collection.findUniqueOrThrow({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      isFavorite: true,
+    },
+  });
+}
+
+export async function deleteCollection(userId: string, id: string): Promise<boolean> {
+  // ItemCollection rows cascade-delete with the collection; Item rows are untouched.
+  const { count } = await prisma.collection.deleteMany({ where: { id, userId } });
+  return count > 0;
+}
+
 export type CollectionSummary = {
   id: string;
   name: string;

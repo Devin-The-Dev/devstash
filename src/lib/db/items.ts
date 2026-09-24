@@ -158,10 +158,13 @@ export const getItemsByCollection = cache(
   async (
     userId: string,
     collectionId: string,
-  ): Promise<{ collection: { id: string; name: string; description: string | null }; items: ItemSummary[] } | null> => {
+  ): Promise<{
+    collection: { id: string; name: string; description: string | null; isFavorite: boolean };
+    items: ItemSummary[];
+  } | null> => {
     const collection = await prisma.collection.findFirst({
       where: { id: collectionId, userId },
-      select: { id: true, name: true, description: true },
+      select: { id: true, name: true, description: true, isFavorite: true },
     });
     if (!collection) return null;
 
