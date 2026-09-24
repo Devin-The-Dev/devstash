@@ -1,8 +1,7 @@
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NewItemDialog } from "@/components/items/NewItemDialog";
 import { NewCollectionDialog } from "@/components/collections/NewCollectionDialog";
+import { SearchTrigger } from "@/components/search/SearchTrigger";
 import { getCollectionsWithStats } from "@/lib/db/collections";
 import { getSystemItemTypes } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
@@ -17,9 +16,8 @@ export async function TopBar() {
   return (
     <header className="flex items-center gap-4 border-b px-4 py-3">
       <SidebarTrigger />
-      <div className="relative max-w-md flex-1">
-        <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search items, collections, tags..." className="pl-8" />
+      <div className="max-w-md flex-1">
+        <SearchTrigger />
       </div>
       <NewCollectionDialog />
       <NewItemDialog
