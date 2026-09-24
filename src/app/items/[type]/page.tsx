@@ -3,22 +3,28 @@ import { Box } from "lucide-react";
 import { ItemCard } from "@/components/dashboard/ItemCard";
 import { ImageThumbnailCard } from "@/components/dashboard/ImageThumbnailCard";
 import { FileListItem } from "@/components/dashboard/FileListItem";
+import { PaginationControls } from "@/components/shared/PaginationControls";
 import { itemTypeIconMap } from "@/lib/item-type-icons";
 import { getItemsByType } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
+import { ITEMS_PER_PAGE, parsePageParam, totalPagesFor } from "@/lib/pagination";
 
 export default async function ItemsByTypePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ type: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const { type: typeSlug } = await params;
+  const page = parsePageParam((await searchParams).page);
   const currentUser = await getCurrentUser();
-  const result = await getItemsByType(currentUser.id, typeSlug);
+  const result = await getItemsByType(currentUser.id, typeSlug, page, ITEMS_PER_PAGE);
 
   if (!result) notFound();
 
-  const { type, items } = result;
+  const { type, items, totalCount } = result;
+  const totalPages = totalPagesFor(totalCount, ITEMS_PER_PAGE);
   const Icon = itemTypeIconMap[type.icon] ?? Box;
   const isImageType = type.name === "Image";
   const isFileType = type.name === "File";
@@ -30,13 +36,15 @@ export default async function ItemsByTypePage({
         <div>
           <h1 className="text-2xl font-semibold">{type.name}s</h1>
           <p className="text-muted-foreground">
-            {items.length} {items.length === 1 ? "item" : "items"}
+            {totalCount} {totalCount === 1 ? "item" : "items"}
           </p>
         </div>
       </div>
 
       {items.length === 0 ? (
-        <p className="text-muted-foreground">No {type.name.toLowerCase()}s yet.</p>
+        <p className="text-muted-foreground">
+          {totalCount === 0 ? `No ${type.name.toLowerCase()}s yet.` : "No items on this page."}
+        </p>
       ) : isFileType ? (
         <div className="rounded-lg border">
           {items.map((item) => (
@@ -54,6 +62,12 @@ export default async function ItemsByTypePage({
           )}
         </div>
       )}
+
+      <PaginationControls
+        currentPage={page}
+        totalPages={totalPages}
+        basePath={`/items/${typeSlug}`}
+      />
     </main>
   );
 }

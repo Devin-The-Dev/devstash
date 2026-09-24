@@ -124,40 +124,56 @@ function toItemSummary(item: RawItemRow, type: ItemTypeSummary): ItemSummary {
   };
 }
 
-function sortByLastUsed(items: ItemSummary[]): ItemSummary[] {
-  return items.sort((a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime());
-}
+// Nulls sort last: an item without an explicit lastUsedAt (shouldn't happen
+// for anything created after createItem started stamping it, but kept as a
+// defensive default for older/edge-case rows) falls to the back rather than
+// jumping to the front the way Postgres's DESC-sorts-nulls-first default would.
+const LAST_USED_ORDER = { lastUsedAt: { sort: "desc", nulls: "last" } } as const;
+
+const ITEM_SUMMARY_SELECT = {
+  id: true,
+  title: true,
+  description: true,
+  isFavorite: true,
+  isPinned: true,
+  lastUsedAt: true,
+  createdAt: true,
+  updatedAt: true,
+  fileUrl: true,
+  fileName: true,
+  fileSize: true,
+  tags: { select: { tag: { select: { name: true } } } },
+} as const;
+
+const ITEM_SUMMARY_WITH_TYPE_SELECT = {
+  ...ITEM_SUMMARY_SELECT,
+  type: { select: { id: true, name: true, icon: true, color: true } },
+} as const;
 
 export const getItemsByType = cache(
   async (
     userId: string,
     typeSlug: string,
-  ): Promise<{ type: ItemTypeSummary; items: ItemSummary[] } | null> => {
+    page: number,
+    pageSize: number,
+  ): Promise<{ type: ItemTypeSummary; items: ItemSummary[]; totalCount: number } | null> => {
     const types = await getSystemItemTypes();
     const type = types.find((t) => itemTypeSlug(t.name) === typeSlug);
     if (!type) return null;
 
-    const items = await prisma.item.findMany({
-      where: { userId, typeId: type.id },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        isFavorite: true,
-        isPinned: true,
-        lastUsedAt: true,
-        createdAt: true,
-        updatedAt: true,
-        fileUrl: true,
-        fileName: true,
-        fileSize: true,
-        tags: { select: { tag: { select: { name: true } } } },
-      },
-    });
+    const where = { userId, typeId: type.id };
+    const [items, totalCount] = await Promise.all([
+      prisma.item.findMany({
+        where,
+        select: ITEM_SUMMARY_SELECT,
+        orderBy: LAST_USED_ORDER,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.item.count({ where }),
+    ]);
 
-    const summaries = sortByLastUsed(items.map((item) => toItemSummary(item, type)));
-
-    return { type, items: summaries };
+    return { type, items: items.map((item) => toItemSummary(item, type)), totalCount };
   },
 );
 
@@ -165,9 +181,12 @@ export const getItemsByCollection = cache(
   async (
     userId: string,
     collectionId: string,
+    page: number,
+    pageSize: number,
   ): Promise<{
     collection: { id: string; name: string; description: string | null; isFavorite: boolean };
     items: ItemSummary[];
+    totalCount: number;
   } | null> => {
     const collection = await prisma.collection.findFirst({
       where: { id: collectionId, userId },
@@ -175,28 +194,23 @@ export const getItemsByCollection = cache(
     });
     if (!collection) return null;
 
-    const items = await prisma.item.findMany({
-      where: { userId, collections: { some: { collectionId } } },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        isFavorite: true,
-        isPinned: true,
-        lastUsedAt: true,
-        createdAt: true,
-        updatedAt: true,
-        fileUrl: true,
-        fileName: true,
-        fileSize: true,
-        type: { select: { id: true, name: true, icon: true, color: true } },
-        tags: { select: { tag: { select: { name: true } } } },
-      },
-    });
+    const where = { userId, collections: { some: { collectionId } } };
+    const [items, totalCount] = await Promise.all([
+      prisma.item.findMany({
+        where,
+        select: ITEM_SUMMARY_WITH_TYPE_SELECT,
+        orderBy: LAST_USED_ORDER,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.item.count({ where }),
+    ]);
 
-    const summaries = sortByLastUsed(items.map((item) => toItemSummary(item, item.type)));
-
-    return { collection, items: summaries };
+    return {
+      collection,
+      items: items.map((item) => toItemSummary(item, item.type)),
+      totalCount,
+    };
   },
 );
 
@@ -264,6 +278,10 @@ export async function createItem(userId: string, data: NewItemInput): Promise<It
       fileName: data.fileName,
       fileSize: data.fileSize,
       language: data.language,
+      // Stamped at creation so a brand-new item sorts as "just used" rather
+      // than falling to the back of lastUsedAt-ordered lists until something
+      // explicitly marks it used.
+      lastUsedAt: new Date(),
       tags: {
         create: data.tags.map((name) => ({
           tag: {
@@ -346,33 +364,28 @@ export const getSearchableItems = cache(async (userId: string): Promise<Searchab
 });
 
 export const getDashboardItems = cache(
-  async (userId: string, recentLimit = 10): Promise<DashboardItems> => {
-    const items = await prisma.item.findMany({
-      where: { userId },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        isFavorite: true,
-        isPinned: true,
-        lastUsedAt: true,
-        createdAt: true,
-        updatedAt: true,
-        fileUrl: true,
-        fileName: true,
-        fileSize: true,
-        type: { select: { id: true, name: true, icon: true, color: true } },
-        tags: { select: { tag: { select: { name: true } } } },
-      },
-    });
-
-    const summaries = sortByLastUsed(items.map((item) => toItemSummary(item, item.type)));
+  async (userId: string, recentLimit: number): Promise<DashboardItems> => {
+    const [totalItems, favoriteItems, pinnedRows, recentRows] = await Promise.all([
+      prisma.item.count({ where: { userId } }),
+      prisma.item.count({ where: { userId, isFavorite: true } }),
+      prisma.item.findMany({
+        where: { userId, isPinned: true },
+        select: ITEM_SUMMARY_WITH_TYPE_SELECT,
+        orderBy: LAST_USED_ORDER,
+      }),
+      prisma.item.findMany({
+        where: { userId },
+        select: ITEM_SUMMARY_WITH_TYPE_SELECT,
+        orderBy: LAST_USED_ORDER,
+        take: recentLimit,
+      }),
+    ]);
 
     return {
-      totalItems: summaries.length,
-      favoriteItems: summaries.filter((item) => item.isFavorite).length,
-      pinnedItems: summaries.filter((item) => item.isPinned),
-      recentItems: summaries.slice(0, recentLimit),
+      totalItems,
+      favoriteItems,
+      pinnedItems: pinnedRows.map((item) => toItemSummary(item, item.type)),
+      recentItems: recentRows.map((item) => toItemSummary(item, item.type)),
     };
   },
 );
