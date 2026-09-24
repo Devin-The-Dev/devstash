@@ -60,6 +60,13 @@ export type ItemDetail = {
   collections: { id: string; name: string }[];
 };
 
+export type SearchableItem = {
+  id: string;
+  title: string;
+  description: string | null;
+  type: ItemTypeSummary;
+};
+
 export type DashboardItems = {
   totalItems: number;
   favoriteItems: number;
@@ -322,6 +329,21 @@ export async function deleteItem(
     select: { fileUrl: true },
   });
 }
+
+// Lean projection for the command palette: no tags/favorite/pin state needed,
+// just enough to render a result row and jump to the item drawer.
+export const getSearchableItems = cache(async (userId: string): Promise<SearchableItem[]> => {
+  return prisma.item.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      type: { select: { id: true, name: true, icon: true, color: true } },
+    },
+    orderBy: { title: "asc" },
+  });
+});
 
 export const getDashboardItems = cache(
   async (userId: string, recentLimit = 10): Promise<DashboardItems> => {
