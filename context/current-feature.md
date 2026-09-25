@@ -1,18 +1,27 @@
-# Current Feature
+# Current Feature: Favorite Toggle Buttons
 
-<!-- Feature name and short description -->
+Add working favorite toggle buttons for items and collections in the item drawer, the collection detail page, and item/collection cards.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Add a `toggleCollectionFavorite` server action (auth-checked, `userId`-scoped, returns `{ success, data, error }`)
+- Wire the existing Favorite button on `/collections/[id]` (`CollectionDetailActions`) to toggle the collection's favorite state
+- Wire the existing "Add to / Remove from favorites" entry in the `CollectionCard` actions menu (`CollectionActionsMenu`) to toggle
+- Replace the static favorite indicator on item cards (`ItemCard`, `ImageThumbnailCard`) with a clickable star toggle that doesn't open the drawer
+- Keep the item drawer's existing favorite toggle working, and keep its state in sync with the cards/list after toggling
+- Optimistic UI with rollback on failure, and updates reflected elsewhere (sidebar Favorites, dashboard stats, `/favorites`) without a manual reload
 
 ## Notes
 
-<!-- Any extra notes -->
+- Inline request: "Add a favorite button to the drawer, collection page and cards to toggle"
+- Already exists: the drawer's item favorite toggle (`toggleItemFavorite` in `src/actions/items.ts`, `useItemFavoritePin` hook); the favorite buttons on `CollectionDetailActions` and `CollectionActionsMenu` render but have no toggle logic (left out of scope in the 2026-09-24 Collection Edit/Delete/Favorite entry)
+- Item cards currently show a static star only when favorited, with no toggle
+- Nested buttons in cards must use `stopPropagation` so the toggle doesn't open the drawer or navigate (same pattern as the ItemCard copy button and the CollectionCard actions menu)
+- `FileListItem` rows have no favorite indicator today. Whether to add one there too is an open question
 
 ## History
 

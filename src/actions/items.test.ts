@@ -43,6 +43,10 @@ vi.mock("@/lib/db/items", () => ({
   getSystemItemTypes: getSystemItemTypesMock,
 }));
 
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
 vi.mock("@/lib/r2", () => ({
   deleteFromR2: deleteFromR2Mock,
   keyFromPublicUrl: keyFromPublicUrlMock,

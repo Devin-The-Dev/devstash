@@ -69,6 +69,23 @@ export async function updateCollection(
   });
 }
 
+export async function toggleCollectionFavorite(
+  userId: string,
+  id: string,
+): Promise<{ isFavorite: boolean } | null> {
+  const collection = await prisma.collection.findFirst({
+    where: { id, userId },
+    select: { isFavorite: true },
+  });
+  if (!collection) return null;
+
+  return prisma.collection.update({
+    where: { id, userId },
+    data: { isFavorite: !collection.isFavorite },
+    select: { isFavorite: true },
+  });
+}
+
 export async function deleteCollection(userId: string, id: string): Promise<boolean> {
   // ItemCollection rows cascade-delete with the collection; Item rows are untouched.
   const { count } = await prisma.collection.deleteMany({ where: { id, userId } });
