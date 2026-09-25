@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { Star } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NewItemDialog } from "@/components/items/NewItemDialog";
 import { NewCollectionDialog } from "@/components/collections/NewCollectionDialog";
@@ -19,6 +22,14 @@ export async function TopBar() {
       <div className="max-w-md flex-1">
         <SearchTrigger />
       </div>
+      <Link
+        href="/favorites"
+        aria-label="Favorites"
+        title="Favorites"
+        className={buttonVariants({ variant: "ghost", size: "icon" })}
+      >
+        <Star />
+      </Link>
       <NewCollectionDialog />
       <NewItemDialog
         itemTypes={itemTypes}

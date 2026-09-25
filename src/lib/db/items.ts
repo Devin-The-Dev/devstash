@@ -363,6 +363,28 @@ export const getSearchableItems = cache(async (userId: string): Promise<Searchab
   });
 });
 
+export type FavoriteItem = {
+  id: string;
+  title: string;
+  type: ItemTypeSummary;
+  updatedAt: Date;
+};
+
+// No dedicated favoritedAt column exists, so updatedAt stands in for
+// "most recently favorited" (it also moves on any other edit).
+export const getFavoriteItems = cache(async (userId: string): Promise<FavoriteItem[]> => {
+  return prisma.item.findMany({
+    where: { userId, isFavorite: true },
+    select: {
+      id: true,
+      title: true,
+      updatedAt: true,
+      type: { select: { id: true, name: true, icon: true, color: true } },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+});
+
 export const getDashboardItems = cache(
   async (userId: string, recentLimit: number): Promise<DashboardItems> => {
     const [totalItems, favoriteItems, pinnedRows, recentRows] = await Promise.all([

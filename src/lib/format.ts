@@ -23,6 +23,14 @@ export function formatDate(date: Date | string): string {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "long" }).format(new Date(date));
 }
 
+// YYYY-MM-DD in local time, for dense monospace list columns.
+export function formatIsoDate(date: Date | string): string {
+  const d = new Date(date);
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
