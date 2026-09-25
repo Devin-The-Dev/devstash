@@ -196,6 +196,26 @@ export const getCollectionsPage = cache(
   },
 );
 
+export type FavoriteCollection = {
+  id: string;
+  name: string;
+  itemCount: number;
+  updatedAt: Date;
+};
+
+// See getFavoriteItems: updatedAt is the closest proxy for favorited-at.
+export const getFavoriteCollections = cache(
+  async (userId: string): Promise<FavoriteCollection[]> => {
+    const rows = await prisma.collection.findMany({
+      where: { userId, isFavorite: true },
+      select: { id: true, name: true, updatedAt: true, _count: { select: { items: true } } },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    return rows.map(({ _count, ...collection }) => ({ ...collection, itemCount: _count.items }));
+  },
+);
+
 export const getFavoriteCollectionsCount = cache(async (userId: string): Promise<number> => {
   return prisma.collection.count({ where: { userId, isFavorite: true } });
 });

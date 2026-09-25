@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { formatRelativeTime, formatDate, formatFileSize, getInitials } from "@/lib/format";
+import { formatRelativeTime, formatDate, formatIsoDate, formatFileSize, getInitials } from "@/lib/format";
 
 describe("formatRelativeTime", () => {
   afterEach(() => {
@@ -23,6 +23,12 @@ describe("formatRelativeTime", () => {
 describe("formatDate", () => {
   it("formats a date in long US style", () => {
     expect(formatDate(new Date("2026-03-05T00:00:00Z"))).toMatch(/March/);
+  });
+});
+
+describe("formatIsoDate", () => {
+  it("formats a local date as zero-padded YYYY-MM-DD", () => {
+    expect(formatIsoDate(new Date(2026, 2, 5, 23, 30))).toBe("2026-03-05");
   });
 });
 
