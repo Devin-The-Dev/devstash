@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import {
   deleteCollection,
+  toggleCollectionFavorite as toggleCollectionFavoriteQuery,
   updateCollection,
   type CollectionRecord,
 } from "@/lib/db/collections";
@@ -58,4 +59,23 @@ export async function deleteCollectionAction(
   revalidatePath("/dashboard");
 
   return { success: true, data: null };
+}
+
+export async function toggleCollectionFavorite(
+  collectionId: string,
+): Promise<ActionResult<{ isFavorite: boolean }>> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const updated = await toggleCollectionFavoriteQuery(session.user.id, collectionId);
+  if (!updated) {
+    return { success: false, error: "Collection not found" };
+  }
+
+  // Same reasoning as toggleItemFavorite: favorites surface across the whole shell.
+  revalidatePath("/", "layout");
+
+  return { success: true, data: updated };
 }

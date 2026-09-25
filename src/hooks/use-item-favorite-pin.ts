@@ -16,11 +16,10 @@ export function useItemFavoritePin(
     const nextIsFavorite = !item.isFavorite;
     patchItem({ isFavorite: nextIsFavorite });
     startTransition(async () => {
+      // toggleItemFavorite revalidates the app shell itself, so no router.refresh().
       const actionResult = await toggleItemFavorite(item.id);
       if (!actionResult.success) {
         patchItem({ isFavorite: !nextIsFavorite });
-      } else {
-        router.refresh();
       }
     });
   }

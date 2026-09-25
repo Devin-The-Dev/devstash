@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -93,6 +94,10 @@ export async function toggleItemFavorite(
     data: { isFavorite: !item.isFavorite },
     select: { isFavorite: true },
   });
+
+  // Favorite state shows up in the sidebar, dashboard stats, /favorites and
+  // every card, so refresh the whole app shell in the action's response.
+  revalidatePath("/", "layout");
 
   return { success: true, data: updated };
 }

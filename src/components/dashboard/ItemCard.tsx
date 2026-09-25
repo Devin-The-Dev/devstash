@@ -1,9 +1,11 @@
 "use client";
 
-import { Pin, Star, Box, Copy, Check } from "lucide-react";
+import { Pin, Box, Copy, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { FavoriteToggleButton } from "@/components/shared/FavoriteToggleButton";
+import { toggleItemFavorite } from "@/actions/items";
 import { itemTypeIconMap } from "@/lib/item-type-icons";
 import { formatRelativeTime } from "@/lib/format";
 import { getCopyableValue } from "@/lib/item-content";
@@ -50,7 +52,10 @@ export function ItemCard({ item }: { item: ItemSummary }) {
                 {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
               </Button>
               {item.isPinned && <Pin className="size-3.5" />}
-              {item.isFavorite && <Star className="size-3.5 fill-yellow-400 text-yellow-400" />}
+              <FavoriteToggleButton
+                isFavorite={item.isFavorite}
+                toggleAction={() => toggleItemFavorite(item.id)}
+              />
             </div>
           </div>
           <p className="line-clamp-1 text-sm text-muted-foreground">{item.description}</p>

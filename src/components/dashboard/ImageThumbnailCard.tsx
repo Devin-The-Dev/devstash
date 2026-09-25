@@ -1,14 +1,17 @@
 "use client";
 
-import { ImageIcon, Pin, Star } from "lucide-react";
-import { useItemDrawer } from "@/components/items/ItemDrawerProvider";
+import { ImageIcon, Pin } from "lucide-react";
+import { FavoriteToggleButton } from "@/components/shared/FavoriteToggleButton";
+import { toggleItemFavorite } from "@/actions/items";
+import { useDrawerRowProps } from "@/hooks/use-drawer-row";
 import type { ItemSummary } from "@/lib/db/items";
 
 export function ImageThumbnailCard({ item }: { item: ItemSummary }) {
-  const { openItem } = useItemDrawer();
+  // A div rather than a native <button> so the favorite toggle can nest inside.
+  const drawerRowProps = useDrawerRowProps(item.id);
 
   return (
-    <button type="button" className="block w-full text-left" onClick={() => openItem(item.id)}>
+    <div className="block w-full cursor-pointer text-left" {...drawerRowProps}>
       <div className="group relative aspect-video overflow-hidden rounded-lg border">
         {item.fileUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -26,10 +29,14 @@ export function ImageThumbnailCard({ item }: { item: ItemSummary }) {
           <span className="truncate text-sm font-medium text-white">{item.title}</span>
           <div className="flex shrink-0 items-center gap-1 text-white/80">
             {item.isPinned && <Pin className="size-3.5" />}
-            {item.isFavorite && <Star className="size-3.5 fill-yellow-400 text-yellow-400" />}
+            <FavoriteToggleButton
+              isFavorite={item.isFavorite}
+              toggleAction={() => toggleItemFavorite(item.id)}
+              className="text-white/80 hover:bg-white/15 hover:text-white"
+            />
           </div>
         </div>
       </div>
-    </button>
+    </div>
   );
 }

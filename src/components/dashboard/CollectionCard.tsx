@@ -2,9 +2,10 @@
 
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Star } from "lucide-react";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CollectionActionsMenu } from "@/components/collections/CollectionActionsMenu";
+import { FavoriteToggleButton } from "@/components/shared/FavoriteToggleButton";
+import { toggleCollectionFavorite } from "@/actions/collections";
 import { getItemTypeIcon } from "@/lib/item-type-icons";
 import { formatRelativeTime } from "@/lib/format";
 import type { CollectionSummary } from "@/lib/db/collections";
@@ -17,6 +18,8 @@ export function CollectionCard({ collection }: { collection: CollectionSummary }
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    // Ignore keys bubbling up from the favorite toggle and actions menu trigger.
+    if (event.target !== event.currentTarget) return;
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       goToCollection();
@@ -40,7 +43,10 @@ export function CollectionCard({ collection }: { collection: CollectionSummary }
           className="flex items-center gap-1"
           onClick={(event: MouseEvent) => event.stopPropagation()}
         >
-          {collection.isFavorite && <Star className="size-4 fill-yellow-400 text-yellow-400" />}
+          <FavoriteToggleButton
+            isFavorite={collection.isFavorite}
+            toggleAction={() => toggleCollectionFavorite(collection.id)}
+          />
           <CollectionActionsMenu collection={collection} />
         </CardAction>
       </CardHeader>

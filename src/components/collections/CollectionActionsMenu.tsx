@@ -13,12 +13,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EditCollectionDialog } from "@/components/collections/EditCollectionDialog";
 import { DeleteCollectionDialog } from "@/components/collections/DeleteCollectionDialog";
+import { toggleCollectionFavorite } from "@/actions/collections";
+import { useFavoriteToggle } from "@/hooks/use-favorite-toggle";
 import type { CollectionSummary } from "@/lib/db/collections";
 
 export function CollectionActionsMenu({ collection }: { collection: CollectionSummary }) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const { isFavorite, toggle: toggleFavorite } = useFavoriteToggle(collection.isFavorite, () =>
+    toggleCollectionFavorite(collection.id),
+  );
 
   return (
     <>
@@ -40,9 +45,9 @@ export function CollectionActionsMenu({ collection }: { collection: CollectionSu
             <Pencil />
             Edit
           </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Star className={collection.isFavorite ? "fill-yellow-400 text-yellow-400" : undefined} />
-            {collection.isFavorite ? "Remove from favorites" : "Add to favorites"}
+          <DropdownMenuItem onClick={toggleFavorite}>
+            <Star className={isFavorite ? "fill-yellow-400 text-yellow-400" : undefined} />
+            {isFavorite ? "Remove from favorites" : "Add to favorites"}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>

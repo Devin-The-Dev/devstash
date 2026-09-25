@@ -164,7 +164,8 @@ export function ItemDrawer({ collections }: { collections: CollectionOption[] })
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      aria-label={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                      aria-label="Favorite"
+                      aria-pressed={item.isFavorite}
                       disabled={isPending}
                       onClick={toggleFavorite}
                     >
