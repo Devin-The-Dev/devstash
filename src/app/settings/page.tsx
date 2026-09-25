@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { ChangePasswordForm } from "@/components/profile/ChangePasswordForm";
 import { DeleteAccountDialog } from "@/components/profile/DeleteAccountDialog";
+import { EditorPreferencesForm } from "@/components/settings/EditorPreferencesForm";
+import { EditorPreferencesProvider } from "@/components/editor/EditorPreferencesProvider";
 import { getCurrentUser } from "@/lib/db/user";
 
 export default async function SettingsPage() {
@@ -12,8 +14,20 @@ export default async function SettingsPage() {
     <div className="mx-auto w-full max-w-3xl space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="text-muted-foreground">Manage your password and account.</p>
+        <p className="text-muted-foreground">Manage your editor preferences, password, and account.</p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Editor preferences</CardTitle>
+          <CardDescription>Changes save automatically and apply to all code editors.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EditorPreferencesProvider initialPreferences={currentUser.editorPreferences}>
+            <EditorPreferencesForm />
+          </EditorPreferencesProvider>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

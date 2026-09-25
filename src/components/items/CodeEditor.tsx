@@ -1,12 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { OnMount } from "@monaco-editor/react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { resolveMonacoLanguage } from "@/lib/monaco-language";
+import { defineMonacoThemes, monacoThemeName } from "@/lib/monaco-themes";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { useEditorPreferences } from "@/components/editor/EditorPreferencesProvider";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
@@ -15,29 +17,6 @@ const Editor = dynamic(() => import("@monaco-editor/react"), {
 
 const MIN_HEIGHT = 128;
 const MAX_HEIGHT = 400;
-
-const THEME_NAME = "devstash-dark";
-
-function defineDevstashTheme(monaco: Parameters<OnMount>[1]) {
-  monaco.editor.defineTheme(THEME_NAME, {
-    base: "vs-dark",
-    inherit: true,
-    rules: [],
-    colors: {
-      "editor.background": "#171717",
-      "editor.lineHighlightBackground": "#26262680",
-      "editorLineNumber.foreground": "#525252",
-      "editorLineNumber.activeForeground": "#a3a3a3",
-      "editorIndentGuide.background": "#262626",
-      "editorGutter.background": "#171717",
-      "editorWidget.background": "#171717",
-      "editorWidget.border": "#ffffff1a",
-      "scrollbarSlider.background": "#40404066",
-      "scrollbarSlider.hoverBackground": "#52525280",
-      "scrollbarSlider.activeBackground": "#737373",
-    },
-  });
-}
 
 export function CodeEditor({
   value,
@@ -54,11 +33,16 @@ export function CodeEditor({
   const { copied, copy } = useCopyToClipboard();
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoLanguage = resolveMonacoLanguage(language);
+  const { preferences } = useEditorPreferences();
 
-  const handleMount: OnMount = (editor, monaco) => {
+  // Tab size is a model option, so editor.updateOptions() doesn't reach the existing model.
+  useEffect(() => {
+    editorRef.current?.getModel()?.updateOptions({ tabSize: preferences.tabSize });
+  }, [preferences.tabSize]);
+
+  const handleMount: OnMount = (editor) => {
     editorRef.current = editor;
-    defineDevstashTheme(monaco);
-    monaco.editor.setTheme(THEME_NAME);
+    editor.getModel()?.updateOptions({ tabSize: preferences.tabSize });
 
     const updateHeight = () => {
       const contentHeight = editor.getContentHeight();
@@ -100,15 +84,18 @@ export function CodeEditor({
           height="100%"
           language={monacoLanguage}
           value={value}
-          theme={THEME_NAME}
+          theme={monacoThemeName(preferences.theme)}
           onChange={(next) => onChange?.(next ?? "")}
+          beforeMount={defineMonacoThemes}
           onMount={handleMount}
           options={{
             readOnly,
             domReadOnly: readOnly,
-            minimap: { enabled: false },
-            fontSize: 13,
-            wordWrap: "on",
+            minimap: { enabled: preferences.minimap },
+            fontSize: preferences.fontSize,
+            tabSize: preferences.tabSize,
+            detectIndentation: false,
+            wordWrap: preferences.wordWrap ? "on" : "off",
             scrollBeyondLastLine: false,
             automaticLayout: true,
             renderLineHighlight: readOnly ? "none" : "all",

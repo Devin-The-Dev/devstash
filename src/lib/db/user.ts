@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { resolveEditorPreferences, type EditorPreferences } from "@/lib/editor-preferences";
 
 export type CurrentUser = {
   id: string;
@@ -11,6 +12,7 @@ export type CurrentUser = {
   isPro: boolean;
   hasPassword: boolean;
   createdAt: Date;
+  editorPreferences: EditorPreferences;
 };
 
 export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
@@ -29,6 +31,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
       isPro: true,
       password: true,
       createdAt: true,
+      editorPreferences: true,
     },
   });
 
@@ -37,8 +40,13 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
     redirect("/sign-in");
   }
 
-  const { password, ...user } = dbUser;
-  return { ...user, name: user.name ?? user.email, hasPassword: password !== null };
+  const { password, editorPreferences, ...user } = dbUser;
+  return {
+    ...user,
+    name: user.name ?? user.email,
+    hasPassword: password !== null,
+    editorPreferences: resolveEditorPreferences(editorPreferences),
+  };
 });
 
 export async function findResetEligibleUser(email: string) {
