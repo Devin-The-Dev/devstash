@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Box, LayoutDashboard, LogOut, Star, Clock, User } from "lucide-react";
+import { ArrowRight, Box, LayoutDashboard, LogOut, Settings, Star, Clock, User } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -189,6 +189,10 @@ export async function AppSidebar() {
                 <DropdownMenuItem render={<Link href="/profile" />}>
                   <User />
                   Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem render={<Link href="/settings" />}>
+                  <Settings />
+                  Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive" render={<form action={signOutAction} />}>

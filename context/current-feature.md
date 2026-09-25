@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: Settings Page
 
-<!-- Feature name and short description -->
+Add a protected `/settings` page, link it from the sidebar user dropdown, and move the "Account actions" (change password + delete account) off the profile page onto it.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- New route `src/app/settings/page.tsx` (server component) at `/settings`
+- `/settings` is protected: add it to the `matcher` in `src/proxy.ts` so signed-out users are redirected to `/sign-in` with a `callbackUrl`
+- Settings page follows the profile page layout (same container, `h1` + muted subtitle, "Back to dashboard" link)
+- Move the "Account actions" card from `src/app/profile/page.tsx` to the settings page:
+  - "Change password" section (`ChangePasswordForm`), still only shown when `currentUser.hasPassword` (hidden for GitHub-only users)
+  - "Delete account" section (`DeleteAccountDialog`)
+- Remove the Account actions card (and now-unused imports) from the profile page; profile keeps user info, stats, and item-type breakdown
+- Add a "Settings" item to the user dropdown in `src/components/dashboard/AppSidebar.tsx`, below "Profile" and above the "Sign out" separator, with a Lucide `Settings` icon, linking to `/settings`
+- `npm run lint`, `npm run test`, and `npm run build` pass; verified in the browser (dropdown link works, both account actions render on `/settings`, gone from `/profile`, signed-out access to `/settings` redirects to sign-in)
 
 ## Notes
 
-<!-- Any extra notes -->
+- The request says "forgot password", but the profile's Account actions card actually contains **Change password** (`ChangePasswordForm`), not forgot password. The standalone `/forgot-password` flow stays where it is; only the change-password form moves.
+- `ChangePasswordForm` and `DeleteAccountDialog` live in `src/components/profile/`. Leave them there for a minimal change (no file moves) unless asked otherwise.
+- Server actions in `src/actions/profile.ts` (change password / delete account) stay unchanged; any `revalidatePath("/profile")` calls there should be checked and updated to `/settings` if relevant.
+- `/profile` has no layout of its own (no sidebar); `/settings` should match that.
 
 ## History
 
