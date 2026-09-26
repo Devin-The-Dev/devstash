@@ -17,9 +17,9 @@ export async function TopBar() {
   ]);
 
   return (
-    <header className="flex items-center gap-4 border-b px-4 py-3">
+    <header className="@container flex items-center gap-2 border-b px-4 py-3 sm:gap-4">
       <SidebarTrigger />
-      <div className="max-w-md flex-1">
+      <div className="min-w-0 max-w-md flex-1">
         <SearchTrigger />
       </div>
       <Link

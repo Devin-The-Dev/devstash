@@ -116,9 +116,13 @@ export function NewItemDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button />}>
+      <DialogTrigger
+        render={<Button />}
+        aria-label="New item"
+        className="@max-xl:size-8 @max-xl:px-0"
+      >
         <Plus className="size-4" />
-        New item
+        <span className="hidden @xl:inline">New item</span>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>

@@ -3,6 +3,48 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant js (@media (scripting: enabled));
+
+/* Marketing homepage palette (src/components/homepage). Brand and faint
+   values are tuned for WCAG AA with white text / on the dark surfaces. */
+@theme {
+    --color-home-bg: #0a0a0c;
+    --color-home-elev: #111114;
+    --color-home-surface: #16161a;
+    --color-home-surface-2: #1c1c22;
+    --color-home-border: #26262e;
+    --color-home-border-strong: #34343e;
+    --color-home-muted: #a1a1aa;
+    --color-home-faint: #85858e;
+    --color-home-brand: #3f72c6;
+    --color-home-brand-hover: #3666b8;
+    --color-home-brand-2: #5a5ec8;
+    --color-home-brand-text: #a8bde0;
+    --color-home-snippet: #3b82f6;
+    --color-home-prompt: #f59e0b;
+    --color-home-command: #06b6d4;
+    --color-home-note: #22c55e;
+    --color-home-file: #64748b;
+    --color-home-image: #ec4899;
+    --color-home-url: #6366f1;
+
+    --animate-arrow-pulse: arrow-pulse 2.2s ease-in-out infinite;
+    --animate-ring-pulse: ring-pulse 2.2s ease-out infinite;
+    --animate-arrow-nudge: arrow-nudge 2.2s ease-in-out infinite;
+
+    @keyframes arrow-pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.08); }
+    }
+    @keyframes ring-pulse {
+        0% { transform: scale(1); opacity: 0.9; }
+        100% { transform: scale(1.8); opacity: 0; }
+    }
+    @keyframes arrow-nudge {
+        0%, 100% { transform: translateX(-2px); }
+        50% { transform: translateX(3px); }
+    }
+}
 
 @theme inline {
     --font-heading: var(--font-sans);

@@ -1,20 +1,21 @@
 import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
+const QUERY = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`
+
+function subscribe(onChange: () => void) {
+  const mql = window.matchMedia(QUERY)
+  mql.addEventListener("change", onChange)
+  return () => mql.removeEventListener("change", onChange)
+}
+
+const getSnapshot = () => window.matchMedia(QUERY).matches
+
+// The server can't know the viewport, so it (and the hydration render) always
+// report desktop; React then re-renders with the real value. This keeps server
+// and client HTML identical, avoiding a hydration mismatch on mobile loads.
+const getServerSnapshot = () => false
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(
-    () => typeof window !== "undefined" && window.innerWidth < MOBILE_BREAKPOINT
-  )
-
-  React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-    mql.addEventListener("change", onChange)
-    return () => mql.removeEventListener("change", onChange)
-  }, [])
-
-  return !!isMobile
+  return React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }

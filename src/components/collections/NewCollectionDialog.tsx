@@ -68,9 +68,13 @@ export function NewCollectionDialog() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button variant="outline" />}>
+      <DialogTrigger
+        render={<Button variant="outline" />}
+        aria-label="New collection"
+        className="@max-xl:size-8 @max-xl:px-0"
+      >
         <FolderPlus className="size-4" />
-        New collection
+        <span className="hidden @xl:inline">New collection</span>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
