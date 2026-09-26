@@ -33,9 +33,10 @@ export function HomeFooter() {
         <div className="grid grid-cols-2 gap-5 md:grid-cols-[repeat(2,minmax(120px,auto))] md:gap-12">
           {COLUMNS.map(({ heading, links }) => (
             <div key={heading}>
-              <h4 className="mb-3.5 text-[13px] tracking-[0.08em] text-home-faint uppercase">{heading}</h4>
+              <h4 className="mb-2 text-[13px] tracking-[0.08em] text-home-faint uppercase">{heading}</h4>
+              {/* py-1.5 instead of margins: same visual rhythm, 32px tap targets */}
               {links.map(({ label, href }) => (
-                <Link key={label} href={href} className="mb-2.5 block text-home-muted hover:text-zinc-100">
+                <Link key={label} href={href} className="block w-fit py-1.5 text-home-muted hover:text-zinc-100">
                   {label}
                 </Link>
               ))}

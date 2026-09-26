@@ -44,10 +44,10 @@ export function HomeNav() {
       <div className="mx-auto flex h-full w-full max-w-[1160px] items-center gap-4 px-4 sm:gap-8 sm:px-6">
         <HomeLogo />
         <div className="hidden gap-6 text-sm text-home-muted sm:flex">
-          <a href="#features" className="hover:text-zinc-100">
+          <a href="#features" className="py-2 hover:text-zinc-100">
             Features
           </a>
-          <a href="#pricing" className="hover:text-zinc-100">
+          <a href="#pricing" className="py-2 hover:text-zinc-100">
             Pricing
           </a>
         </div>
