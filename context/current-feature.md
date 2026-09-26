@@ -1,21 +1,18 @@
 # Current Feature
 
-UI Review Fixes — resolve the top three findings from the 2026-09-25 UI review of the homepage and dashboard.
+<!-- Feature name and short description -->
 
 ## Status
 
-Complete, awaiting commit approval
+Not Started
 
 ## Goals
 
-1. **Dashboard horizontal overflow (High).** The TopBar forces the page wider than the viewport at 768px (942px) and 375px (636px), clipping content and pushing "New collection"/"New item" off-screen. Fix the TopBar so it never overflows, on every layout that uses it (dashboard, favorites, items, collections).
-2. **Undersized icon buttons (Medium).** Card copy/favorite buttons render at 20×20px (a `size-5` override beats `icon-sm`'s 28px), below WCAG 2.5.8's 24px minimum. Enlarge the hit area without shifting card layout.
-3. **Homepage is a stub (High).** `src/app/page.tsx` renders only `<h1>Devstash</h1>`. Port `prototypes/homepage/` into the Next app with Tailwind + components, and fix its review findings: white-on-primary contrast (3.7:1 → ≥4.5:1), dead `href="#"` footer links, and Sign In hidden below 420px. Point auth links back at `/sign-in` and `/register`.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- No schema or data changes.
-- The prototype files stay in `prototypes/homepage/` as the design reference.
+<!-- Any extra notes -->
 
 ## History
 
