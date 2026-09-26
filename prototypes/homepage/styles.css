@@ -17,8 +17,11 @@
   --text: #f4f4f5;
   --muted: #a1a1aa;
   --faint: #71717a;
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
+  /* Brand accent: a calmer, less saturated blue than the Snippet type color. */
+  --primary: #4e84d9;
+  --primary-hover: #4174c4;
+  --primary-2: #6b6fd6;
+  --accent-text: #a8bde0;
 
   --radius: 12px;
   --radius-lg: 18px;
@@ -60,9 +63,9 @@ body::before {
   inset: 0 0 auto;
   height: 900px;
   background:
-    radial-gradient(600px 360px at 18% 12%, rgb(59 130 246 / 0.16), transparent 70%),
-    radial-gradient(520px 320px at 85% 20%, rgb(236 72 153 / 0.12), transparent 70%),
-    radial-gradient(700px 400px at 50% 60%, rgb(99 102 241 / 0.1), transparent 70%);
+    radial-gradient(600px 360px at 18% 12%, rgb(78 132 217 / 0.08), transparent 70%),
+    radial-gradient(520px 320px at 85% 20%, rgb(236 72 153 / 0.07), transparent 70%),
+    radial-gradient(700px 400px at 50% 60%, rgb(99 102 241 / 0.05), transparent 70%);
   pointer-events: none;
   z-index: -1;
 }
@@ -178,7 +181,7 @@ p code {
 .btn--primary {
   background: var(--primary);
   color: #fff;
-  box-shadow: 0 8px 24px -10px rgb(59 130 246 / 0.8);
+  box-shadow: 0 6px 18px -10px rgb(78 132 217 / 0.45);
 }
 
 .btn--primary:hover {
@@ -248,7 +251,7 @@ p code {
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  background: linear-gradient(135deg, var(--snippet), var(--url));
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
   color: #fff;
   font-size: 17px;
 }
@@ -309,7 +312,7 @@ p code {
 }
 
 .gradient-text {
-  background: linear-gradient(90deg, var(--snippet), var(--url) 45%, var(--image));
+  background: linear-gradient(90deg, #7ea6ec, #9a9cf0 45%, #e48bbf);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -351,7 +354,7 @@ p code {
 }
 
 .panel--order .panel__label {
-  color: #93c5fd;
+  color: var(--accent-text);
 }
 
 /* Chaos field */
@@ -416,10 +419,10 @@ p code {
   height: 60px;
   margin-top: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--snippet), var(--url));
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
   color: #fff;
   font-size: 26px;
-  box-shadow: 0 0 40px -6px rgb(99 102 241 / 0.7);
+  box-shadow: 0 0 28px -8px rgb(99 102 241 / 0.4);
   animation: arrow-pulse 2.2s ease-in-out infinite;
 }
 
@@ -427,7 +430,7 @@ p code {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2px solid rgb(99 102 241 / 0.6);
+  border: 2px solid rgb(99 102 241 / 0.35);
   animation: ring-pulse 2.2s ease-out infinite;
 }
 
@@ -479,8 +482,8 @@ p code {
   background: var(--bg-elev);
   box-shadow:
     0 30px 60px -30px rgb(0 0 0 / 0.9),
-    0 0 0 1px rgb(59 130 246 / 0.08),
-    0 0 80px -30px rgb(59 130 246 / 0.5);
+    0 0 0 1px rgb(78 132 217 / 0.05),
+    0 0 80px -30px rgb(78 132 217 / 0.25);
   font-size: 12px;
 }
 
@@ -573,7 +576,7 @@ p code {
   gap: 7px;
   padding: 10px;
   border: 1px solid var(--border);
-  border-top: 3px solid var(--c);
+  border-left: 3px solid var(--c);
   border-radius: 8px;
   background: var(--surface);
 }
@@ -615,7 +618,7 @@ p code {
 }
 
 .kicker {
-  color: #93c5fd;
+  color: var(--accent-text);
   font-family: var(--mono);
   font-size: 13px;
   letter-spacing: 0.08em;
@@ -977,11 +980,11 @@ p code {
 }
 
 .plan--pro {
-  border-color: rgb(59 130 246 / 0.55);
+  border-color: rgb(78 132 217 / 0.4);
   background:
-    radial-gradient(400px 200px at 50% 0%, rgb(59 130 246 / 0.14), transparent 70%),
+    radial-gradient(400px 200px at 50% 0%, rgb(78 132 217 / 0.08), transparent 70%),
     var(--surface);
-  box-shadow: 0 30px 80px -40px rgb(59 130 246 / 0.6);
+  box-shadow: 0 30px 80px -40px rgb(78 132 217 / 0.3);
 }
 
 .plan__badge {
@@ -991,7 +994,7 @@ p code {
   translate: -50% 0;
   padding: 4px 14px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--snippet), var(--url));
+  background: linear-gradient(90deg, var(--primary), var(--primary-2));
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -1073,8 +1076,8 @@ p code {
   border-radius: 24px;
   text-align: center;
   background:
-    radial-gradient(500px 240px at 20% 0%, rgb(59 130 246 / 0.22), transparent 70%),
-    radial-gradient(500px 240px at 80% 100%, rgb(236 72 153 / 0.16), transparent 70%),
+    radial-gradient(500px 240px at 20% 0%, rgb(78 132 217 / 0.12), transparent 70%),
+    radial-gradient(500px 240px at 80% 100%, rgb(236 72 153 / 0.09), transparent 70%),
     var(--surface);
 }
 
