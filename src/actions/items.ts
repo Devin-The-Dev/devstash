@@ -124,6 +124,10 @@ export async function toggleItemPinned(
     select: { isPinned: true },
   });
 
+  // Pinned state drives the dashboard Pinned section, card indicators and
+  // listing order, so refresh the app shell like toggleItemFavorite does.
+  revalidatePath("/", "layout");
+
   return { success: true, data: updated };
 }
 

@@ -28,7 +28,7 @@ export function ItemDrawer({ collections }: { collections: CollectionOption[] })
   const { item, status, patchItem } = useItemDetail(openItemId);
   const { copied, copy } = useCopyToClipboard();
   const [isPending, startTransition] = useTransition();
-  const { toggleFavorite, togglePinned } = useItemFavoritePin(item, patchItem, startTransition, router);
+  const { toggleFavorite, togglePinned } = useItemFavoritePin(item, patchItem, startTransition);
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);

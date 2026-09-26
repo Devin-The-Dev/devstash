@@ -55,6 +55,7 @@ vi.mock("@/lib/r2", () => ({
 const { createItem, toggleItemFavorite, toggleItemPinned, updateItem, deleteItem } = await import(
   "@/actions/items"
 );
+const { revalidatePath } = await import("next/cache");
 
 const SNIPPET_TYPE = { id: "type-snippet", name: "Snippet", icon: "code", color: "#000" };
 const LINK_TYPE = { id: "type-link", name: "Link", icon: "link", color: "#000" };
@@ -138,6 +139,22 @@ describe("toggleItemPinned", () => {
 
     expect(result).toEqual({ success: false, error: "Item not found" });
     expect(prismaMock.item.update).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("flips isPinned from true to false", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    prismaMock.item.findFirst.mockResolvedValue({ isPinned: true });
+    prismaMock.item.update.mockResolvedValue({ isPinned: false });
+
+    const result = await toggleItemPinned("item-1");
+
+    expect(result).toEqual({ success: true, data: { isPinned: false } });
+    expect(prismaMock.item.update).toHaveBeenCalledWith({
+      where: { id: "item-1" },
+      data: { isPinned: false },
+      select: { isPinned: true },
+    });
   });
 
   it("flips isPinned from false to true", async () => {
@@ -153,6 +170,7 @@ describe("toggleItemPinned", () => {
       data: { isPinned: true },
       select: { isPinned: true },
     });
+    expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
   });
 });
 

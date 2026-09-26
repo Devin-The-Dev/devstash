@@ -130,6 +130,10 @@ function toItemSummary(item: RawItemRow, type: ItemTypeSummary): ItemSummary {
 // jumping to the front the way Postgres's DESC-sorts-nulls-first default would.
 const LAST_USED_ORDER = { lastUsedAt: { sort: "desc", nulls: "last" } } as const;
 
+// Listings float pinned items to the top. Ordering in the query (not the
+// client) keeps pinned items first across pagination pages.
+const PINNED_FIRST_ORDER = [{ isPinned: "desc" as const }, LAST_USED_ORDER];
+
 const ITEM_SUMMARY_SELECT = {
   id: true,
   title: true,
@@ -166,7 +170,7 @@ export const getItemsByType = cache(
       prisma.item.findMany({
         where,
         select: ITEM_SUMMARY_SELECT,
-        orderBy: LAST_USED_ORDER,
+        orderBy: PINNED_FIRST_ORDER,
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
@@ -199,7 +203,7 @@ export const getItemsByCollection = cache(
       prisma.item.findMany({
         where,
         select: ITEM_SUMMARY_WITH_TYPE_SELECT,
-        orderBy: LAST_USED_ORDER,
+        orderBy: PINNED_FIRST_ORDER,
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
