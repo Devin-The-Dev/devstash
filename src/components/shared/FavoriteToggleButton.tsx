@@ -33,7 +33,7 @@ export function FavoriteToggleButton({
       size="icon-sm"
       aria-label="Favorite"
       aria-pressed={isFavorite}
-      className={cn("size-5 text-muted-foreground hover:text-foreground", className)}
+      className={cn("-m-1 text-muted-foreground hover:text-foreground", className)}
       onClick={handleClick}
     >
       <Star className={cn("size-3.5", isFavorite && "fill-yellow-400 text-yellow-400")} />

@@ -41,12 +41,12 @@ export function ItemCard({ item }: { item: ItemSummary }) {
               <Icon className="size-4 shrink-0" style={{ color: item.type.color }} />
               <span className="truncate text-sm font-medium">{item.title}</span>
             </div>
-            <div className="flex shrink-0 items-center gap-1 text-muted-foreground">
+            <div className="flex shrink-0 items-center gap-2 text-muted-foreground">
               <Button
                 variant="ghost"
                 size="icon-sm"
                 aria-label="Copy"
-                className="size-5 text-muted-foreground hover:text-foreground"
+                className="-m-1 text-muted-foreground hover:text-foreground"
                 onClick={handleCopy}
               >
                 {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}

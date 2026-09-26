@@ -18,7 +18,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("dark font-sans", geist.variable)}>
+    <html
+      lang="en"
+      data-scroll-behavior="smooth"
+      className={cn("dark font-sans motion-safe:scroll-smooth", geist.variable)}
+    >
       <body>
         <TooltipProvider>{children}</TooltipProvider>
         <Toaster theme="dark" />
