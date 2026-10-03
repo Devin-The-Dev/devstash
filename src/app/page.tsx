@@ -7,6 +7,7 @@ import { HomeFooter } from "@/components/homepage/HomeFooter";
 import { HomeNav } from "@/components/homepage/HomeNav";
 import { PricingPlans } from "@/components/homepage/PricingPlans";
 import { SectionHeader } from "@/components/homepage/SectionHeader";
+import { PRO_PRICING } from "@/lib/usage-limits";
 
 export const metadata: Metadata = {
   title: "DevStash — Your developer knowledge, in one place",
@@ -33,7 +34,7 @@ export default function Home() {
               title="Start free, upgrade when your stash grows"
               description="Everything you need to get organized, with Pro for power users and AI."
             />
-            <PricingPlans />
+            <PricingPlans proPricing={PRO_PRICING} />
           </div>
         </section>
         <CtaSection />
