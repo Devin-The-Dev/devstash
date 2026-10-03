@@ -3,11 +3,17 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { uploadToR2 } from "@/lib/r2";
 import { validateUpload, type UploadKind } from "@/lib/upload-constraints";
+import { canUseProFeature } from "@/lib/usage-limits";
 
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  const gate = await canUseProFeature(session.user.id, "File upload");
+  if (!gate.allowed) {
+    return NextResponse.json({ success: false, error: gate.error }, { status: 403 });
   }
 
   const formData = await request.formData();

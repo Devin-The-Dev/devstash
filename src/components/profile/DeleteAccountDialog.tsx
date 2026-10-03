@@ -31,8 +31,8 @@ export function DeleteAccountDialog() {
         <AlertDialogHeader>
           <AlertDialogTitle>Delete your account?</AlertDialogTitle>
           <AlertDialogDescription>
-            This permanently deletes your account, items, and collections. This action cannot
-            be undone.
+            This permanently deletes your account, items, and collections. An active DevStash
+            Pro subscription is canceled immediately. This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
 

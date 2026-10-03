@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { createCollection } from "@/lib/db/collections";
 import { createCollectionSchema } from "@/lib/validations/collections";
+import { canCreateCollection } from "@/lib/usage-limits";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -16,6 +17,11 @@ export async function POST(request: Request) {
       { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" },
       { status: 400 },
     );
+  }
+
+  const gate = await canCreateCollection(session.user.id);
+  if (!gate.allowed) {
+    return NextResponse.json({ success: false, error: gate.error }, { status: 403 });
   }
 
   const collection = await createCollection(session.user.id, {

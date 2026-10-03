@@ -7,21 +7,27 @@ import { getStripe, isProStatus } from "@/lib/stripe";
 export async function syncSubscription(subscription: Stripe.Subscription): Promise<void> {
   const customerId =
     typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
-  const isPro = isProStatus(subscription.status);
+
+  if (!isProStatus(subscription.status)) {
+    await clearSubscription(customerId, subscription.id);
+    return;
+  }
 
   // Match on customer ID, which is set before checkout (see createCheckoutSession).
   await prisma.user.updateMany({
     where: { stripeCustomerId: customerId },
-    data: {
-      isPro,
-      stripeSubscriptionId: isPro ? subscription.id : null,
-    },
+    data: { isPro: true, stripeSubscriptionId: subscription.id },
   });
 }
 
-export async function clearSubscription(customerId: string): Promise<void> {
+// Only clears when the ended subscription is the one on file (or none is), so a
+// late event for an old subscription can't downgrade a user who resubscribed.
+export async function clearSubscription(customerId: string, subscriptionId: string): Promise<void> {
   await prisma.user.updateMany({
-    where: { stripeCustomerId: customerId },
+    where: {
+      stripeCustomerId: customerId,
+      OR: [{ stripeSubscriptionId: subscriptionId }, { stripeSubscriptionId: null }],
+    },
     data: { isPro: false, stripeSubscriptionId: null },
   });
 }

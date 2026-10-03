@@ -1,18 +1,52 @@
-# Current Feature
+# Current Feature: Stripe Integration Phase 2 - Webhooks, Feature Gating & UI
 
-<!-- Feature name and short description -->
+Connect the Phase 1 billing infrastructure to the app: signed Stripe webhook keeping `isPro` in sync, return-from-checkout sync, server-side free-plan enforcement behind `BILLING_ENFORCED`, subscription cancellation on account deletion, and the billing UI (settings Billing card, sidebar and homepage CTAs). Spec: `context/features/stripe-phase-2-spec.md`.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- `POST /api/webhooks/stripe` (`src/app/api/webhooks/stripe/route.ts`): raw body via `await request.text()`; 400 on missing `stripe-signature`/`STRIPE_WEBHOOK_SECRET` or failed `constructEvent`; 500 when a handler throws (so Stripe retries); `{ received: true }` on success
+  - `checkout.session.completed` (subscription mode) → retrieve subscription → `syncSubscription`
+  - `customer.subscription.created` / `.updated` → `syncSubscription`
+  - `customer.subscription.deleted` → `clearSubscription`
+  - `invoice.payment_failed` → `console.warn` with invoice ID + `invoice.parent?.subscription_details?.subscription`
+  - anything else → 200
+- Settings page awaits `searchParams`; on `checkout=success` + `session_id`, calls `syncCheckoutSession` (user ID from `auth()`) in try/catch **before** `getCurrentUser()`
+- Gates (no-ops unless `BILLING_ENFORCED="true"`, creation only):
+  - `createItem` → `canCreateItem(userId, type.name)` after resolving the type → `{ success: false, error }`
+  - `POST /api/collections` → `canCreateCollection` → 403
+  - `POST /api/upload` → `canUseProFeature(userId, "File uploads")` after auth → 403
+  - `FileUpload.tsx` surfaces the 403 message
+- `deleteAccount` cancels `stripeSubscriptionId` via `getStripe().subscriptions.cancel` before `prisma.user.delete` (log and continue on error); `DeleteAccountDialog` copy says an active Pro subscription is canceled immediately
+- `src/components/settings/BillingCard.tsx` (client, shadcn `Card`): props `isPro`, `hasBillingAccount`, `checkoutStatus`
+  - Free: limits, Monthly/Yearly toggle from `PRO_PRICING`, Upgrade → `createCheckoutSession` → `window.location.assign`
+  - Pro: badge + "Manage subscription" (only when `hasBillingAccount`) → `createPortalSession`
+  - `useTransition` pending state, `toast.error` on failure
+  - Success/canceled toast once on mount, then `router.replace("/settings#billing")`
+- Settings page renders `BillingCard` in `id="billing"` wrapper between Editor preferences and Account; subtitle mentions billing
+- `CurrentUser` gains `hasBillingAccount` (`stripeCustomerId !== null`)
+- Sidebar "Upgrade to Pro" → `Link` to `/settings#billing` (stays a server component)
+- `PricingPlans`: Pro CTA → `/register?plan=pro` signed out, `/settings#billing` signed in; Free CTA → `/register`
+- Tests: `createItem` gate (blocked/allowed), `deleteAccount` cancel ordering / cancel-throws / no-subscription
+- `npm run test`, `npm run lint`, `npm run build` pass; manual Stripe CLI + test-mode checkout verification per spec
 
 ## Notes
 
-<!-- Any extra notes -->
+- Branch: `feature/stripe-phase-2`
+- Requires Stripe Dashboard test-mode setup (product, $8/mo + $72/yr prices, portal config) and `.env` values: `STRIPE_SECRET_KEY`, price IDs, and the `whsec_…` from `stripe listen --forward-to localhost:3000/api/webhooks/stripe`
+- **Carry-over from Phase 1 review:** `syncSubscription`/`clearSubscription` match on customer only, so a late `customer.subscription.deleted` (or `.updated` to canceled) for an old subscription can clear `isPro` after a resubscribe. The webhook handler should skip events whose subscription ID doesn't match the stored `stripeSubscriptionId` when the user is Pro
+- **Conflict with Phase 1:** the spec says `PricingPlans` should import `PRO_PRICING` from `@/lib/usage-limits`, but it's a client component and that module imports Prisma. Phase 1 already passes it as a prop from `page.tsx`; keep that. Signed-in state for the Pro CTA should also come from the server (`auth()` in `page.tsx`)
+- `/api/*` is outside the proxy matcher; webhook security comes from the signature check
+- Collections and upload gates live in API routes (not covered by tests); verify manually
+- Optional, skip for v1 unless requested: `stripeCurrentPeriodEnd` / `stripeCancelAtPeriodEnd` migration (via `prisma migrate dev`, never `db push`)
+- Optional: "Upgrade" action on limit toasts linking to `/settings#billing`
+- Check DB state via Neon MCP on the **development** branch only
+- Test cards: `4242 4242 4242 4242`, `4000 0000 0000 0341` (fails), `4000 0025 0000 3155` (3DS)
+- Open questions (plan §8): keep Pro during `past_due`? Trial period? Homepage CTA → settings or direct checkout?
+- Pre-launch (not this feature): Live-mode Dashboard setup, prod webhook endpoint with the five events, prod env vars, `BILLING_ENFORCED=true`
 
 ## History
 
