@@ -3,6 +3,7 @@
 import bcrypt from "bcryptjs";
 import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getStripe } from "@/lib/stripe";
 import { changePasswordSchema, deleteAccountSchema } from "@/lib/validations/profile";
 
 export type ChangePasswordState = { error: string } | { success: true } | undefined;
@@ -66,6 +67,21 @@ export async function deleteAccount(
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Type DELETE to confirm" };
+  }
+
+  const { stripeSubscriptionId } = await prisma.user.findUniqueOrThrow({
+    where: { id: session.user.id },
+    select: { stripeSubscriptionId: true },
+  });
+
+  // Cancel before deleting so a Pro user isn't billed for a deleted account.
+  // A Stripe failure shouldn't block deletion; log it for manual cleanup.
+  if (stripeSubscriptionId) {
+    try {
+      await getStripe().subscriptions.cancel(stripeSubscriptionId);
+    } catch (error) {
+      console.error(`Failed to cancel Stripe subscription ${stripeSubscriptionId} on account deletion`, error);
+    }
   }
 
   await prisma.user.delete({ where: { id: session.user.id } });

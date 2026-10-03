@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { UserAvatar } from "@/components/auth/UserAvatar";
 import { getItemTypeIcon } from "@/lib/item-type-icons";
 import { getCollectionsWithStats } from "@/lib/db/collections";
@@ -157,9 +157,12 @@ export async function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         {!currentUser.isPro && (
-          <Button size="sm" className="w-full group-data-[collapsible=icon]:hidden">
+          <Link
+            href="/settings#billing"
+            className={buttonVariants({ size: "sm", className: "w-full group-data-[collapsible=icon]:hidden" })}
+          >
             Upgrade to Pro
-          </Button>
+          </Link>
         )}
         <SidebarMenu>
           <SidebarMenuItem>

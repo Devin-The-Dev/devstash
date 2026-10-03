@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, X } from "lucide-react";
+import { getSession } from "next-auth/react";
 import { Reveal } from "@/components/homepage/Reveal";
 import { homeButton } from "@/components/homepage/home-button";
 import { cn } from "@/lib/utils";
+import { PRO_PRICING } from "@/lib/plans";
 
 const PRO_PLAN_COPY = {
   monthly: { period: "/month", note: "Billed monthly, cancel anytime" },
@@ -61,11 +63,12 @@ interface PlanCardProps {
   period: string;
   note: string;
   cta: string;
+  href: string;
   features: PlanFeature[];
   featured?: boolean;
 }
 
-function PlanCard({ name, description, price, period, note, cta, features, featured }: PlanCardProps) {
+function PlanCard({ name, description, price, period, note, cta, href, features, featured }: PlanCardProps) {
   return (
     <article
       className={cn(
@@ -87,7 +90,7 @@ function PlanCard({ name, description, price, period, note, cta, features, featu
       </p>
       <p className="mt-2 mb-6 min-h-[1.6em] text-[13px] text-home-faint">{note}</p>
       <Link
-        href="/register"
+        href={href}
         className={homeButton({ variant: featured ? "primary" : "outline", className: "w-full" })}
       >
         {cta}
@@ -130,15 +133,24 @@ function BillingToggle({ yearly, onChange }: { yearly: boolean; onChange: (yearl
   );
 }
 
-interface PricingPlansProps {
-  // Passed from the server so this client component doesn't import usage-limits (Prisma).
-  proPricing: { monthly: string; yearly: string };
-}
-
-export function PricingPlans({ proPricing }: PricingPlansProps) {
+export function PricingPlans() {
   const [yearly, setYearly] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
   const interval = yearly ? "yearly" : "monthly";
-  const pro = { price: proPricing[interval], ...PRO_PLAN_COPY[interval] };
+  const pro = { price: PRO_PRICING[interval], ...PRO_PLAN_COPY[interval] };
+
+  // Checked on the client so the homepage stays statically prerendered.
+  useEffect(() => {
+    let active = true;
+    getSession()
+      .then((session) => {
+        if (active) setSignedIn(Boolean(session?.user));
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <>
@@ -154,6 +166,7 @@ export function PricingPlans({ proPricing }: PricingPlansProps) {
             period="/forever"
             note="No credit card required"
             cta="Get started"
+            href="/register"
             features={FREE_FEATURES}
           />
         </Reveal>
@@ -165,6 +178,7 @@ export function PricingPlans({ proPricing }: PricingPlansProps) {
             period={pro.period}
             note={pro.note}
             cta="Upgrade to Pro"
+            href={signedIn ? "/settings#billing" : "/register?plan=pro"}
             features={PRO_FEATURES}
             featured
           />

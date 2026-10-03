@@ -10,6 +10,7 @@ export type CurrentUser = {
   email: string;
   image: string | null;
   isPro: boolean;
+  hasBillingAccount: boolean;
   hasPassword: boolean;
   createdAt: Date;
   editorPreferences: EditorPreferences;
@@ -29,6 +30,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
       email: true,
       image: true,
       isPro: true,
+      stripeCustomerId: true,
       password: true,
       createdAt: true,
       editorPreferences: true,
@@ -40,11 +42,12 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
     redirect("/sign-in");
   }
 
-  const { password, editorPreferences, ...user } = dbUser;
+  const { password, stripeCustomerId, editorPreferences, ...user } = dbUser;
   return {
     ...user,
     name: user.name ?? user.email,
     hasPassword: password !== null,
+    hasBillingAccount: stripeCustomerId !== null,
     editorPreferences: resolveEditorPreferences(editorPreferences),
   };
 });

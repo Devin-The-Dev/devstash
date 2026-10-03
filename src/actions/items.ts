@@ -12,6 +12,7 @@ import {
 } from "@/lib/db/items";
 import { createItemSchema, updateItemSchema, CREATABLE_ITEM_TYPES } from "@/lib/validations/items";
 import { deleteFromR2, keyFromPublicUrl } from "@/lib/r2";
+import { canCreateItem } from "@/lib/usage-limits";
 
 type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -39,6 +40,12 @@ export async function createItem(input: unknown): Promise<ActionResult<ItemDetai
   const type = types.find((t) => t.id === parsed.data.typeId);
   if (!type || !CREATABLE_ITEM_TYPES.includes(type.name)) {
     return { success: false, error: "Invalid item type" };
+  }
+
+  // Also covers File/Image: a fileUrl can be submitted without going through /api/upload.
+  const gate = await canCreateItem(session.user.id, type.name);
+  if (!gate.allowed) {
+    return { success: false, error: gate.error };
   }
 
   if (type.name === "Link" && !parsed.data.url) {

@@ -9,6 +9,7 @@ const {
   getSystemItemTypesMock,
   deleteFromR2Mock,
   keyFromPublicUrlMock,
+  canCreateItemMock,
 } = vi.hoisted(() => ({
   authMock: vi.fn(),
   prismaMock: {
@@ -26,6 +27,7 @@ const {
   getSystemItemTypesMock: vi.fn(),
   deleteFromR2Mock: vi.fn(),
   keyFromPublicUrlMock: vi.fn(),
+  canCreateItemMock: vi.fn(),
 }));
 
 vi.mock("@/auth", () => ({
@@ -47,6 +49,10 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
+vi.mock("@/lib/usage-limits", () => ({
+  canCreateItem: canCreateItemMock,
+}));
+
 vi.mock("@/lib/r2", () => ({
   deleteFromR2: deleteFromR2Mock,
   keyFromPublicUrl: keyFromPublicUrlMock,
@@ -64,6 +70,7 @@ const NON_CREATABLE_TYPE = { id: "type-video", name: "Video", icon: "video", col
 
 beforeEach(() => {
   vi.clearAllMocks();
+  canCreateItemMock.mockResolvedValue({ allowed: true });
 });
 
 describe("toggleItemFavorite", () => {
@@ -366,6 +373,68 @@ describe("createItem", () => {
       language: "typescript",
       tags: ["react"],
     });
+  });
+});
+
+describe("createItem usage gate", () => {
+  const snippetInput = {
+    typeId: SNIPPET_TYPE.id,
+    collectionIds: [],
+    title: "useDebounce hook",
+    description: null,
+    content: "const x = 1;",
+    url: null,
+    language: "typescript",
+    tags: [],
+  };
+
+  it("returns the gate error and doesn't create when the item limit is reached", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE]);
+    canCreateItemMock.mockResolvedValue({
+      allowed: false,
+      error: "Free plan is limited to 50 items. Upgrade to Pro for unlimited items.",
+    });
+
+    const result = await createItem(snippetInput);
+
+    expect(result).toEqual({
+      success: false,
+      error: "Free plan is limited to 50 items. Upgrade to Pro for unlimited items.",
+    });
+    expect(canCreateItemMock).toHaveBeenCalledWith("user-1", "Snippet");
+    expect(createItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("blocks a File item for free users even with a fileUrl supplied", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    getSystemItemTypesMock.mockResolvedValue([FILE_TYPE]);
+    canCreateItemMock.mockResolvedValue({ allowed: false, error: "File items require DevStash Pro" });
+
+    const result = await createItem({
+      ...snippetInput,
+      typeId: FILE_TYPE.id,
+      content: null,
+      fileUrl: "https://files.example.com/user-1/abc.pdf",
+      fileName: "abc.pdf",
+      fileSize: 1024,
+    });
+
+    expect(result).toEqual({ success: false, error: "File items require DevStash Pro" });
+    expect(canCreateItemMock).toHaveBeenCalledWith("user-1", "File");
+    expect(createItemQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("creates the item when the gate allows it", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE]);
+    createItemQueryMock.mockResolvedValue({ id: "item-1" });
+
+    const result = await createItem(snippetInput);
+
+    expect(result).toEqual({ success: true, data: { id: "item-1" } });
+    expect(canCreateItemMock).toHaveBeenCalledWith("user-1", "Snippet");
+    expect(createItemQueryMock).toHaveBeenCalledTimes(1);
   });
 });
 
