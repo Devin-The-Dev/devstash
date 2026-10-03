@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { getSystemItemTypes, type ItemTypeSummary } from "@/lib/db/items";
+import { getVisibleItemsFilter } from "@/lib/db/item-visibility";
 
 export type ItemTypeBreakdown = {
   type: ItemTypeSummary;
@@ -14,9 +15,10 @@ export type ProfileStats = {
 };
 
 export const getProfileStats = cache(async (userId: string): Promise<ProfileStats> => {
+  const visible = await getVisibleItemsFilter(userId);
   const [systemTypes, typeCounts, totalCollections] = await Promise.all([
     getSystemItemTypes(),
-    prisma.item.groupBy({ by: ["typeId"], where: { userId }, _count: true }),
+    prisma.item.groupBy({ by: ["typeId"], where: { userId, ...visible }, _count: true }),
     prisma.collection.count({ where: { userId } }),
   ]);
 

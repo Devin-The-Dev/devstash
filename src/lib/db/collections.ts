@@ -1,5 +1,7 @@
 import { cache } from "react";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getVisibleItemsFilter } from "@/lib/db/item-visibility";
 
 export type CollectionItemType = {
   id: string;
@@ -103,13 +105,16 @@ export type CollectionSummary = {
   dominantColor: string | null;
 };
 
-const COLLECTION_WITH_ITEMS_SELECT = {
+// Takes the visibility filter so hidden (Pro-only) items don't count toward a
+// collection's item total, type icons or last-used time.
+const collectionWithItemsSelect = (visible: Prisma.ItemWhereInput) => ({
   id: true,
   name: true,
   description: true,
   isFavorite: true,
   updatedAt: true,
   items: {
+    where: { item: visible },
     select: {
       item: {
         select: {
@@ -123,7 +128,7 @@ const COLLECTION_WITH_ITEMS_SELECT = {
       },
     },
   },
-} as const;
+}) as const;
 
 type CollectionWithItemsRow = {
   id: string;
@@ -174,7 +179,7 @@ function toCollectionSummary(collection: CollectionWithItemsRow): CollectionSumm
 export const getCollectionsWithStats = cache(async (userId: string): Promise<CollectionSummary[]> => {
   const collections = await prisma.collection.findMany({
     where: { userId },
-    select: COLLECTION_WITH_ITEMS_SELECT,
+    select: collectionWithItemsSelect(await getVisibleItemsFilter(userId)),
   });
 
   return collections
@@ -201,7 +206,7 @@ export const getCollectionsPage = cache(
     const [rows, totalCount] = await Promise.all([
       prisma.collection.findMany({
         where,
-        select: COLLECTION_WITH_ITEMS_SELECT,
+        select: collectionWithItemsSelect(await getVisibleItemsFilter(userId)),
         orderBy: { updatedAt: "desc" },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -225,7 +230,12 @@ export const getFavoriteCollections = cache(
   async (userId: string): Promise<FavoriteCollection[]> => {
     const rows = await prisma.collection.findMany({
       where: { userId, isFavorite: true },
-      select: { id: true, name: true, updatedAt: true, _count: { select: { items: true } } },
+      select: {
+        id: true,
+        name: true,
+        updatedAt: true,
+        _count: { select: { items: { where: { item: await getVisibleItemsFilter(userId) } } } },
+      },
       orderBy: { updatedAt: "desc" },
     });
 

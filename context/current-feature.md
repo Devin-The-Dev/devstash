@@ -1,18 +1,23 @@
 # Current Feature
 
-<!-- Feature name and short description -->
+Pro Type Pages Gating — free users visiting `/items/files` or `/items/images` see an upgrade prompt instead of the item list.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Free users hitting a Pro-only item type page (File, Image) see an upgrade screen, not their items
+- Upgrade screen explains what Pro unlocks and links to the existing billing flow (`/settings#billing`)
+- Pro users see the pages as before
+- Skip the items query entirely for gated users
+- Hide free users' File/Image items everywhere: dashboard, collections, favorites, search, profile stats, item drawer/API and download route (`getVisibleItemsFilter` in `src/lib/db/item-visibility.ts`)
 
 ## Notes
 
-<!-- Any extra notes -->
+- Pro-only types come from `PRO_ITEM_TYPE_NAMES` in `src/lib/plans.ts`
+- Also includes the demo seed change (3 collections) and `scripts/clear-users.ts`
 
 ## History
 

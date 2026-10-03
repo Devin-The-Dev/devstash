@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import { getVisibleItemsFilter } from "@/lib/db/item-visibility";
 import type { UpdateItemInput } from "@/lib/validations/items";
 
 export type NewItemInput = {
@@ -165,7 +166,7 @@ export const getItemsByType = cache(
     const type = types.find((t) => itemTypeSlug(t.name) === typeSlug);
     if (!type) return null;
 
-    const where = { userId, typeId: type.id };
+    const where = { userId, typeId: type.id, ...(await getVisibleItemsFilter(userId)) };
     const [items, totalCount] = await Promise.all([
       prisma.item.findMany({
         where,
@@ -198,7 +199,11 @@ export const getItemsByCollection = cache(
     });
     if (!collection) return null;
 
-    const where = { userId, collections: { some: { collectionId } } };
+    const where = {
+      userId,
+      collections: { some: { collectionId } },
+      ...(await getVisibleItemsFilter(userId)),
+    };
     const [items, totalCount] = await Promise.all([
       prisma.item.findMany({
         where,
@@ -259,7 +264,7 @@ export async function getItemDetail(
   itemId: string,
 ): Promise<ItemDetail | null> {
   const item = await prisma.item.findFirst({
-    where: { id: itemId, userId },
+    where: { id: itemId, userId, ...(await getVisibleItemsFilter(userId)) },
     select: ITEM_DETAIL_SELECT,
   });
 
@@ -356,7 +361,7 @@ export async function deleteItem(
 // just enough to render a result row and jump to the item drawer.
 export const getSearchableItems = cache(async (userId: string): Promise<SearchableItem[]> => {
   return prisma.item.findMany({
-    where: { userId },
+    where: { userId, ...(await getVisibleItemsFilter(userId)) },
     select: {
       id: true,
       title: true,
@@ -378,7 +383,7 @@ export type FavoriteItem = {
 // "most recently favorited" (it also moves on any other edit).
 export const getFavoriteItems = cache(async (userId: string): Promise<FavoriteItem[]> => {
   return prisma.item.findMany({
-    where: { userId, isFavorite: true },
+    where: { userId, isFavorite: true, ...(await getVisibleItemsFilter(userId)) },
     select: {
       id: true,
       title: true,
@@ -391,16 +396,17 @@ export const getFavoriteItems = cache(async (userId: string): Promise<FavoriteIt
 
 export const getDashboardItems = cache(
   async (userId: string, recentLimit: number): Promise<DashboardItems> => {
+    const visible = await getVisibleItemsFilter(userId);
     const [totalItems, favoriteItems, pinnedRows, recentRows] = await Promise.all([
-      prisma.item.count({ where: { userId } }),
-      prisma.item.count({ where: { userId, isFavorite: true } }),
+      prisma.item.count({ where: { userId, ...visible } }),
+      prisma.item.count({ where: { userId, isFavorite: true, ...visible } }),
       prisma.item.findMany({
-        where: { userId, isPinned: true },
+        where: { userId, isPinned: true, ...visible },
         select: ITEM_SUMMARY_WITH_TYPE_SELECT,
         orderBy: LAST_USED_ORDER,
       }),
       prisma.item.findMany({
-        where: { userId },
+        where: { userId, ...visible },
         select: ITEM_SUMMARY_WITH_TYPE_SELECT,
         orderBy: LAST_USED_ORDER,
         take: recentLimit,

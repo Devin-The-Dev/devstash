@@ -3,11 +3,13 @@ import { Box } from "lucide-react";
 import { ItemCard } from "@/components/dashboard/ItemCard";
 import { ImageThumbnailCard } from "@/components/dashboard/ImageThumbnailCard";
 import { FileListItem } from "@/components/dashboard/FileListItem";
+import { ProUpgradePrompt } from "@/components/items/ProUpgradePrompt";
 import { PaginationControls } from "@/components/shared/PaginationControls";
 import { itemTypeIconMap } from "@/lib/item-type-icons";
-import { getItemsByType } from "@/lib/db/items";
+import { getItemsByType, getSystemItemTypes, itemTypeSlug } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
 import { ITEMS_PER_PAGE, parsePageParam, totalPagesFor } from "@/lib/pagination";
+import { PRO_ITEM_TYPE_NAMES } from "@/lib/plans";
 
 export default async function ItemsByTypePage({
   params,
@@ -19,6 +21,15 @@ export default async function ItemsByTypePage({
   const { type: typeSlug } = await params;
   const page = parsePageParam((await searchParams).page);
   const currentUser = await getCurrentUser();
+
+  if (!currentUser.isPro) {
+    const types = await getSystemItemTypes();
+    const proType = types.find(
+      (t) => PRO_ITEM_TYPE_NAMES.has(t.name) && itemTypeSlug(t.name) === typeSlug,
+    );
+    if (proType) return <ProUpgradePrompt type={proType} />;
+  }
+
   const result = await getItemsByType(currentUser.id, typeSlug, page, ITEMS_PER_PAGE);
 
   if (!result) notFound();

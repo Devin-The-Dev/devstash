@@ -166,12 +166,13 @@ async function main() {
     });
   }
 
+  // Demo user is on the free plan, so stay within FREE_COLLECTION_LIMIT (3).
   const collections = {
     reactPatterns: await seedCollection(
       "collection-react-patterns",
       user.id,
-      "React Patterns",
-      "Reusable React patterns and hooks",
+      "React & UI",
+      "Reusable React patterns, hooks, and design resources",
       true,
     ),
     aiWorkflows: await seedCollection(
@@ -183,25 +184,12 @@ async function main() {
     devOps: await seedCollection(
       "collection-devops",
       user.id,
-      "DevOps",
-      "Infrastructure and deployment resources",
-    ),
-    terminalCommands: await seedCollection(
-      "collection-terminal-commands",
-      user.id,
-      "Terminal Commands",
-      "Useful shell commands for everyday development",
-    ),
-    designResources: await seedCollection(
-      "collection-design-resources",
-      user.id,
-      "Design Resources",
-      "UI/UX resources and references",
-      true,
+      "DevOps & Terminal",
+      "Infrastructure, deployment, and everyday shell commands",
     ),
   };
 
-  // ─── React Patterns (3 snippets) ───────────────────────────────────────────
+  // ─── React & UI (3 snippets) ───────────────────────────────────────────────
 
   await seedItem(
     "item-use-debounce",
@@ -421,13 +409,13 @@ volumes:
     url: "https://www.prisma.io/docs/orm/prisma-migrate/workflows/deploying-to-production",
   });
 
-  // ─── Terminal Commands (4 commands) ────────────────────────────────────────
+  // ─── DevOps & Terminal (4 commands) ────────────────────────────────────────
 
   await seedItem(
     "item-cmd-git-rebase",
     user.id,
     "system-command",
-    collections.terminalCommands.id,
+    collections.devOps.id,
     {
       title: "Interactive rebase last N commits",
       description: "Squash/reword/reorder recent commits",
@@ -442,7 +430,7 @@ volumes:
     "item-cmd-docker-cleanup",
     user.id,
     "system-command",
-    collections.terminalCommands.id,
+    collections.devOps.id,
     {
       title: "Clean up dangling Docker resources",
       description: "Remove stopped containers, unused networks, and dangling images",
@@ -457,7 +445,7 @@ volumes:
     "item-cmd-find-port",
     user.id,
     "system-command",
-    collections.terminalCommands.id,
+    collections.devOps.id,
     {
       title: "Find process using a port",
       description: "Find and optionally kill the process bound to a TCP port",
@@ -472,7 +460,7 @@ volumes:
     "item-cmd-npm-outdated",
     user.id,
     "system-command",
-    collections.terminalCommands.id,
+    collections.devOps.id,
     {
       title: "List outdated npm packages",
       description: "Check which dependencies have newer versions available",
@@ -483,13 +471,13 @@ volumes:
     },
   );
 
-  // ─── Design Resources (4 links, 3 images) ──────────────────────────────────
+  // ─── React & UI (4 links, 3 images) ────────────────────────────────────────
 
   await seedItem(
     "item-link-tailwind-docs",
     user.id,
     "system-link",
-    collections.designResources.id,
+    collections.reactPatterns.id,
     {
       title: "Tailwind CSS documentation",
       description: "Official Tailwind CSS reference",
@@ -503,7 +491,7 @@ volumes:
     "item-link-shadcn",
     user.id,
     "system-link",
-    collections.designResources.id,
+    collections.reactPatterns.id,
     {
       title: "shadcn/ui",
       description: "Composable component library built on Radix and Tailwind",
@@ -518,7 +506,7 @@ volumes:
     "item-link-radix-themes",
     user.id,
     "system-link",
-    collections.designResources.id,
+    collections.reactPatterns.id,
     {
       title: "Radix UI primitives",
       description: "Unstyled, accessible component primitives for React",
@@ -532,7 +520,7 @@ volumes:
     "item-link-lucide",
     user.id,
     "system-link",
-    collections.designResources.id,
+    collections.reactPatterns.id,
     {
       title: "Lucide icon library",
       description: "Open-source icon set used throughout the app",
@@ -548,7 +536,7 @@ volumes:
     "cmtz9nft00003oauur0qv7lbw",
     user.id,
     "system-image",
-    collections.designResources.id,
+    collections.reactPatterns.id,
     {
       title: "Ocean blue color swatch",
       description: "Primary accent color reference for the redesign",
@@ -565,7 +553,7 @@ volumes:
     "cmtz9oahr0004oauunuf8ux8d",
     user.id,
     "system-image",
-    collections.designResources.id,
+    collections.reactPatterns.id,
     {
       title: "Sunset red color swatch",
       description: "Warning/error state color reference",
@@ -582,7 +570,7 @@ volumes:
     "cmtz9p4s50005oauumskt40w8",
     user.id,
     "system-image",
-    collections.designResources.id,
+    collections.reactPatterns.id,
     {
       title: "Mint green color swatch",
       description: "Success state color reference",
