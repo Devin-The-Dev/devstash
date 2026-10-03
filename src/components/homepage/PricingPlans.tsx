@@ -7,9 +7,9 @@ import { Reveal } from "@/components/homepage/Reveal";
 import { homeButton } from "@/components/homepage/home-button";
 import { cn } from "@/lib/utils";
 
-const PRO_PRICING = {
-  monthly: { price: "$8", period: "/month", note: "Billed monthly, cancel anytime" },
-  yearly: { price: "$72", period: "/year", note: "Just $6/month, billed annually" },
+const PRO_PLAN_COPY = {
+  monthly: { period: "/month", note: "Billed monthly, cancel anytime" },
+  yearly: { period: "/year", note: "Just $6/month, billed annually" },
 };
 
 interface PlanFeature {
@@ -130,9 +130,15 @@ function BillingToggle({ yearly, onChange }: { yearly: boolean; onChange: (yearl
   );
 }
 
-export function PricingPlans() {
+interface PricingPlansProps {
+  // Passed from the server so this client component doesn't import usage-limits (Prisma).
+  proPricing: { monthly: string; yearly: string };
+}
+
+export function PricingPlans({ proPricing }: PricingPlansProps) {
   const [yearly, setYearly] = useState(false);
-  const pro = yearly ? PRO_PRICING.yearly : PRO_PRICING.monthly;
+  const interval = yearly ? "yearly" : "monthly";
+  const pro = { price: proPricing[interval], ...PRO_PLAN_COPY[interval] };
 
   return (
     <>

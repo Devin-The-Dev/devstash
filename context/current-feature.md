@@ -1,18 +1,37 @@
-# Current Feature
+# Current Feature: Stripe Integration Phase 1 - Core Infrastructure
 
-<!-- Feature name and short description -->
+Lay the groundwork for DevStash Pro billing ($8/month or $72/year): Stripe SDK, client, usage-limits module, billing DB helpers, and checkout/portal server actions, all covered by unit tests. No gate is enforced in the app yet (Phase 2). Spec: `context/features/stripe-phase-1-spec.md`.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- `npm install stripe` (v23.x; don't pass `apiVersion`, the SDK pins `2026-09-30.endive`)
+- Clean up `.env.example`: merge the two Stripe blocks into one (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_MONTHLY`, `STRIPE_PRICE_ID_YEARLY`, `BILLING_ENFORCED="false"`); drop `STRIPE_PUBLISHABLE_KEY`
+- `src/lib/stripe.ts`: lazy `getStripe()` singleton (throws `"STRIPE_SECRET_KEY is not set"` on first use), `BillingInterval`, `getPriceId(interval)`, `isProStatus(status)` (`active`/`trialing`/`past_due` → true)
+- `src/lib/usage-limits.ts`: `FREE_ITEM_LIMIT = 50`, `FREE_COLLECTION_LIMIT = 3`, `PRO_ITEM_TYPE_NAMES`, `PRO_PRICING` (moved from `PricingPlans.tsx`), `isBillingEnforced()`, `getUserIsPro()`, `GateResult`, `canCreateItem()`, `canCreateCollection()`, `canUseProFeature()`
+- `src/lib/db/billing.ts`: idempotent `syncSubscription()`, `clearSubscription()`, `getBillingUser()`, `syncCheckoutSession()` (checks `client_reference_id === userId`)
+- `src/actions/billing.ts`: `createCheckoutSession(interval)` and `createPortalSession()` returning `{ success, data: { url } }`; internal `getOrCreateCustomerId()` with idempotency key + conditional `updateMany` race handling
+- `AppSidebar` uses shared `PRO_ITEM_TYPE_NAMES` from `@/lib/usage-limits`
+- Vitest unit tests: `usage-limits.test.ts`, `stripe.test.ts`, `actions/billing.test.ts` (cases per spec)
+- `npm run test`, `npm run lint`, and `npm run build` (with `STRIPE_SECRET_KEY` unset) all pass
+- Sidebar still shows PRO badges on File/Image for free users
 
 ## Notes
 
-<!-- Any extra notes -->
+- Branch: `feature/stripe-phase-1`
+- No Prisma migration: `isPro`, `stripeCustomerId`, `stripeSubscriptionId` already exist on `User`
+- No UI calls the new actions yet; exercised only by tests until Phase 2
+- No JWT/session changes; `isPro` always read from DB
+- Actions: auth check first, Zod `safeParse`, try/catch with `console.error` + generic error. Client redirects via `window.location.assign`; don't call `redirect()` in the action
+- Checkout URLs from `getBaseUrl()`: success `/settings?checkout=success&session_id={CHECKOUT_SESSION_ID}#billing`, cancel `/settings?checkout=canceled#billing`; portal return `/settings#billing`
+- Count-then-create race is acceptable for the soft limit (no lock/transaction)
+- Tests: mock `@/auth`, `@/lib/prisma`, `@/lib/stripe`/`stripe` with `vi.hoisted` + `vi.mock`; `vi.stubEnv` reset in `afterEach`
+- SDK gotchas: `current_period_end` lives on subscription items; invoice subscription is at `invoice.parent?.subscription_details?.subscription`
+- Stripe Dashboard (test mode) setup can happen now: "DevStash Pro" product with $8/mo + $72/yr prices, secret key, Customer portal config
+- Reference: `docs/stripe-integration-plan.md` §3.1–3.4, §4, §5
 
 ## History
 

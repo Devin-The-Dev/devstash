@@ -29,8 +29,7 @@ import { getCollectionsWithStats } from "@/lib/db/collections";
 import { getSystemItemTypes, itemTypeSlug } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
 import { signOutAction } from "@/actions/auth";
-
-const proItemTypeNames = new Set(["File", "Image"]);
+import { PRO_ITEM_TYPE_NAMES } from "@/lib/usage-limits";
 
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -84,7 +83,7 @@ export async function AppSidebar() {
               {itemTypes.map((type) => {
                 const Icon = getItemTypeIcon(type.icon);
                 const slug = itemTypeSlug(type.name);
-                const isPro = proItemTypeNames.has(type.name) && !currentUser.isPro;
+                const isPro = PRO_ITEM_TYPE_NAMES.has(type.name) && !currentUser.isPro;
                 return (
                   <SidebarMenuItem key={type.id}>
                     <SidebarMenuButton
