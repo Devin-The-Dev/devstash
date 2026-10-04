@@ -10,6 +10,7 @@ const { authMock, prismaMock, stripeMock, getPriceIdMock } = vi.hoisted(() => ({
   },
   stripeMock: {
     customers: { create: vi.fn() },
+    subscriptions: { list: vi.fn() },
     checkout: { sessions: { create: vi.fn() } },
     billingPortal: { sessions: { create: vi.fn() } },
   },
@@ -27,6 +28,7 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/stripe", () => ({
   getStripe: () => stripeMock,
   getPriceId: getPriceIdMock,
+  isProStatus: (status: string) => ["active", "trialing", "past_due"].includes(status),
 }));
 
 const { createCheckoutSession, createPortalSession } = await import("@/actions/billing");
@@ -44,6 +46,7 @@ beforeEach(() => {
   vi.stubEnv("APP_URL", "https://devstash.test");
   vi.spyOn(console, "error").mockImplementation(() => {});
   stripeMock.checkout.sessions.create.mockResolvedValue({ url: "https://checkout.stripe.test/s" });
+  stripeMock.subscriptions.list.mockResolvedValue({ data: [] });
 });
 
 afterEach(() => {
@@ -82,6 +85,41 @@ describe("createCheckoutSession", () => {
 
     expect(result).toEqual({ success: false, error: "You already have DevStash Pro" });
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("blocks checkout and syncs Pro when Stripe already has a live subscription", async () => {
+    signedIn();
+    prismaMock.user.findUnique.mockResolvedValue({ ...billingUser, stripeCustomerId: "cus_1" });
+    prismaMock.user.updateMany.mockResolvedValue({ count: 1 });
+    stripeMock.subscriptions.list.mockResolvedValue({
+      data: [
+        { id: "sub_old", status: "incomplete_expired", customer: "cus_1" },
+        { id: "sub_live", status: "active", customer: "cus_1" },
+      ],
+    });
+
+    const result = await createCheckoutSession("monthly");
+
+    expect(result).toEqual({ success: false, error: "You already have DevStash Pro" });
+    expect(stripeMock.subscriptions.list).toHaveBeenCalledWith({ customer: "cus_1", limit: 100 });
+    expect(prismaMock.user.updateMany).toHaveBeenCalledWith({
+      where: { stripeCustomerId: "cus_1" },
+      data: { isPro: true, stripeSubscriptionId: "sub_live" },
+    });
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("allows checkout when the customer's subscriptions are not Pro statuses", async () => {
+    signedIn();
+    prismaMock.user.findUnique.mockResolvedValue({ ...billingUser, stripeCustomerId: "cus_1" });
+    stripeMock.subscriptions.list.mockResolvedValue({
+      data: [{ id: "sub_unpaid", status: "unpaid", customer: "cus_1" }],
+    });
+
+    const result = await createCheckoutSession("monthly");
+
+    expect(result.success).toBe(true);
+    expect(prismaMock.user.updateMany).not.toHaveBeenCalled();
   });
 
   it("reuses an existing Stripe customer", async () => {

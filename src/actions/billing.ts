@@ -1,10 +1,11 @@
 "use server";
 
+import type Stripe from "stripe";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { getStripe, getPriceId } from "@/lib/stripe";
-import { getBillingUser } from "@/lib/db/billing";
+import { getStripe, getPriceId, isProStatus } from "@/lib/stripe";
+import { getBillingUser, syncSubscription } from "@/lib/db/billing";
 import { getBaseUrl } from "@/lib/url";
 
 type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
@@ -38,6 +39,12 @@ async function getOrCreateCustomerId(userId: string): Promise<string> {
   return customer.id;
 }
 
+// Omitting `status` lists every subscription except canceled ones.
+async function findProSubscription(customerId: string): Promise<Stripe.Subscription | undefined> {
+  const { data } = await getStripe().subscriptions.list({ customer: customerId, limit: 100 });
+  return data.find((subscription) => isProStatus(subscription.status));
+}
+
 export async function createCheckoutSession(interval: unknown): Promise<ActionResult<{ url: string }>> {
   const session = await auth();
   if (!session?.user?.id) {
@@ -56,6 +63,15 @@ export async function createCheckoutSession(interval: unknown): Promise<ActionRe
     }
 
     const customerId = await getOrCreateCustomerId(session.user.id);
+
+    // isPro lags when webhooks are delayed or failing, so ask Stripe directly
+    // before starting a second subscription for the same customer.
+    const existing = await findProSubscription(customerId);
+    if (existing) {
+      await syncSubscription(existing);
+      return { success: false, error: "You already have DevStash Pro" };
+    }
+
     const baseUrl = getBaseUrl();
 
     const checkout = await getStripe().checkout.sessions.create({

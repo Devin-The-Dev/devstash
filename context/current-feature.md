@@ -1,18 +1,22 @@
 # Current Feature
 
-<!-- Feature name and short description -->
+Fix: Duplicate Subscription Checkout — prevent a second Pro subscription when the `isPro` flag is stale.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Before creating a Checkout Session, ask Stripe whether the customer already has a Pro-granting subscription (`active`, `trialing`, `past_due`).
+- If one exists, block checkout with "You already have DevStash Pro" and sync it to the DB so the user's `isPro` self-heals.
+- Unit tests for the blocked and allowed paths.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Found in manual testing: the first checkout's webhooks all failed (wrong endpoint URL), so `isPro` stayed false and a second checkout created a second subscription on the same customer.
+- `subscriptions.list` without `status` excludes canceled subscriptions.
+- Doesn't cover two checkout tabs opened before either completes — Stripe has no per-customer subscription limit for that.
 
 ## History
 
