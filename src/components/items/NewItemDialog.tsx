@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createItem } from "@/actions/items";
 import { CREATABLE_ITEM_TYPES } from "@/lib/validations/items";
 import { FILE_TYPES } from "@/lib/item-type-groups";
+import { PRO_ITEM_TYPE_NAMES } from "@/lib/plans";
 import type { ItemTypeSummary } from "@/lib/db/items";
 import type { CollectionOption } from "@/lib/db/collections";
 
@@ -55,9 +57,11 @@ function emptyForm(typeId: string): FormState {
 export function NewItemDialog({
   itemTypes,
   collections,
+  isPro,
 }: {
   itemTypes: ItemTypeSummary[];
   collections: CollectionOption[];
+  isPro: boolean;
 }) {
   const router = useRouter();
   const creatableTypes = itemTypes.filter((type) => CREATABLE_ITEM_TYPES.includes(type.name));
@@ -144,11 +148,15 @@ export function NewItemDialog({
                   <SelectValue placeholder="Select a type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {creatableTypes.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
+                  {creatableTypes.map((type) => {
+                    const isLocked = !isPro && PRO_ITEM_TYPE_NAMES.has(type.name);
+                    return (
+                      <SelectItem key={type.id} value={type.id} disabled={isLocked}>
+                        {type.name}
+                        {isLocked && <Badge variant="secondary">PRO</Badge>}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

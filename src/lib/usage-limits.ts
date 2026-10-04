@@ -3,8 +3,10 @@ import { FREE_COLLECTION_LIMIT, FREE_ITEM_LIMIT, PRO_ITEM_TYPE_NAMES } from "@/l
 
 export { FREE_COLLECTION_LIMIT, FREE_ITEM_LIMIT, PRO_ITEM_TYPE_NAMES, PRO_PRICING } from "@/lib/plans";
 
-// Gates are wired but not enforced until launch.
-// Flip by setting BILLING_ENFORCED="true" in the environment.
+// The item and collection count limits aren't enforced until launch; flip by
+// setting BILLING_ENFORCED="true" in the environment. Pro-only item types and
+// features are always gated, since free users can't see Pro items anyway
+// (see getVisibleItemsFilter).
 export function isBillingEnforced(): boolean {
   return process.env.BILLING_ENFORCED === "true";
 }
@@ -21,10 +23,11 @@ export type GateResult = { allowed: true } | { allowed: false; error: string };
 
 // Count-then-create can race past the limit by a request or two; acceptable for a soft limit.
 export async function canCreateItem(userId: string, typeName: string): Promise<GateResult> {
-  if (!isBillingEnforced()) return { allowed: true };
+  const isProType = PRO_ITEM_TYPE_NAMES.has(typeName);
+  if (!isProType && !isBillingEnforced()) return { allowed: true };
   if (await getUserIsPro(userId)) return { allowed: true };
 
-  if (PRO_ITEM_TYPE_NAMES.has(typeName)) {
+  if (isProType) {
     return { allowed: false, error: `${typeName} items require DevStash Pro` };
   }
 
@@ -53,7 +56,6 @@ export async function canCreateCollection(userId: string): Promise<GateResult> {
 }
 
 export async function canUseProFeature(userId: string, feature: string): Promise<GateResult> {
-  if (!isBillingEnforced()) return { allowed: true };
   if (await getUserIsPro(userId)) return { allowed: true };
   return { allowed: false, error: `${feature} requires DevStash Pro` };
 }

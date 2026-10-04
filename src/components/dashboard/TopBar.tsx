@@ -48,6 +48,7 @@ export async function TopBar() {
       <NewItemDialog
         itemTypes={itemTypes}
         collections={collections.map((c) => ({ id: c.id, name: c.name }))}
+        isPro={currentUser.isPro}
       />
     </header>
   );

@@ -1,18 +1,20 @@
 # Current Feature
 
-<!-- Feature name and short description -->
+Pro type creation gate — free users can't create File or Image items, whether or not `BILLING_ENFORCED` is set.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- `canCreateItem` blocks File/Image for free users regardless of `BILLING_ENFORCED`; the item/collection count limits stay behind the flag.
+- `canUseProFeature` (used by `/api/upload`) always requires Pro, so free users can't get an upload URL either.
+- New item dialog shows File and Image as disabled options with a PRO badge for free users.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Matches `getVisibleItemsFilter`, which already hides File/Image items from free users unconditionally. Before this, free users could create items they then couldn't see.
 
 ## History
 

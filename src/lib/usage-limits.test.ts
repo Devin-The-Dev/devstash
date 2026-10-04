@@ -69,10 +69,26 @@ describe("getUserIsPro", () => {
 });
 
 describe("canCreateItem", () => {
-  it("allows without querying Prisma when enforcement is off", async () => {
-    expect(await canCreateItem("user-1", "File")).toEqual({ allowed: true });
+  it("allows a free type without querying Prisma when enforcement is off", async () => {
+    expect(await canCreateItem("user-1", "Snippet")).toEqual({ allowed: true });
     expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
     expect(prismaMock.item.count).not.toHaveBeenCalled();
+  });
+
+  it.each(["File", "Image"])("blocks %s items for free users even when enforcement is off", async (type) => {
+    asUser(false);
+
+    expect(await canCreateItem("user-1", type)).toEqual({
+      allowed: false,
+      error: `${type} items require DevStash Pro`,
+    });
+    expect(prismaMock.item.count).not.toHaveBeenCalled();
+  });
+
+  it.each(["File", "Image"])("allows %s items for Pro users when enforcement is off", async (type) => {
+    asUser(true);
+
+    expect(await canCreateItem("user-1", type)).toEqual({ allowed: true });
   });
 
   it.each(["Snippet", "File", "Image"])("allows Pro users any type (%s) without counting", async (type) => {
@@ -151,8 +167,13 @@ describe("canCreateCollection", () => {
 });
 
 describe("canUseProFeature", () => {
-  it("allows when enforcement is off", async () => {
-    expect(await canUseProFeature("user-1", "AI tagging")).toEqual({ allowed: true });
+  it("blocks free users even when enforcement is off", async () => {
+    asUser(false);
+
+    expect(await canUseProFeature("user-1", "File upload")).toEqual({
+      allowed: false,
+      error: "File upload requires DevStash Pro",
+    });
   });
 
   it("allows Pro users", async () => {
@@ -162,7 +183,7 @@ describe("canUseProFeature", () => {
     expect(await canUseProFeature("user-1", "AI tagging")).toEqual({ allowed: true });
   });
 
-  it("blocks free users", async () => {
+  it("blocks free users when enforcement is on", async () => {
     enforce();
     asUser(false);
 
