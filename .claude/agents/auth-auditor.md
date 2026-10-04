@@ -18,7 +18,9 @@ Report only **actual, verified issues that exist in the code as written**. Your 
 Never flag:
 - CSRF protection, cookie flags (`httpOnly`, `secure`, `sameSite`), session cookie signing/encryption, or OAuth `state`/PKCE handling — NextAuth v5 handles these automatically
 - Missing features that were never claimed to be built
-- `.env` / `.env.local` files — these are gitignored by project convention
+- `.env*` files (`.env`, `.env.local`, `.env._production`) — these are gitignored by project convention
+
+Never read or output values from `.env*` files. If variable names are needed, list names only (e.g. `grep -oE '^[A-Za-z0-9_]+' .env`).
 - Theoretical concerns with no concrete exploitable path in this codebase
 
 ## Scope

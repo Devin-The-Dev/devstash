@@ -11,9 +11,17 @@ npm run dev      # start dev server (localhost:3000)
 npm run build    # production build
 npm run start    # run production build
 npm run lint     # run ESLint
+npm test                   # run unit tests once (Vitest)
+npm run test:watch         # run unit tests in watch mode
+npm run db:generate        # regenerate the Prisma client
+npm run db:migrate         # create/apply a migration in dev (prisma migrate dev)
+npm run db:deploy          # apply migrations in prod (prisma migrate deploy)
+npm run db:seed            # seed the demo user and data
+npm run db:clear-users     # delete non-demo users and reseed the demo user (uses DATABASE_URL; dev only)
+npm run db:studio          # open Prisma Studio
 ```
 
-No test runner is configured.
+Tests use **Vitest** (`vitest.config.mts`) and live next to the code as `*.test.ts`. Cover server actions and `src/lib` utilities.
 
 ## Stack
 
