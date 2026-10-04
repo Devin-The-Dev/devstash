@@ -1,3 +1,4 @@
-- [DevStash project state](devstash_project_state.md) — as of 2026-09-13: auth/item-CRUD/R2/editors/rate-limiting shipped; Stripe/AI/search/collections-CRUD still not built
+- [DevStash project state](devstash_project_state.md) — as of 2026-09-13: auth/item-CRUD/R2/editors/rate-limiting shipped; Stripe/AI/search/collections-CRUD still not built (STALE: Stripe, search, collections, favorites, pagination shipped by 2026-10-04)
 - [DevStash conventions](devstash_conventions.md) — `src/lib/db/*.ts` data-fetching pattern, shared icon map crash risk, tooling limitations note
-- [DevStash decomposition findings](devstash_decomposition_findings.md) — ItemDrawer 514 lines, duplicated type-conditional field rendering, duplicated copy-to-clipboard/drawer-row-click patterns
+- [DevStash decomposition findings](devstash_decomposition_findings.md) — 2026-09-13 findings; all five were fixed in the 2026-09-13 decomposition pass
+- [DevStash audit 2026-10-04](devstash_audit_2026_10_04.md) — latest full audit: open High/Medium themes and areas confirmed clean

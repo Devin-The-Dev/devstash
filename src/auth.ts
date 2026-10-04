@@ -7,9 +7,20 @@ import { ZodError } from "zod";
 import { prisma } from "@/lib/prisma";
 import authConfig from "@/auth.config";
 import { signInSchema } from "@/lib/validations/auth";
+import { checkRateLimit, getClientIp, loginEmailRateLimit, loginRateLimit } from "@/lib/rate-limit";
 
 export class EmailNotVerifiedError extends CredentialsSignin {
   code = "email_not_verified";
+}
+
+export class RateLimitedError extends CredentialsSignin {
+  code = "rate_limited";
+  reset: number;
+
+  constructor(reset: number) {
+    super();
+    this.reset = reset;
+  }
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -52,6 +63,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorize: async (credentials) => {
         try {
           const { email, password } = await signInSchema.parseAsync(credentials);
+
+          // Enforced here rather than in the sign-in action so that
+          // POST /api/auth/callback/credentials can't skip it.
+          const ip = await getClientIp();
+          const [byIp, byEmail] = await Promise.all([
+            checkRateLimit(loginRateLimit, `${ip}:${email}`),
+            checkRateLimit(loginEmailRateLimit, email),
+          ]);
+          if (!byIp.success || !byEmail.success) {
+            throw new RateLimitedError(Math.max(byIp.reset, byEmail.reset));
+          }
 
           const user = await prisma.user.findUnique({
             where: { email },

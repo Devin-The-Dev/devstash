@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateUpload } from "@/lib/upload-constraints";
+import { contentTypeForExtension, getExtension, validateUpload } from "@/lib/upload-constraints";
 
 describe("validateUpload", () => {
   it("accepts a file within the allowed extension, MIME type, and size", () => {
@@ -52,5 +52,25 @@ describe("validateUpload", () => {
   it("matches extensions case-insensitively", () => {
     const result = validateUpload("image", { name: "photo.PNG", type: "image/png", size: 1024 });
     expect(result).toEqual({ valid: true });
+  });
+});
+
+describe("getExtension", () => {
+  it("returns the lowercased extension with its dot", () => {
+    expect(getExtension("Photo.PNG")).toBe(".png");
+  });
+
+  it("returns an empty string for a name with no dot", () => {
+    expect(getExtension("Makefile")).toBe("");
+  });
+});
+
+describe("contentTypeForExtension", () => {
+  it("maps a known extension to its content type", () => {
+    expect(contentTypeForExtension(".jpg")).toBe("image/jpeg");
+  });
+
+  it("falls back to octet-stream for an unknown extension", () => {
+    expect(contentTypeForExtension(".exe")).toBe("application/octet-stream");
   });
 });

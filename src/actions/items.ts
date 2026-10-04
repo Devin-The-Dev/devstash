@@ -11,7 +11,8 @@ import {
   type ItemDetail,
 } from "@/lib/db/items";
 import { createItemSchema, updateItemSchema, CREATABLE_ITEM_TYPES } from "@/lib/validations/items";
-import { deleteFromR2, keyFromPublicUrl } from "@/lib/r2";
+import { deleteFromR2, headR2Object, keyFromPublicUrl } from "@/lib/r2";
+import { getExtension, UPLOAD_CONSTRAINTS } from "@/lib/upload-constraints";
 import { canCreateItem } from "@/lib/usage-limits";
 
 type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
@@ -57,6 +58,31 @@ export async function createItem(input: unknown): Promise<ActionResult<ItemDetai
     return { success: false, error: "A file upload is required" };
   }
 
+  // The client-supplied fileUrl must point at an object this user uploaded, and
+  // the size is read from R2 rather than trusted from the client.
+  let fileSize: number | null = null;
+  if (isFileType) {
+    const key = keyFromPublicUrl(parsed.data.fileUrl!);
+    const constraint = UPLOAD_CONSTRAINTS[type.name === "Image" ? "image" : "file"];
+    if (
+      !key ||
+      !key.startsWith(`${session.user.id}/`) ||
+      !constraint.extensions.includes(getExtension(key))
+    ) {
+      return { success: false, error: "Invalid file" };
+    }
+
+    const object = await headR2Object(key);
+    if (!object) {
+      return { success: false, error: "Uploaded file not found" };
+    }
+    if (object.contentLength > constraint.maxSize) {
+      await deleteFromR2(key);
+      return { success: false, error: "File too large" };
+    }
+    fileSize = object.contentLength;
+  }
+
   if (!(await assertOwnedCollections(session.user.id, parsed.data.collectionIds))) {
     return { success: false, error: "Collection not found" };
   }
@@ -72,7 +98,7 @@ export async function createItem(input: unknown): Promise<ActionResult<ItemDetai
     url: isLink ? (parsed.data.url ?? null) : null,
     fileUrl: isFileType ? (parsed.data.fileUrl ?? null) : null,
     fileName: isFileType ? (parsed.data.fileName ?? null) : null,
-    fileSize: isFileType ? (parsed.data.fileSize ?? null) : null,
+    fileSize,
     language: parsed.data.language || null,
     tags: parsed.data.tags,
   });

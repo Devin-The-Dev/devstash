@@ -26,7 +26,7 @@ export function FileUpload({
 
   const constraint = UPLOAD_CONSTRAINTS[kind];
 
-  function upload(file: File) {
+  async function upload(file: File) {
     setError(null);
 
     const validation = validateUpload(kind, file);
@@ -39,11 +39,29 @@ export function FileUpload({
       setPreviewUrl(URL.createObjectURL(file));
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("kind", kind);
-
     setProgress(0);
+
+    let target: { uploadUrl: string; contentType: string; fileUrl: string };
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, fileName: file.name, fileType: file.type, fileSize: file.size }),
+      });
+      const json: { success: boolean; data?: typeof target; error?: string } = await response.json();
+      if (!response.ok || !json.success || !json.data) {
+        setProgress(null);
+        setError(json.error ?? "Upload failed");
+        return;
+      }
+      target = json.data;
+    } catch {
+      setProgress(null);
+      setError("Upload failed");
+      return;
+    }
+
+    // PUT straight to R2 via the presigned URL. XHR (not fetch) for upload progress.
     const xhr = new XMLHttpRequest();
 
     xhr.upload.addEventListener("progress", (e) => {
@@ -52,16 +70,10 @@ export function FileUpload({
 
     xhr.addEventListener("load", () => {
       setProgress(null);
-      let json: { success: boolean; data?: UploadedFile; error?: string } | null = null;
-      try {
-        json = JSON.parse(xhr.responseText);
-      } catch {
-        // fall through to the generic error below
-      }
-      if (xhr.status >= 200 && xhr.status < 300 && json?.success && json.data) {
-        onChange(json.data);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onChange({ fileUrl: target.fileUrl, fileName: file.name, fileSize: file.size });
       } else {
-        setError(json?.error ?? "Upload failed");
+        setError("Upload failed");
       }
     });
 
@@ -70,8 +82,9 @@ export function FileUpload({
       setError("Upload failed");
     });
 
-    xhr.open("POST", "/api/upload");
-    xhr.send(formData);
+    xhr.open("PUT", target.uploadUrl);
+    xhr.setRequestHeader("Content-Type", target.contentType);
+    xhr.send(file);
   }
 
   function handleFiles(files: FileList | null) {

@@ -18,7 +18,8 @@ export const createItemSchema = z.object({
   content: z.string().nullable().optional(),
   url: z.union([z.url(), z.null()]).optional(),
   fileUrl: z.union([z.url(), z.null()]).optional(),
-  fileName: z.string().nullable().optional(),
+  fileName: z.string().max(255).nullable().optional(),
+  // Ignored by createItem, which reads the real size from R2.
   fileSize: z.number().nullable().optional(),
   language: z.string().nullable().optional(),
   tags: z.array(z.string().trim().min(1)),

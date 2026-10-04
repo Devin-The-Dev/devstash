@@ -21,9 +21,12 @@ function createLimiter(prefix: string, tokens: number, window: Parameters<typeof
 }
 
 export const loginRateLimit = createLimiter("login", 5, "15 m");
+// Per-account cap regardless of IP, so rotating IPs can't brute-force one email.
+export const loginEmailRateLimit = createLimiter("login-email", 20, "1 h");
 export const registerRateLimit = createLimiter("register", 3, "1 h");
 export const forgotPasswordRateLimit = createLimiter("forgot-password", 3, "1 h");
 export const resetPasswordRateLimit = createLimiter("reset-password", 5, "15 m");
+export const uploadRateLimit = createLimiter("upload", 30, "10 m");
 
 export type RateLimitResult = {
   success: boolean;

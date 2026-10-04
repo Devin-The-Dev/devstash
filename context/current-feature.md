@@ -1,18 +1,24 @@
 # Current Feature
 
-<!-- Feature name and short description -->
+Security audit fixes (High) — close the two High findings and the `fileUrl` ownership finding from the 2026-10-04 code-scanner audit.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Login rate limit can't be bypassed via `POST /api/auth/callback/credentials`: enforce it inside `authorize()` and add a per-email limit (20/hour) that ignores IP.
+- Uploads go direct from browser to R2 via a presigned PUT (Content-Type and Content-Length signed), so files over Vercel's ~4.5 MB body limit work. `/api/upload` now only validates and returns the URL, and is rate limited (30 per 10 min per user).
+- Content-Type stored in R2 is derived from the extension server-side, not from the browser.
+- Downloads stream from R2 instead of buffering; non-ASCII filenames use RFC 5987 `filename*` so they no longer 500.
+- `createItem` only accepts a `fileUrl` under the caller's own `${userId}/` prefix with an extension allowed for the item type, confirms the object exists, and reads `fileSize` from R2 (deleting objects over the limit).
 
 ## Notes
 
-<!-- Any extra notes -->
+- **Deploy prerequisite:** the R2 bucket needs a CORS policy allowing `PUT` with the `Content-Type` header from `http://localhost:3000` and the production origin. A preflight from localhost currently returns 403 with no CORS headers, so uploads fail until it's added (Cloudflare dashboard → R2 → bucket → Settings → CORS policy).
+- The per-email login limit means an attacker can lock an account out of password sign-in for up to an hour; GitHub sign-in is unaffected.
+- Added dependency `@aws-sdk/s3-request-presigner`.
 
 ## History
 

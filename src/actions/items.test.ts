@@ -9,6 +9,7 @@ const {
   getSystemItemTypesMock,
   deleteFromR2Mock,
   keyFromPublicUrlMock,
+  headR2ObjectMock,
   canCreateItemMock,
 } = vi.hoisted(() => ({
   authMock: vi.fn(),
@@ -27,6 +28,7 @@ const {
   getSystemItemTypesMock: vi.fn(),
   deleteFromR2Mock: vi.fn(),
   keyFromPublicUrlMock: vi.fn(),
+  headR2ObjectMock: vi.fn(),
   canCreateItemMock: vi.fn(),
 }));
 
@@ -56,6 +58,7 @@ vi.mock("@/lib/usage-limits", () => ({
 vi.mock("@/lib/r2", () => ({
   deleteFromR2: deleteFromR2Mock,
   keyFromPublicUrl: keyFromPublicUrlMock,
+  headR2Object: headR2ObjectMock,
 }));
 
 const { createItem, toggleItemFavorite, toggleItemPinned, updateItem, deleteItem } = await import(
@@ -342,36 +345,97 @@ describe("createItem", () => {
     expect(createItemQueryMock).not.toHaveBeenCalled();
   });
 
-  it("creates a file item with FILE contentType and no text content", async () => {
-    authMock.mockResolvedValue({ user: { id: "user-1" } });
-    getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE, FILE_TYPE]);
-    const created = { id: "item-3", title: "Pre-deploy checklist.pdf" };
-    createItemQueryMock.mockResolvedValue(created);
-
-    const result = await createItem({
+  describe("file items", () => {
+    const fileInput = {
       ...validInput,
       typeId: FILE_TYPE.id,
       title: "Pre-deploy checklist.pdf",
       content: null,
       fileUrl: "https://files.example.com/user-1/abc.pdf",
       fileName: "checklist.pdf",
-      fileSize: 1024,
+      fileSize: 1,
+    };
+
+    beforeEach(() => {
+      authMock.mockResolvedValue({ user: { id: "user-1" } });
+      getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE, FILE_TYPE]);
+      keyFromPublicUrlMock.mockImplementation((url: string) =>
+        url.startsWith("https://files.example.com/")
+          ? url.slice("https://files.example.com/".length)
+          : null,
+      );
+      headR2ObjectMock.mockResolvedValue({ contentLength: 2048 });
     });
 
-    expect(result).toEqual({ success: true, data: created });
-    expect(createItemQueryMock).toHaveBeenCalledWith("user-1", {
-      typeId: FILE_TYPE.id,
-      collectionIds: [],
-      title: "Pre-deploy checklist.pdf",
-      description: null,
-      contentType: "FILE",
-      content: null,
-      url: null,
-      fileUrl: "https://files.example.com/user-1/abc.pdf",
-      fileName: "checklist.pdf",
-      fileSize: 1024,
-      language: "typescript",
-      tags: ["react"],
+    it("creates a file item using the size stored in R2, not the client value", async () => {
+      const created = { id: "item-3", title: "Pre-deploy checklist.pdf" };
+      createItemQueryMock.mockResolvedValue(created);
+
+      const result = await createItem(fileInput);
+
+      expect(result).toEqual({ success: true, data: created });
+      expect(headR2ObjectMock).toHaveBeenCalledWith("user-1/abc.pdf");
+      expect(createItemQueryMock).toHaveBeenCalledWith("user-1", {
+        typeId: FILE_TYPE.id,
+        collectionIds: [],
+        title: "Pre-deploy checklist.pdf",
+        description: null,
+        contentType: "FILE",
+        content: null,
+        url: null,
+        fileUrl: "https://files.example.com/user-1/abc.pdf",
+        fileName: "checklist.pdf",
+        fileSize: 2048,
+        language: "typescript",
+        tags: ["react"],
+      });
+    });
+
+    it("rejects a fileUrl under another user's prefix", async () => {
+      const result = await createItem({
+        ...fileInput,
+        fileUrl: "https://files.example.com/user-2/abc.pdf",
+      });
+
+      expect(result).toEqual({ success: false, error: "Invalid file" });
+      expect(headR2ObjectMock).not.toHaveBeenCalled();
+      expect(createItemQueryMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects a fileUrl outside the R2 bucket", async () => {
+      const result = await createItem({ ...fileInput, fileUrl: "https://evil.example.com/user-1/abc.pdf" });
+
+      expect(result).toEqual({ success: false, error: "Invalid file" });
+      expect(createItemQueryMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects an extension not allowed for the item type", async () => {
+      const result = await createItem({
+        ...fileInput,
+        fileUrl: "https://files.example.com/user-1/abc.png",
+      });
+
+      expect(result).toEqual({ success: false, error: "Invalid file" });
+      expect(createItemQueryMock).not.toHaveBeenCalled();
+    });
+
+    it("returns an error when the object was never uploaded", async () => {
+      headR2ObjectMock.mockResolvedValue(null);
+
+      const result = await createItem(fileInput);
+
+      expect(result).toEqual({ success: false, error: "Uploaded file not found" });
+      expect(createItemQueryMock).not.toHaveBeenCalled();
+    });
+
+    it("deletes and rejects an object over the size limit", async () => {
+      headR2ObjectMock.mockResolvedValue({ contentLength: 11 * 1024 * 1024 });
+
+      const result = await createItem(fileInput);
+
+      expect(result).toEqual({ success: false, error: "File too large" });
+      expect(deleteFromR2Mock).toHaveBeenCalledWith("user-1/abc.pdf");
+      expect(createItemQueryMock).not.toHaveBeenCalled();
     });
   });
 });

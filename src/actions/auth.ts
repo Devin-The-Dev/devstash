@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
-import { signIn, signOut, EmailNotVerifiedError } from "@/auth";
+import { signIn, signOut, EmailNotVerifiedError, RateLimitedError } from "@/auth";
 import { signInSchema, forgotPasswordSchema, resetPasswordSchema } from "@/lib/validations/auth";
 import { findResetEligibleUser } from "@/lib/db/user";
 import { createPasswordResetToken, consumePasswordResetToken } from "@/lib/db/verification";
@@ -13,7 +13,6 @@ import {
   checkRateLimit,
   forgotPasswordRateLimit,
   getClientIp,
-  loginRateLimit,
   rateLimitMessage,
   resetPasswordRateLimit,
 } from "@/lib/rate-limit";
@@ -33,13 +32,6 @@ export async function signInWithCredentials(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const ip = await getClientIp();
-  const rateLimit = await checkRateLimit(loginRateLimit, `${ip}:${parsed.data.email}`);
-
-  if (!rateLimit.success) {
-    return { error: rateLimitMessage(rateLimit.reset) };
-  }
-
   const callbackUrl = formData.get("callbackUrl")?.toString() || "/dashboard";
 
   try {
@@ -49,6 +41,9 @@ export async function signInWithCredentials(
       redirectTo: callbackUrl,
     });
   } catch (error) {
+    if (error instanceof RateLimitedError) {
+      return { error: rateLimitMessage(error.reset) };
+    }
     if (error instanceof EmailNotVerifiedError) {
       return { error: "Please verify your email before signing in. Check your inbox for the verification link." };
     }

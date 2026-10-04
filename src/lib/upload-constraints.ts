@@ -30,12 +30,42 @@ export const UPLOAD_CONSTRAINTS: Record<UploadKind, UploadConstraint> = {
   },
 };
 
+// Stored Content-Type is derived from the extension server-side rather than
+// trusting the browser-reported type.
+const EXTENSION_CONTENT_TYPES: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".pdf": "application/pdf",
+  ".txt": "text/plain",
+  ".md": "text/markdown",
+  ".json": "application/json",
+  ".yaml": "application/x-yaml",
+  ".yml": "application/x-yaml",
+  ".xml": "application/xml",
+  ".csv": "text/csv",
+  ".toml": "application/toml",
+  ".ini": "text/plain",
+};
+
+/** Lowercased extension including the dot, or "" if the name has none. */
+export function getExtension(fileName: string): string {
+  const dot = fileName.lastIndexOf(".");
+  return dot === -1 ? "" : fileName.slice(dot).toLowerCase();
+}
+
+export function contentTypeForExtension(extension: string): string {
+  return EXTENSION_CONTENT_TYPES[extension] ?? "application/octet-stream";
+}
+
 export function validateUpload(
   kind: UploadKind,
   file: { name: string; type: string; size: number },
 ): { valid: true } | { valid: false; error: string } {
   const constraint = UPLOAD_CONSTRAINTS[kind];
-  const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+  const extension = getExtension(file.name);
 
   if (!constraint.extensions.includes(extension)) {
     return { valid: false, error: `Unsupported file type. Allowed: ${constraint.extensions.join(", ")}` };

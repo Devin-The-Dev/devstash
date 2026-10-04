@@ -26,17 +26,26 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ success: false, error: "File not found" }, { status: 404 });
   }
 
-  const bytes = await object.Body.transformToByteArray();
-
   // Strip quotes/control characters so a crafted filename can't break out of the
-  // quoted-string and inject extra Content-Disposition directives.
-  const safeFileName = (item.fileName ?? "download").replace(/[\x00-\x1f"\\]/g, "");
+  // quoted-string and inject extra Content-Disposition directives. The ASCII
+  // fallback keeps the header valid; filename* carries the real UTF-8 name.
+  const fileName = (item.fileName ?? "download").replace(/[\x00-\x1f"\\]/g, "");
+  const asciiFileName = fileName.replace(/[^\x20-\x7e]/g, "_");
+  // encodeURIComponent leaves ' ( ) * intact, which RFC 5987 doesn't allow.
+  const encodedFileName = encodeURIComponent(fileName).replace(
+    /['()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
 
-  return new NextResponse(Buffer.from(bytes), {
-    headers: {
-      "Content-Type": object.ContentType ?? "application/octet-stream",
-      "Content-Disposition": `attachment; filename="${safeFileName}"`,
-      "Content-Length": String(bytes.length),
-    },
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": object.ContentType ?? "application/octet-stream",
+    "Content-Disposition": `attachment; filename="${asciiFileName}"; filename*=UTF-8''${encodedFileName}`,
+    "X-Content-Type-Options": "nosniff",
+  };
+  if (object.ContentLength !== undefined) {
+    headers["Content-Length"] = String(object.ContentLength);
+  }
+
+  // Stream rather than buffer: avoids holding the whole file in memory.
+  return new Response(object.Body.transformToWebStream(), { headers });
 }
