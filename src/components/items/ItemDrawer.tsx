@@ -15,7 +15,7 @@ import { ItemDetailView } from "@/components/items/ItemDetailView";
 import { DeleteItemDialog } from "@/components/items/DeleteItemDialog";
 import { itemTypeIconMap } from "@/lib/item-type-icons";
 import { formatDate } from "@/lib/format";
-import { getCopyableValue } from "@/lib/item-content";
+import { getCopyableValue, parseTagInput } from "@/lib/item-content";
 import { deleteItem, updateItem } from "@/actions/items";
 import { useItemDetail } from "@/hooks/use-item-detail";
 import { useItemFavoritePin } from "@/hooks/use-item-favorite-pin";
@@ -66,10 +66,7 @@ export function ItemDrawer({ collections }: { collections: CollectionOption[] })
     const title = editForm.title.trim();
     if (!title) return;
 
-    const tags = editForm.tags
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean);
+    const tags = parseTagInput(editForm.tags);
 
     const payload = {
       title,

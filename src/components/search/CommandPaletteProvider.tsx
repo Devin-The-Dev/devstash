@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { GlobalSearchDialog } from "@/components/search/GlobalSearchDialog";
-import type { SearchableItem } from "@/lib/db/items";
 
 export type SearchableCollection = {
   id: string;
@@ -27,11 +26,9 @@ export function useCommandPalette(): CommandPaletteContextValue {
 
 export function CommandPaletteProvider({
   children,
-  items,
   collections,
 }: {
   children: React.ReactNode;
-  items: SearchableItem[];
   collections: SearchableCollection[];
 }) {
   const [open, setOpen] = useState(false);
@@ -53,7 +50,7 @@ export function CommandPaletteProvider({
   return (
     <CommandPaletteContext.Provider value={value}>
       {children}
-      <GlobalSearchDialog open={open} onOpenChange={setOpen} items={items} collections={collections} />
+      <GlobalSearchDialog open={open} onOpenChange={setOpen} collections={collections} />
     </CommandPaletteContext.Provider>
   );
 }

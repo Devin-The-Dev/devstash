@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { contentTypeForExtension, getExtension, validateUpload } from "@/lib/upload-constraints";
+import {
+  contentTypeForExtension,
+  getExtension,
+  matchesMagicBytes,
+  validateUpload,
+} from "@/lib/upload-constraints";
 
 describe("validateUpload", () => {
   it("accepts a file within the allowed extension, MIME type, and size", () => {
@@ -72,5 +77,34 @@ describe("contentTypeForExtension", () => {
 
   it("falls back to octet-stream for an unknown extension", () => {
     expect(contentTypeForExtension(".exe")).toBe("application/octet-stream");
+  });
+});
+
+describe("matchesMagicBytes", () => {
+  const bytes = (...values: number[]) => new Uint8Array(values);
+
+  it("accepts a PNG signature", () => {
+    expect(matchesMagicBytes(".png", bytes(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))).toBe(true);
+  });
+
+  it("rejects HTML saved as .png", () => {
+    expect(matchesMagicBytes(".png", new TextEncoder().encode("<html>"))).toBe(false);
+  });
+
+  it("checks both halves of a WEBP signature", () => {
+    const webp = new TextEncoder().encode("RIFF\0\0\0\0WEBP");
+    const wav = new TextEncoder().encode("RIFF\0\0\0\0WAVE");
+    expect(matchesMagicBytes(".webp", webp)).toBe(true);
+    expect(matchesMagicBytes(".webp", wav)).toBe(false);
+  });
+
+  it("accepts any bytes for text formats", () => {
+    expect(matchesMagicBytes(".md", new TextEncoder().encode("# Notes"))).toBe(true);
+  });
+});
+
+describe("contentTypeForExtension for .xml", () => {
+  it("serves XML as plain text so browsers don't render it", () => {
+    expect(contentTypeForExtension(".xml")).toBe("text/plain");
   });
 });

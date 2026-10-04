@@ -1,7 +1,8 @@
 import { cache } from "react";
-import type { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getVisibleItemsFilter } from "@/lib/db/item-visibility";
+import { PRO_ITEM_TYPE_NAMES } from "@/lib/plans";
 
 export type CollectionItemType = {
   id: string;
@@ -176,15 +177,73 @@ function toCollectionSummary(collection: CollectionWithItemsRow): CollectionSumm
   };
 }
 
-export const getCollectionsWithStats = cache(async (userId: string): Promise<CollectionSummary[]> => {
-  const collections = await prisma.collection.findMany({
-    where: { userId },
-    select: collectionWithItemsSelect(await getVisibleItemsFilter(userId)),
-  });
+export type CollectionOptionWithCount = CollectionOption & { itemCount: number };
 
-  return collections
-    .map(toCollectionSummary)
-    .sort((a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime());
+// Lean list for the shell: the item drawer, New item dialog and command
+// palette only need names and counts, not every item row.
+export const getCollectionOptions = cache(
+  async (userId: string): Promise<CollectionOptionWithCount[]> => {
+    const rows = await prisma.collection.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        name: true,
+        _count: { select: { items: { where: { item: await getVisibleItemsFilter(userId) } } } },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    return rows.map(({ _count, ...collection }) => ({ ...collection, itemCount: _count.items }));
+  },
+);
+
+const SIDEBAR_RECENT_LIMIT = 4;
+
+export type SidebarCollections = {
+  favorites: CollectionOption[];
+  recent: CollectionSummary[];
+};
+
+// The sidebar shows every favorite by name and the few most recently active
+// other collections. "Recently active" is the latest of the collection's own
+// updatedAt and its visible items' last use, ranked in SQL so only the top
+// few collections' items are loaded.
+export const getSidebarCollections = cache(async (userId: string): Promise<SidebarCollections> => {
+  const visible = await getVisibleItemsFilter(userId);
+  const hideProTypes = Object.keys(visible).length > 0;
+  const visibleItemJoin = hideProTypes
+    ? Prisma.sql`AND i."typeId" NOT IN (SELECT id FROM "ItemType" WHERE name IN (${Prisma.join([...PRO_ITEM_TYPE_NAMES])}))`
+    : Prisma.empty;
+
+  const [favorites, recentIds] = await Promise.all([
+    prisma.collection.findMany({
+      where: { userId, isFavorite: true },
+      select: { id: true, name: true },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.$queryRaw<{ id: string }[]>`
+      SELECT c.id
+      FROM "Collection" c
+      LEFT JOIN "ItemCollection" ic ON ic."collectionId" = c.id
+      LEFT JOIN "Item" i ON i.id = ic."itemId" ${visibleItemJoin}
+      WHERE c."userId" = ${userId} AND c."isFavorite" = false
+      GROUP BY c.id
+      ORDER BY GREATEST(c."updatedAt", MAX(COALESCE(i."lastUsedAt", i."updatedAt"))) DESC
+      LIMIT ${SIDEBAR_RECENT_LIMIT}
+    `,
+  ]);
+
+  const ids = recentIds.map(({ id }) => id);
+  const rows = await prisma.collection.findMany({
+    where: { id: { in: ids } },
+    select: collectionWithItemsSelect(visible),
+  });
+  const byId = new Map(rows.map((row) => [row.id, toCollectionSummary(row)]));
+
+  return {
+    favorites,
+    recent: ids.map((id) => byId.get(id)).filter((c): c is CollectionSummary => c !== undefined),
+  };
 });
 
 export type CollectionsPage = {
@@ -194,12 +253,10 @@ export type CollectionsPage = {
 
 // Paginated variant for /collections and the dashboard's limited "top N"
 // section. Sorts by the collection's own `updatedAt` (a real, indexable
-// column) rather than getCollectionsWithStats's true last-item-activity
-// sort, since computing that across every collection would mean fetching
-// every collection's full item list just to determine page order — exactly
-// what pagination is meant to avoid. Other call sites that need the full,
-// most-accurate "recently active" ordering (sidebar, search) should keep
-// using getCollectionsWithStats.
+// column) rather than true last-item activity, since computing that here
+// would mean fetching every collection's full item list just to determine
+// page order — exactly what pagination is meant to avoid. The sidebar's
+// getSidebarCollections ranks by true activity in SQL instead.
 export const getCollectionsPage = cache(
   async (userId: string, page: number, pageSize: number): Promise<CollectionsPage> => {
     const where = { userId };

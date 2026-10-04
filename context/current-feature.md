@@ -1,18 +1,30 @@
 # Current Feature
 
-<!-- Feature name and short description -->
+Security audit Medium/Low fixes — Mediums 3–12 and all Lows from the 2026-10-04 code-scanner audit (Medium 1 was fixed earlier; Medium 2, R2 cleanup on account deletion, is out of scope).
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- **M3** Server Actions catch unexpected errors (`runAction` in `src/lib/action-result.ts`); `changePassword`/`deleteAccount` return errors instead of throwing.
+- **M4** Tags lowercased and de-duplicated; max lengths on item/collection fields; shared `parseTagInput`.
+- **M5** `getBaseUrl()` throws in production when `APP_URL` is unset.
+- **M6** `loading.tsx` skeletons for each shell page.
+- **M7** Shell loads lean collection options; sidebar ranks recent collections in SQL; command palette searches items server-side (debounced) instead of receiving every item.
+- **M8** Indexes on `ItemCollection.collectionId`, `ItemTag.tagId`, and `userId`-leading composites; low-value single-column indexes dropped.
+- **M9** Download route selects only file fields.
+- **M10** `.xml` stored as `text/plain`; image/PDF uploads checked against magic bytes in `createItem`.
+- **M11** Security headers (CSP `frame-ancestors`/`object-src`/`base-uri`, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy, HSTS).
+- **M12** `User.sessionVersion`: bumped on password change/reset, checked in the `jwt` callback, so old sessions are rejected. Changing your password signs you out.
+- **Lows** hashed verification/reset tokens; `x-real-ip` preferred and no shared "unknown" bucket; non-enumerating registration (account-exists email; reset reclaims unverified accounts); `consumeVerificationToken` fixes; `ItemCard` copy errors; preview URL revocation; route group `(app)` with one shared layout; `changePassword` rate limit; typed `toItemDetail`; lazy R2 env validation; webhook 500 when the secret is unset; HTML-escaped names in emails.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Migration `session_version_and_indexes` is applied on the development branch only; production gets it via `prisma migrate deploy`.
+- Verification and reset links issued before deploy stop working (tokens are now looked up by hash).
+- A full script-src CSP needs nonces and is left for later.
 
 ## History
 

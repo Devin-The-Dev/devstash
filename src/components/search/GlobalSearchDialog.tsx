@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Folder } from "lucide-react";
 import {
@@ -12,8 +13,11 @@ import {
 } from "@/components/ui/command";
 import { useItemDrawer } from "@/components/items/ItemDrawerProvider";
 import { getItemTypeIcon } from "@/lib/item-type-icons";
+import { searchItems } from "@/actions/search";
 import type { SearchableItem } from "@/lib/db/items";
 import type { SearchableCollection } from "@/components/search/CommandPaletteProvider";
+
+const SEARCH_DEBOUNCE_MS = 200;
 
 // cmdk's default filter does fuzzy subsequence matching (same algorithm as VS
 // Code's quick-open). Against short command labels that's a nice touch of
@@ -29,40 +33,63 @@ function substringFilter(_value: string, search: string, keywords: string[] = []
 export function GlobalSearchDialog({
   open,
   onOpenChange,
-  items,
   collections,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  items: SearchableItem[];
   collections: SearchableCollection[];
 }) {
   const router = useRouter();
   const { openItem } = useItemDrawer();
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<{ query: string; items: SearchableItem[] } | null>(null);
+  // Ignores responses that arrive after a newer query was sent.
+  const latestRequest = useRef(0);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const requestId = ++latestRequest.current;
+    const timer = setTimeout(async () => {
+      const result = await searchItems(query).catch(() => null);
+      if (requestId !== latestRequest.current) return;
+      setResults({ query, items: result?.success ? result.data : [] });
+    }, query ? SEARCH_DEBOUNCE_MS : 0);
+
+    return () => clearTimeout(timer);
+  }, [open, query]);
+
+  const items = results?.items ?? [];
+  const isSearching = results?.query !== query;
+
+  function handleOpenChange(next: boolean) {
+    if (!next) setQuery("");
+    onOpenChange(next);
+  }
 
   function handleSelectItem(itemId: string) {
-    onOpenChange(false);
+    handleOpenChange(false);
     openItem(itemId);
   }
 
   function handleSelectCollection(collectionId: string) {
-    onOpenChange(false);
+    handleOpenChange(false);
     router.push(`/collections/${collectionId}`);
   }
 
   return (
     <CommandDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       title="Search"
       description="Search items and collections"
       filter={substringFilter}
     >
-      <CommandInput placeholder="Search items, collections..." />
+      <CommandInput placeholder="Search items, collections..." value={query} onValueChange={setQuery} />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
+        <CommandEmpty>{isSearching ? "Searching…" : "No results found."}</CommandEmpty>
         {items.length > 0 && (
-          <CommandGroup heading="Items">
+          <CommandGroup heading={query.trim() ? "Items" : "Recent items"}>
             {items.map((item) => {
               const Icon = getItemTypeIcon(item.type.icon);
               return (

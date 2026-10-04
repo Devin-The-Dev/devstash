@@ -44,7 +44,9 @@ const EXTENSION_CONTENT_TYPES: Record<string, string> = {
   ".json": "application/json",
   ".yaml": "application/x-yaml",
   ".yml": "application/x-yaml",
-  ".xml": "application/xml",
+  // Served as plain text: an XML document with an XHTML namespace can run
+  // script when a browser renders it from the public bucket URL.
+  ".xml": "text/plain",
   ".csv": "text/csv",
   ".toml": "application/toml",
   ".ini": "text/plain",
@@ -81,4 +83,34 @@ export function validateUpload(
   }
 
   return { valid: true };
+}
+
+// Leading "magic" bytes for binary formats. Uploads go straight from the
+// browser to R2, so createItem checks these against the stored object.
+const MAGIC_BYTES: Record<string, (bytes: Uint8Array) => boolean> = {
+  ".png": (b) => startsWith(b, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+  ".jpg": (b) => startsWith(b, [0xff, 0xd8, 0xff]),
+  ".jpeg": (b) => startsWith(b, [0xff, 0xd8, 0xff]),
+  ".gif": (b) => startsWith(b, [0x47, 0x49, 0x46, 0x38]),
+  // "RIFF" .... "WEBP"
+  ".webp": (b) =>
+    startsWith(b, [0x52, 0x49, 0x46, 0x46]) &&
+    startsWith(b.subarray(8), [0x57, 0x45, 0x42, 0x50]),
+  ".pdf": (b) => startsWith(b, [0x25, 0x50, 0x44, 0x46, 0x2d]),
+};
+
+export const MAGIC_BYTES_LENGTH = 12;
+
+function startsWith(bytes: Uint8Array, signature: number[]): boolean {
+  return signature.every((value, index) => bytes[index] === value);
+}
+
+/** True when the extension has no signature to check (text formats) or the bytes match it. */
+export function matchesMagicBytes(extension: string, bytes: Uint8Array): boolean {
+  const check = MAGIC_BYTES[extension];
+  return check ? check(bytes) : true;
+}
+
+export function hasMagicBytes(extension: string): boolean {
+  return extension in MAGIC_BYTES;
 }

@@ -11,10 +11,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function SignInForm({
   callbackUrl,
-  justReset,
+  notice,
 }: {
   callbackUrl?: string;
-  justReset?: boolean;
+  notice?: string;
 }) {
   const [state, formAction, pending] = useActionState(signInWithCredentials, undefined);
 
@@ -22,10 +22,10 @@ export function SignInForm({
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="callbackUrl" value={callbackUrl ?? ""} />
 
-      {!state?.error && justReset && (
+      {!state?.error && notice && (
         <Alert>
           <CheckCircle2 />
-          <AlertDescription>Your password has been reset. Sign in below.</AlertDescription>
+          <AlertDescription>{notice}</AlertDescription>
         </Alert>
       )}
 

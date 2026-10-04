@@ -1,6 +1,7 @@
 "use client";
 
 import { Pin, Box, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,12 +21,19 @@ export function ItemCard({ item }: { item: ItemSummary }) {
 
   async function handleCopy(event: React.MouseEvent) {
     event.stopPropagation();
-    const response = await fetch(`/api/items/${item.id}`);
-    const result: { success: boolean; data?: ItemDetail } = await response.json();
-    if (!result.success || !result.data) return;
-    const value = getCopyableValue(result.data);
-    if (!value) return;
-    await copy(value);
+    try {
+      const response = await fetch(`/api/items/${item.id}`);
+      const result: { success: boolean; data?: ItemDetail } = await response.json();
+      if (!result.success || !result.data) {
+        toast.error("Couldn't copy this item");
+        return;
+      }
+      const value = getCopyableValue(result.data);
+      if (!value) return;
+      await copy(value);
+    } catch {
+      toast.error("Couldn't copy this item");
+    }
   }
 
   return (

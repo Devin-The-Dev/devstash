@@ -5,9 +5,15 @@ import { handleStripeEvent } from "@/lib/stripe-webhook";
 
 // Outside the proxy matcher; the signature check is the only auth.
 export async function POST(request: Request) {
-  const signature = request.headers.get("stripe-signature");
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!signature || !secret) {
+  if (!secret) {
+    // Server misconfiguration, not a bad request; 500 also makes Stripe retry.
+    console.error("STRIPE_WEBHOOK_SECRET is not set");
+    return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
+  }
+
+  const signature = request.headers.get("stripe-signature");
+  if (!signature) {
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
 

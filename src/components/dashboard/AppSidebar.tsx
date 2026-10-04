@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { UserAvatar } from "@/components/auth/UserAvatar";
 import { getItemTypeIcon } from "@/lib/item-type-icons";
-import { getCollectionsWithStats } from "@/lib/db/collections";
+import { getSidebarCollections } from "@/lib/db/collections";
 import { getSystemItemTypes, itemTypeSlug } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
 import { signOutAction } from "@/actions/auth";
@@ -39,13 +39,10 @@ const navItems = [
 
 export async function AppSidebar() {
   const currentUser = await getCurrentUser();
-  const [itemTypes, collections] = await Promise.all([
+  const [itemTypes, { favorites: favoriteCollections, recent: recentCollections }] = await Promise.all([
     getSystemItemTypes(),
-    getCollectionsWithStats(currentUser.id),
+    getSidebarCollections(currentUser.id),
   ]);
-
-  const favoriteCollections = collections.filter((c) => c.isFavorite);
-  const recentCollections = collections.filter((c) => !c.isFavorite).slice(0, 4);
 
   return (
     <Sidebar collapsible="icon">

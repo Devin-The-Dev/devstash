@@ -5,3 +5,12 @@ export function getCopyableValue(item: {
 }): string {
   return item.content ?? item.url ?? item.fileUrl ?? "";
 }
+
+/** Splits a comma-separated tag field into trimmed, lowercased, unique tags. */
+export function parseTagInput(input: string): string[] {
+  const tags = input
+    .split(",")
+    .map((tag) => tag.trim().toLowerCase())
+    .filter(Boolean);
+  return [...new Set(tags)];
+}

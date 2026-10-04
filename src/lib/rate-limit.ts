@@ -27,6 +27,7 @@ export const registerRateLimit = createLimiter("register", 3, "1 h");
 export const forgotPasswordRateLimit = createLimiter("forgot-password", 3, "1 h");
 export const resetPasswordRateLimit = createLimiter("reset-password", 5, "15 m");
 export const uploadRateLimit = createLimiter("upload", 30, "10 m");
+export const changePasswordRateLimit = createLimiter("change-password", 5, "15 m");
 
 export type RateLimitResult = {
   success: boolean;
@@ -37,13 +38,16 @@ export type RateLimitResult = {
 
 /**
  * Checks a rate limiter and fails open (allows the request) if Upstash isn't
- * configured or the check itself errors, per the feature spec.
+ * configured or the check itself errors, per the feature spec. A null
+ * identifier (no client IP available) also skips the check, rather than
+ * pooling every such caller into one shared bucket they could lock each
+ * other out of.
  */
 export async function checkRateLimit(
   limiter: Ratelimit | null,
-  identifier: string,
+  identifier: string | null,
 ): Promise<RateLimitResult> {
-  if (!limiter) {
+  if (!limiter || identifier === null) {
     return { success: true, remaining: Infinity, reset: 0 };
   }
 
@@ -56,14 +60,18 @@ export async function checkRateLimit(
   }
 }
 
-/** Reads the caller's IP from forwarding headers set by Vercel/proxies. */
-export async function getClientIp(): Promise<string> {
+/**
+ * Reads the caller's IP. Prefers x-real-ip, which Vercel sets to the
+ * connecting client; the first x-forwarded-for entry is client-controlled
+ * behind proxies that append rather than overwrite. Null when neither is set.
+ */
+export async function getClientIp(): Promise<string | null> {
   const headersList = await headers();
-  const forwardedFor = headersList.get("x-forwarded-for");
-  if (forwardedFor) {
-    return forwardedFor.split(",")[0]!.trim();
-  }
-  return "unknown";
+  const realIp = headersList.get("x-real-ip")?.trim();
+  if (realIp) return realIp;
+
+  const forwardedFor = headersList.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return forwardedFor || null;
 }
 
 export function rateLimitMessage(reset: number): string {

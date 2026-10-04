@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { File as FileIcon, Image as ImageIcon, UploadCloud, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -25,6 +25,13 @@ export function FileUpload({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const constraint = UPLOAD_CONSTRAINTS[kind];
+
+  // Free the previous object URL whenever the preview changes or on unmount.
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   async function upload(file: File) {
     setError(null);

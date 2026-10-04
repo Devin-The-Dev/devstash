@@ -11,11 +11,16 @@ import {
   type ItemDetail,
 } from "@/lib/db/items";
 import { createItemSchema, updateItemSchema, CREATABLE_ITEM_TYPES } from "@/lib/validations/items";
-import { deleteFromR2, headR2Object, keyFromPublicUrl } from "@/lib/r2";
-import { getExtension, UPLOAD_CONSTRAINTS } from "@/lib/upload-constraints";
+import { deleteFromR2, headR2Object, keyFromPublicUrl, readR2ObjectStart } from "@/lib/r2";
+import {
+  getExtension,
+  hasMagicBytes,
+  matchesMagicBytes,
+  MAGIC_BYTES_LENGTH,
+  UPLOAD_CONSTRAINTS,
+} from "@/lib/upload-constraints";
 import { canCreateItem } from "@/lib/usage-limits";
-
-type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
+import { runAction, type ActionResult } from "@/lib/action-result";
 
 async function assertOwnedCollections(userId: string, collectionIds: string[]): Promise<boolean> {
   if (collectionIds.length === 0) return true;
@@ -27,198 +32,223 @@ async function assertOwnedCollections(userId: string, collectionIds: string[]): 
 }
 
 export async function createItem(input: unknown): Promise<ActionResult<ItemDetail>> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: "Unauthorized" };
-  }
-
-  const parsed = createItemSchema.safeParse(input);
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
-  }
-
-  const types = await getSystemItemTypes();
-  const type = types.find((t) => t.id === parsed.data.typeId);
-  if (!type || !CREATABLE_ITEM_TYPES.includes(type.name)) {
-    return { success: false, error: "Invalid item type" };
-  }
-
-  // Also covers File/Image: a fileUrl can be submitted without going through /api/upload.
-  const gate = await canCreateItem(session.user.id, type.name);
-  if (!gate.allowed) {
-    return { success: false, error: gate.error };
-  }
-
-  if (type.name === "Link" && !parsed.data.url) {
-    return { success: false, error: "URL is required for link items" };
-  }
-
-  const isFileType = type.name === "File" || type.name === "Image";
-  if (isFileType && !parsed.data.fileUrl) {
-    return { success: false, error: "A file upload is required" };
-  }
-
-  // The client-supplied fileUrl must point at an object this user uploaded, and
-  // the size is read from R2 rather than trusted from the client.
-  let fileSize: number | null = null;
-  if (isFileType) {
-    const key = keyFromPublicUrl(parsed.data.fileUrl!);
-    const constraint = UPLOAD_CONSTRAINTS[type.name === "Image" ? "image" : "file"];
-    if (
-      !key ||
-      !key.startsWith(`${session.user.id}/`) ||
-      !constraint.extensions.includes(getExtension(key))
-    ) {
-      return { success: false, error: "Invalid file" };
+  return runAction("createItem", async () => {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Unauthorized" };
     }
 
-    const object = await headR2Object(key);
-    if (!object) {
-      return { success: false, error: "Uploaded file not found" };
+    const parsed = createItemSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
     }
-    if (object.contentLength > constraint.maxSize) {
-      await deleteFromR2(key);
-      return { success: false, error: "File too large" };
+
+    const types = await getSystemItemTypes();
+    const type = types.find((t) => t.id === parsed.data.typeId);
+    if (!type || !CREATABLE_ITEM_TYPES.includes(type.name)) {
+      return { success: false, error: "Invalid item type" };
     }
-    fileSize = object.contentLength;
-  }
 
-  if (!(await assertOwnedCollections(session.user.id, parsed.data.collectionIds))) {
-    return { success: false, error: "Collection not found" };
-  }
+    // Also covers File/Image: a fileUrl can be submitted without going through /api/upload.
+    const gate = await canCreateItem(session.user.id, type.name);
+    if (!gate.allowed) {
+      return { success: false, error: gate.error };
+    }
 
-  const isLink = type.name === "Link";
-  const created = await createItemQuery(session.user.id, {
-    typeId: type.id,
-    collectionIds: parsed.data.collectionIds,
-    title: parsed.data.title,
-    description: parsed.data.description || null,
-    contentType: isFileType ? "FILE" : isLink ? "URL" : "TEXT",
-    content: isFileType || isLink ? null : parsed.data.content || null,
-    url: isLink ? (parsed.data.url ?? null) : null,
-    fileUrl: isFileType ? (parsed.data.fileUrl ?? null) : null,
-    fileName: isFileType ? (parsed.data.fileName ?? null) : null,
-    fileSize,
-    language: parsed.data.language || null,
-    tags: parsed.data.tags,
+    if (type.name === "Link" && !parsed.data.url) {
+      return { success: false, error: "URL is required for link items" };
+    }
+
+    const isFileType = type.name === "File" || type.name === "Image";
+    if (isFileType && !parsed.data.fileUrl) {
+      return { success: false, error: "A file upload is required" };
+    }
+
+    // The client-supplied fileUrl must point at an object this user uploaded, and
+    // the size is read from R2 rather than trusted from the client.
+    let fileSize: number | null = null;
+    if (isFileType) {
+      const key = keyFromPublicUrl(parsed.data.fileUrl!);
+      const constraint = UPLOAD_CONSTRAINTS[type.name === "Image" ? "image" : "file"];
+      if (
+        !key ||
+        !key.startsWith(`${session.user.id}/`) ||
+        !constraint.extensions.includes(getExtension(key))
+      ) {
+        return { success: false, error: "Invalid file" };
+      }
+
+      const object = await headR2Object(key);
+      if (!object) {
+        return { success: false, error: "Uploaded file not found" };
+      }
+      if (object.contentLength > constraint.maxSize) {
+        await deleteFromR2(key);
+        return { success: false, error: "File too large" };
+      }
+
+      const extension = getExtension(key);
+      if (hasMagicBytes(extension)) {
+        const start = await readR2ObjectStart(key, MAGIC_BYTES_LENGTH);
+        if (!matchesMagicBytes(extension, start)) {
+          await deleteFromR2(key);
+          return { success: false, error: "File contents don't match its type" };
+        }
+      }
+      fileSize = object.contentLength;
+    }
+
+    if (!(await assertOwnedCollections(session.user.id, parsed.data.collectionIds))) {
+      return { success: false, error: "Collection not found" };
+    }
+
+    const isLink = type.name === "Link";
+    const created = await createItemQuery(session.user.id, {
+      typeId: type.id,
+      collectionIds: parsed.data.collectionIds,
+      title: parsed.data.title,
+      description: parsed.data.description || null,
+      contentType: isFileType ? "FILE" : isLink ? "URL" : "TEXT",
+      content: isFileType || isLink ? null : parsed.data.content || null,
+      url: isLink ? (parsed.data.url ?? null) : null,
+      fileUrl: isFileType ? (parsed.data.fileUrl ?? null) : null,
+      fileName: isFileType ? (parsed.data.fileName ?? null) : null,
+      fileSize,
+      language: parsed.data.language || null,
+      tags: parsed.data.tags,
+    });
+
+    return { success: true, data: created };
   });
-
-  return { success: true, data: created };
 }
 
 export async function toggleItemFavorite(
   itemId: string,
 ): Promise<ActionResult<{ isFavorite: boolean }>> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: "Unauthorized" };
-  }
+  return runAction("toggleItemFavorite", async () => {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Unauthorized" };
+    }
 
-  const item = await prisma.item.findFirst({
-    where: { id: itemId, userId: session.user.id },
-    select: { isFavorite: true },
+    const item = await prisma.item.findFirst({
+      where: { id: itemId, userId: session.user.id },
+      select: { isFavorite: true },
+    });
+    if (!item) {
+      return { success: false, error: "Item not found" };
+    }
+
+    const updated = await prisma.item.update({
+      where: { id: itemId },
+      data: { isFavorite: !item.isFavorite },
+      select: { isFavorite: true },
+    });
+
+    // Favorite state shows up in the sidebar, dashboard stats, /favorites and
+    // every card, so refresh the whole app shell in the action's response.
+    revalidatePath("/", "layout");
+
+    return { success: true, data: updated };
   });
-  if (!item) {
-    return { success: false, error: "Item not found" };
-  }
-
-  const updated = await prisma.item.update({
-    where: { id: itemId },
-    data: { isFavorite: !item.isFavorite },
-    select: { isFavorite: true },
-  });
-
-  // Favorite state shows up in the sidebar, dashboard stats, /favorites and
-  // every card, so refresh the whole app shell in the action's response.
-  revalidatePath("/", "layout");
-
-  return { success: true, data: updated };
 }
 
 export async function toggleItemPinned(
   itemId: string,
 ): Promise<ActionResult<{ isPinned: boolean }>> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: "Unauthorized" };
-  }
+  return runAction("toggleItemPinned", async () => {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Unauthorized" };
+    }
 
-  const item = await prisma.item.findFirst({
-    where: { id: itemId, userId: session.user.id },
-    select: { isPinned: true },
+    const item = await prisma.item.findFirst({
+      where: { id: itemId, userId: session.user.id },
+      select: { isPinned: true },
+    });
+    if (!item) {
+      return { success: false, error: "Item not found" };
+    }
+
+    const updated = await prisma.item.update({
+      where: { id: itemId },
+      data: { isPinned: !item.isPinned },
+      select: { isPinned: true },
+    });
+
+    // Pinned state drives the dashboard Pinned section, card indicators and
+    // listing order, so refresh the app shell like toggleItemFavorite does.
+    revalidatePath("/", "layout");
+
+    return { success: true, data: updated };
   });
-  if (!item) {
-    return { success: false, error: "Item not found" };
-  }
-
-  const updated = await prisma.item.update({
-    where: { id: itemId },
-    data: { isPinned: !item.isPinned },
-    select: { isPinned: true },
-  });
-
-  // Pinned state drives the dashboard Pinned section, card indicators and
-  // listing order, so refresh the app shell like toggleItemFavorite does.
-  revalidatePath("/", "layout");
-
-  return { success: true, data: updated };
 }
 
 export async function updateItem(
   itemId: string,
   input: unknown,
 ): Promise<ActionResult<ItemDetail>> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: "Unauthorized" };
-  }
+  return runAction("updateItem", async () => {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Unauthorized" };
+    }
 
-  const parsed = updateItemSchema.safeParse(input);
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
-  }
+    const parsed = updateItemSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    }
 
-  const existing = await prisma.item.findFirst({
-    where: { id: itemId, userId: session.user.id },
-    select: { id: true },
+    const existing = await prisma.item.findFirst({
+      where: { id: itemId, userId: session.user.id },
+      select: { id: true },
+    });
+    if (!existing) {
+      return { success: false, error: "Item not found" };
+    }
+
+    if (!(await assertOwnedCollections(session.user.id, parsed.data.collectionIds))) {
+      return { success: false, error: "Collection not found" };
+    }
+
+    const updated = await updateItemQuery(session.user.id, itemId, parsed.data);
+
+    return { success: true, data: updated };
   });
-  if (!existing) {
-    return { success: false, error: "Item not found" };
-  }
-
-  if (!(await assertOwnedCollections(session.user.id, parsed.data.collectionIds))) {
-    return { success: false, error: "Collection not found" };
-  }
-
-  const updated = await updateItemQuery(session.user.id, itemId, parsed.data);
-
-  return { success: true, data: updated };
 }
 
 export async function deleteItem(itemId: string): Promise<ActionResult<{ id: string }>> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: "Unauthorized" };
-  }
-
-  const item = await prisma.item.findFirst({
-    where: { id: itemId, userId: session.user.id },
-    select: { id: true },
-  });
-  if (!item) {
-    return { success: false, error: "Item not found" };
-  }
-
-  const deleted = await deleteItemQuery(session.user.id, itemId);
-
-  if (deleted.fileUrl) {
-    const key = keyFromPublicUrl(deleted.fileUrl);
-    if (key) {
-      await deleteFromR2(key).catch((error) => {
-        console.error("Failed to delete R2 object", key, error);
-      });
+  return runAction("deleteItem", async () => {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Unauthorized" };
     }
-  }
 
-  return { success: true, data: { id: itemId } };
+    const item = await prisma.item.findFirst({
+      where: { id: itemId, userId: session.user.id },
+      select: { id: true },
+    });
+    if (!item) {
+      return { success: false, error: "Item not found" };
+    }
+
+    const deleted = await deleteItemQuery(session.user.id, itemId);
+
+    // The item is already gone, so an R2 failure is logged rather than
+    // reported back as a failed delete.
+    if (deleted.fileUrl) {
+      try {
+        const key = keyFromPublicUrl(deleted.fileUrl);
+        if (key) {
+          await deleteFromR2(key);
+        } else {
+          console.error("Item fileUrl isn't in the R2 bucket; object not deleted", deleted.fileUrl);
+        }
+      } catch (error) {
+        console.error("Failed to delete R2 object for", deleted.fileUrl, error);
+      }
+    }
+
+    return { success: true, data: { id: itemId } };
+  });
 }

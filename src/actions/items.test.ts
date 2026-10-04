@@ -10,6 +10,7 @@ const {
   deleteFromR2Mock,
   keyFromPublicUrlMock,
   headR2ObjectMock,
+  readR2ObjectStartMock,
   canCreateItemMock,
 } = vi.hoisted(() => ({
   authMock: vi.fn(),
@@ -29,6 +30,7 @@ const {
   deleteFromR2Mock: vi.fn(),
   keyFromPublicUrlMock: vi.fn(),
   headR2ObjectMock: vi.fn(),
+  readR2ObjectStartMock: vi.fn(),
   canCreateItemMock: vi.fn(),
 }));
 
@@ -59,6 +61,7 @@ vi.mock("@/lib/r2", () => ({
   deleteFromR2: deleteFromR2Mock,
   keyFromPublicUrl: keyFromPublicUrlMock,
   headR2Object: headR2ObjectMock,
+  readR2ObjectStart: readR2ObjectStartMock,
 }));
 
 const { createItem, toggleItemFavorite, toggleItemPinned, updateItem, deleteItem } = await import(
@@ -365,6 +368,8 @@ describe("createItem", () => {
           : null,
       );
       headR2ObjectMock.mockResolvedValue({ contentLength: 2048 });
+      // "%PDF-" followed by padding.
+      readR2ObjectStartMock.mockResolvedValue(new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37]));
     });
 
     it("creates a file item using the size stored in R2, not the client value", async () => {
@@ -428,6 +433,25 @@ describe("createItem", () => {
       expect(createItemQueryMock).not.toHaveBeenCalled();
     });
 
+    it("deletes and rejects a .pdf whose contents aren't a PDF", async () => {
+      readR2ObjectStartMock.mockResolvedValue(new TextEncoder().encode("<html><script>"));
+
+      const result = await createItem(fileInput);
+
+      expect(result).toEqual({ success: false, error: "File contents don't match its type" });
+      expect(deleteFromR2Mock).toHaveBeenCalledWith("user-1/abc.pdf");
+      expect(createItemQueryMock).not.toHaveBeenCalled();
+    });
+
+    it("skips the content check for text formats", async () => {
+      createItemQueryMock.mockResolvedValue({ id: "item-4" });
+
+      const result = await createItem({ ...fileInput, fileUrl: "https://files.example.com/user-1/notes.md" });
+
+      expect(result.success).toBe(true);
+      expect(readR2ObjectStartMock).not.toHaveBeenCalled();
+    });
+
     it("deletes and rejects an object over the size limit", async () => {
       headR2ObjectMock.mockResolvedValue({ contentLength: 11 * 1024 * 1024 });
 
@@ -437,6 +461,53 @@ describe("createItem", () => {
       expect(deleteFromR2Mock).toHaveBeenCalledWith("user-1/abc.pdf");
       expect(createItemQueryMock).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("createItem errors and input normalization", () => {
+  const input = {
+    typeId: SNIPPET_TYPE.id,
+    collectionIds: [],
+    title: "useDebounce hook",
+    description: null,
+    content: "const x = 1;",
+    url: null,
+    language: "typescript",
+    tags: ["React", "react", "hooks"],
+  };
+
+  it("de-duplicates tags case-insensitively before saving", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE]);
+    createItemQueryMock.mockResolvedValue({ id: "item-1" });
+
+    await createItem(input);
+
+    expect(createItemQueryMock).toHaveBeenCalledWith(
+      "user-1",
+      expect.objectContaining({ tags: ["react", "hooks"] }),
+    );
+  });
+
+  it("rejects a title over the length limit", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+
+    const result = await createItem({ ...input, title: "x".repeat(201) });
+
+    expect(result).toEqual({ success: false, error: "Title can be at most 200 characters" });
+  });
+
+  it("returns a generic error instead of throwing when the database fails", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    getSystemItemTypesMock.mockResolvedValue([SNIPPET_TYPE]);
+    createItemQueryMock.mockRejectedValueOnce(new Error("connection lost"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await createItem(input);
+
+    expect(result).toEqual({ success: false, error: "Something went wrong. Please try again." });
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 });
 
@@ -647,5 +718,21 @@ describe("deleteItem", () => {
     expect(result).toEqual({ success: true, data: { id: "item-1" } });
     expect(keyFromPublicUrlMock).toHaveBeenCalledWith("https://files.example.com/user-1/abc.pdf");
     expect(deleteFromR2Mock).toHaveBeenCalledWith("user-1/abc.pdf");
+  });
+
+  it("still reports success when R2 cleanup fails after the item is deleted", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    prismaMock.item.findFirst.mockResolvedValue({ id: "item-1" });
+    deleteItemQueryMock.mockResolvedValue({ fileUrl: "https://files.example.com/user-1/abc.pdf" });
+    keyFromPublicUrlMock.mockImplementationOnce(() => {
+      throw new Error("R2_PUBLIC_URL is not set");
+    });
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await deleteItem("item-1");
+
+    expect(result).toEqual({ success: true, data: { id: "item-1" } });
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 });

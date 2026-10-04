@@ -25,6 +25,7 @@ import { createItem } from "@/actions/items";
 import { CREATABLE_ITEM_TYPES } from "@/lib/validations/items";
 import { FILE_TYPES } from "@/lib/item-type-groups";
 import { PRO_ITEM_TYPE_NAMES } from "@/lib/plans";
+import { parseTagInput } from "@/lib/item-content";
 import type { ItemTypeSummary } from "@/lib/db/items";
 import type { CollectionOption } from "@/lib/db/collections";
 
@@ -87,10 +88,7 @@ export function NewItemDialog({
   function handleSubmit() {
     if (!canSubmit) return;
 
-    const tags = form.tags
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean);
+    const tags = parseTagInput(form.tags);
 
     const payload = {
       typeId: form.typeId,

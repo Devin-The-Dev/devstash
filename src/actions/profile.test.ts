@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const { authMock, signOutMock, prismaMock, bcryptMock, stripeMock } = vi.hoisted(() => ({
+const { authMock, signOutMock, prismaMock, bcryptMock, stripeMock, checkRateLimitMock } = vi.hoisted(() => ({
+  checkRateLimitMock: vi.fn(),
   authMock: vi.fn(),
   signOutMock: vi.fn(),
   prismaMock: {
@@ -32,6 +33,12 @@ vi.mock("@/lib/stripe", () => ({
   getStripe: () => stripeMock,
 }));
 
+vi.mock("@/lib/rate-limit", () => ({
+  changePasswordRateLimit: null,
+  checkRateLimit: checkRateLimitMock,
+  rateLimitMessage: () => "Too many attempts. Please try again in 15 minutes.",
+}));
+
 vi.mock("bcryptjs", () => ({
   default: bcryptMock,
 }));
@@ -46,15 +53,47 @@ function formData(fields: Record<string, string>) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  checkRateLimitMock.mockResolvedValue({ success: true, remaining: 4, reset: 0 });
 });
 
 describe("changePassword", () => {
-  it("throws when there is no authenticated session", async () => {
+  it("returns an error when there is no authenticated session", async () => {
     authMock.mockResolvedValue(null);
 
-    await expect(
-      changePassword(undefined, formData({ currentPassword: "a", newPassword: "b", confirmNewPassword: "b" }))
-    ).rejects.toThrow("requires an authenticated session");
+    const result = await changePassword(
+      undefined,
+      formData({ currentPassword: "a", newPassword: "b", confirmNewPassword: "b" })
+    );
+
+    expect(result).toEqual({ error: "You need to be signed in to change your password" });
+  });
+
+  it("returns the rate limit message and skips the password check when limited", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    checkRateLimitMock.mockResolvedValue({ success: false, remaining: 0, reset: Date.now() + 60_000 });
+
+    const result = await changePassword(
+      undefined,
+      formData({ currentPassword: "current", newPassword: "newpassword", confirmNewPassword: "newpassword" })
+    );
+
+    expect(result).toEqual({ error: "Too many attempts. Please try again in 15 minutes." });
+    expect(prismaMock.user.findUniqueOrThrow).not.toHaveBeenCalled();
+  });
+
+  it("returns a generic error when the database throws", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    prismaMock.user.findUniqueOrThrow.mockRejectedValueOnce(new Error("db down"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await changePassword(
+      undefined,
+      formData({ currentPassword: "current", newPassword: "newpassword", confirmNewPassword: "newpassword" })
+    );
+
+    expect(result).toEqual({ error: "Something went wrong. Please try again." });
+    expect(signOutMock).not.toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 
   it("returns a validation error for mismatched new passwords", async () => {
@@ -83,7 +122,7 @@ describe("changePassword", () => {
     expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 
-  it("updates the password on success", async () => {
+  it("updates the password, invalidates sessions and signs out on success", async () => {
     authMock.mockResolvedValue({ user: { id: "user-1" } });
     prismaMock.user.findUniqueOrThrow.mockResolvedValue({ password: "hashed" });
     bcryptMock.compare.mockResolvedValue(true);
@@ -94,15 +133,38 @@ describe("changePassword", () => {
       formData({ currentPassword: "current", newPassword: "newpassword", confirmNewPassword: "newpassword" })
     );
 
-    expect(result).toEqual({ success: true });
+    expect(result).toBeUndefined();
     expect(prismaMock.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },
-      data: { password: "new-hashed" },
+      data: { password: "new-hashed", sessionVersion: { increment: 1 } },
     });
+    expect(signOutMock).toHaveBeenCalledWith({ redirectTo: "/sign-in?reset=changed" });
   });
 });
 
 describe("deleteAccount", () => {
+  it("returns an error when there is no authenticated session", async () => {
+    authMock.mockResolvedValue(null);
+
+    const result = await deleteAccount(undefined, formData({ confirmation: "DELETE" }));
+
+    expect(result).toEqual({ error: "You need to be signed in to delete your account" });
+    expect(prismaMock.user.delete).not.toHaveBeenCalled();
+  });
+
+  it("returns a generic error and doesn't sign out when the delete throws", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
+    prismaMock.user.findUniqueOrThrow.mockResolvedValue({ stripeSubscriptionId: null });
+    prismaMock.user.delete.mockRejectedValueOnce(new Error("db down"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await deleteAccount(undefined, formData({ confirmation: "DELETE" }));
+
+    expect(result).toEqual({ error: "Something went wrong. Please try again." });
+    expect(signOutMock).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
   it("requires a typed DELETE confirmation", async () => {
     authMock.mockResolvedValue({ user: { id: "user-1" } });
 

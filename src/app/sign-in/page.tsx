@@ -4,6 +4,11 @@ import { Button } from "@/components/ui/button";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { signInWithGitHub } from "@/actions/auth";
 
+const RESET_NOTICES: Record<string, string> = {
+  success: "Your password has been reset. Sign in below.",
+  changed: "Your password has been changed. Sign in again with your new password.",
+};
+
 export default async function SignInPage({
   searchParams,
 }: {
@@ -19,7 +24,7 @@ export default async function SignInPage({
           <CardDescription>Welcome back. Sign in to continue.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <SignInForm callbackUrl={callbackUrl} justReset={reset === "success"} />
+          <SignInForm callbackUrl={callbackUrl} notice={reset ? RESET_NOTICES[reset] : undefined} />
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <div className="h-px flex-1 bg-border" />

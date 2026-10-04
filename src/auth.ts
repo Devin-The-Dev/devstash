@@ -42,9 +42,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return true;
     },
-    jwt({ token, user }) {
+    // Runs on every auth() call. Comparing sessionVersion with the DB means a
+    // password change or reset signs out every existing session; returning
+    // null clears the session cookie.
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+      }
+      if (!token.id) return token;
+
+      const dbUser = await prisma.user.findUnique({
+        where: { id: token.id as string },
+        select: { sessionVersion: true },
+      });
+      if (!dbUser) return null;
+
+      // Only a fresh sign-in may adopt the current version. Don't accept it on
+      // trigger "update": the client can trigger that, so an old stolen cookie
+      // could refresh itself past a password change.
+      if (user) {
+        token.sessionVersion = dbUser.sessionVersion;
+      } else if ((token.sessionVersion ?? 0) !== dbUser.sessionVersion) {
+        return null;
       }
       return token;
     },
@@ -68,7 +87,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // POST /api/auth/callback/credentials can't skip it.
           const ip = await getClientIp();
           const [byIp, byEmail] = await Promise.all([
-            checkRateLimit(loginRateLimit, `${ip}:${email}`),
+            checkRateLimit(loginRateLimit, ip && `${ip}:${email}`),
             checkRateLimit(loginEmailRateLimit, email),
           ]);
           if (!byIp.success || !byEmail.success) {

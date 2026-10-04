@@ -4,28 +4,23 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ItemDrawerProvider } from "@/components/items/ItemDrawerProvider";
 import { EditorPreferencesProvider } from "@/components/editor/EditorPreferencesProvider";
 import { CommandPaletteProvider } from "@/components/search/CommandPaletteProvider";
-import { getCollectionsWithStats } from "@/lib/db/collections";
-import { getSearchableItems } from "@/lib/db/items";
+import { getCollectionOptions } from "@/lib/db/collections";
 import { getCurrentUser } from "@/lib/db/user";
 
-export default async function FavoritesLayout({
+// Shared shell for the signed-in app (dashboard, collections, items, favorites).
+// The route group adds no URL segment.
+export default async function AppShellLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const currentUser = await getCurrentUser();
-  const [collections, items] = await Promise.all([
-    getCollectionsWithStats(currentUser.id),
-    getSearchableItems(currentUser.id),
-  ]);
+  const collections = await getCollectionOptions(currentUser.id);
 
   return (
     <EditorPreferencesProvider initialPreferences={currentUser.editorPreferences}>
-      <ItemDrawerProvider collections={collections.map((c) => ({ id: c.id, name: c.name }))}>
-        <CommandPaletteProvider
-          items={items}
-          collections={collections.map((c) => ({ id: c.id, name: c.name, itemCount: c.itemCount }))}
-        >
+      <ItemDrawerProvider collections={collections.map(({ id, name }) => ({ id, name }))}>
+        <CommandPaletteProvider collections={collections}>
           <SidebarProvider>
             <AppSidebar />
             <SidebarInset>

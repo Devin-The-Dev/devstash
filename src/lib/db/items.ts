@@ -1,4 +1,5 @@
 import { cache } from "react";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getVisibleItemsFilter } from "@/lib/db/item-visibility";
 import type { UpdateItemInput } from "@/lib/validations/items";
@@ -247,16 +248,16 @@ const ITEM_DETAIL_SELECT = {
   },
 } as const;
 
-function toItemDetail(item: {
-  tags: { tag: { name: string } }[];
-  collections: { collection: { id: string; name: string } }[];
-  [key: string]: unknown;
-}): ItemDetail {
+type ItemDetailRow = Prisma.ItemGetPayload<{ select: typeof ITEM_DETAIL_SELECT }>;
+
+// Typed from the select, so dropping a field from ITEM_DETAIL_SELECT is a type
+// error here instead of silently producing an incomplete ItemDetail.
+function toItemDetail({ tags, collections, ...item }: ItemDetailRow): ItemDetail {
   return {
     ...item,
-    tags: item.tags.map(({ tag }) => tag.name),
-    collections: item.collections.map(({ collection }) => collection),
-  } as ItemDetail;
+    tags: tags.map(({ tag }) => tag.name),
+    collections: collections.map(({ collection }) => collection),
+  };
 }
 
 export async function getItemDetail(
@@ -271,6 +272,17 @@ export async function getItemDetail(
   if (!item) return null;
 
   return toItemDetail(item);
+}
+
+/** Just the file fields, for the download route. */
+export async function getItemFile(
+  userId: string,
+  itemId: string,
+): Promise<{ fileUrl: string | null; fileName: string | null } | null> {
+  return prisma.item.findFirst({
+    where: { id: itemId, userId, ...(await getVisibleItemsFilter(userId)) },
+    select: { fileUrl: true, fileName: true },
+  });
 }
 
 export async function createItem(userId: string, data: NewItemInput): Promise<ItemDetail> {
@@ -357,20 +369,46 @@ export async function deleteItem(
   });
 }
 
-// Lean projection for the command palette: no tags/favorite/pin state needed,
-// just enough to render a result row and jump to the item drawer.
-export const getSearchableItems = cache(async (userId: string): Promise<SearchableItem[]> => {
+const SEARCH_RESULT_LIMIT = 20;
+const RECENT_RESULT_LIMIT = 8;
+
+// Command palette results, fetched per keystroke (debounced) rather than
+// shipping every item to the client on each navigation. An empty query
+// returns the most recently used items.
+export async function searchItems(userId: string, query: string): Promise<SearchableItem[]> {
+  const q = query.trim();
+  const visible = await getVisibleItemsFilter(userId);
+  const select = {
+    id: true,
+    title: true,
+    description: true,
+    type: { select: { id: true, name: true, icon: true, color: true } },
+  } as const;
+
+  if (!q) {
+    return prisma.item.findMany({
+      where: { userId, ...visible },
+      select,
+      orderBy: { lastUsedAt: { sort: "desc", nulls: "last" } },
+      take: RECENT_RESULT_LIMIT,
+    });
+  }
+
   return prisma.item.findMany({
-    where: { userId, ...(await getVisibleItemsFilter(userId)) },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      type: { select: { id: true, name: true, icon: true, color: true } },
+    where: {
+      userId,
+      ...visible,
+      OR: [
+        { title: { contains: q, mode: "insensitive" } },
+        { description: { contains: q, mode: "insensitive" } },
+        { type: { name: { contains: q, mode: "insensitive" } } },
+      ],
     },
+    select,
     orderBy: { title: "asc" },
+    take: SEARCH_RESULT_LIMIT,
   });
-});
+}
 
 export type FavoriteItem = {
   id: string;

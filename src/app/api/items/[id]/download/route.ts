@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getItemDetail } from "@/lib/db/items";
+import { getItemFile } from "@/lib/db/items";
 import { getFromR2, keyFromPublicUrl } from "@/lib/r2";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -10,7 +10,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
-  const item = await getItemDetail(session.user.id, id);
+  const item = await getItemFile(session.user.id, id);
 
   if (!item || !item.fileUrl) {
     return NextResponse.json({ success: false, error: "File not found" }, { status: 404 });

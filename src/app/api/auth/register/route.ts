@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { ZodError } from "zod";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations/auth";
 import { createVerificationToken } from "@/lib/db/verification";
 import { sendVerificationEmail } from "@/lib/email/send-verification-email";
+import { sendAccountExistsEmail } from "@/lib/email/send-account-exists-email";
 import { getBaseUrl } from "@/lib/url";
 import {
   checkRateLimit,
@@ -29,16 +31,33 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { name, email, password } = await registerSchema.parseAsync(body);
 
+    // Hash up front so both branches take similar time.
+    const hashedPassword = await bcrypt.hash(password, 12);
+
     const existingUser = await prisma.user.findUnique({
       where: { email },
-      select: { id: true },
+      select: { name: true },
     });
 
+    // Same response as a new registration, so the form doesn't reveal which
+    // emails have accounts. The owner gets an email pointing to sign-in and
+    // reset. The existing account is left untouched: overwriting an
+    // unverified account's password would let a second registrant take it
+    // over once the owner clicks a verification link. Reset is how the real
+    // owner reclaims an email someone else registered.
     if (existingUser) {
-      return NextResponse.json(
-        { success: false, error: "A user with this email already exists" },
-        { status: 409 },
-      );
+      try {
+        const baseUrl = getBaseUrl();
+        await sendAccountExistsEmail(
+          email,
+          existingUser.name ?? email,
+          `${baseUrl}/sign-in`,
+          `${baseUrl}/forgot-password`,
+        );
+      } catch (error) {
+        console.error("Failed to send account exists email:", error);
+      }
+      return NextResponse.json({ success: true }, { status: 201 });
     }
 
     try {
@@ -56,14 +75,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    try {
+      await prisma.user.create({
+        data: { name, email, password: hashedPassword },
+      });
+    } catch (error) {
+      // A concurrent registration for the same email won the race.
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")) {
+        throw error;
+      }
+    }
 
-    const user = await prisma.user.create({
-      data: { name, email, password: hashedPassword },
-      select: { id: true, name: true, email: true },
-    });
-
-    return NextResponse.json({ success: true, data: user }, { status: 201 });
+    return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
@@ -72,6 +95,7 @@ export async function POST(request: Request) {
       );
     }
 
+    console.error("Registration failed:", error);
     return NextResponse.json(
       { success: false, error: "Failed to register user" },
       { status: 500 },

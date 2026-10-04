@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { changePassword } from "@/actions/profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,14 +13,7 @@ export function ChangePasswordForm() {
 
   return (
     <form action={formAction} className="space-y-4">
-      {state && "success" in state && (
-        <Alert>
-          <CheckCircle2 />
-          <AlertDescription>Your password has been updated.</AlertDescription>
-        </Alert>
-      )}
-
-      {state && "error" in state && (
+      {state?.error && (
         <Alert variant="destructive">
           <AlertCircle />
           <AlertDescription>{state.error}</AlertDescription>
