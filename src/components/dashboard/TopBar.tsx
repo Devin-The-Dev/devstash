@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Star } from "lucide-react";
+import { Sparkles, Star } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NewItemDialog } from "@/components/items/NewItemDialog";
@@ -30,6 +30,20 @@ export async function TopBar() {
       >
         <Star />
       </Link>
+      {!currentUser.isPro && (
+        <Link
+          href="/upgrade"
+          aria-label="Upgrade"
+          title="Upgrade to Pro"
+          className={buttonVariants({
+            variant: "ghost",
+            className: "text-muted-foreground @max-xl:size-8 @max-xl:px-0",
+          })}
+        >
+          <Sparkles />
+          <span className="hidden @xl:inline">Upgrade</span>
+        </Link>
+      )}
       <NewCollectionDialog />
       <NewItemDialog
         itemTypes={itemTypes}

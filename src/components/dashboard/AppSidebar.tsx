@@ -158,7 +158,7 @@ export async function AppSidebar() {
       <SidebarFooter>
         {!currentUser.isPro && (
           <Link
-            href="/settings#billing"
+            href="/upgrade"
             className={buttonVariants({ size: "sm", className: "w-full group-data-[collapsible=icon]:hidden" })}
           >
             Upgrade to Pro

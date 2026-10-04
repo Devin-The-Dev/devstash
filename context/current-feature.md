@@ -1,18 +1,24 @@
 # Current Feature
 
-<!-- Feature name and short description -->
+Upgrade Page — a dedicated `/upgrade` page with plan comparison and interval choice, linked from a subtle "Upgrade" header button for free users.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Free users see a ghost "Upgrade" button in the app header (TopBar), more subtle than the other header buttons; Pro users don't see it
+- New `/upgrade` page (auth required) showing Free vs Pro features, like the homepage pricing section
+- User picks $8 monthly or $72 yearly, then clicks Upgrade to go to Stripe Checkout
+- Pro users visiting `/upgrade` are redirected to `/settings#billing`
+- Other in-app upgrade entry points (sidebar CTA, Pro type gate prompt, homepage Pro CTA when signed in) point to `/upgrade`
 
 ## Notes
 
-<!-- Any extra notes -->
+- Plan feature lists and interval copy move to `src/lib/plans.ts` so the homepage and `/upgrade` share them
+- Uses the app's shadcn theme, not the homepage `home-*` palette
+- Checkout still returns to `/settings` (success/cancel toasts live in `BillingCard`)
 
 ## History
 

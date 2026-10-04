@@ -7,34 +7,7 @@ import { getSession } from "next-auth/react";
 import { Reveal } from "@/components/homepage/Reveal";
 import { homeButton } from "@/components/homepage/home-button";
 import { cn } from "@/lib/utils";
-import { PRO_PRICING } from "@/lib/plans";
-
-const PRO_PLAN_COPY = {
-  monthly: { period: "/month", note: "Billed monthly, cancel anytime" },
-  yearly: { period: "/year", note: "Just $6/month, billed annually" },
-};
-
-interface PlanFeature {
-  label: string;
-  included: boolean;
-}
-
-const FREE_FEATURES: PlanFeature[] = [
-  { label: "50 items", included: true },
-  { label: "3 collections", included: true },
-  { label: "Snippets, prompts, commands, notes & links", included: true },
-  { label: "Instant search", included: true },
-  { label: "File & image uploads", included: false },
-  { label: "AI features", included: false },
-];
-
-const PRO_FEATURES: PlanFeature[] = [
-  { label: "Unlimited items & collections", included: true },
-  { label: "File & image uploads", included: true },
-  { label: "AI tagging, summaries & explanations", included: true },
-  { label: "Export as JSON or ZIP", included: true },
-  { label: "Priority support", included: true },
-];
+import { FREE_FEATURES, PRO_FEATURES, PRO_PLAN_COPY, PRO_PRICING, type PlanFeature } from "@/lib/plans";
 
 function FeatureList({ features }: { features: PlanFeature[] }) {
   return (
@@ -178,7 +151,7 @@ export function PricingPlans() {
             period={pro.period}
             note={pro.note}
             cta="Upgrade to Pro"
-            href={signedIn ? "/settings#billing" : "/register?plan=pro"}
+            href={signedIn ? "/upgrade" : "/register?plan=pro"}
             features={PRO_FEATURES}
             featured
           />

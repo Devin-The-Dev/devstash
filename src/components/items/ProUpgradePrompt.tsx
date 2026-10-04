@@ -46,7 +46,7 @@ export function ProUpgradePrompt({ type }: { type: ItemTypeSummary }) {
         </ul>
 
         <div className="space-y-2">
-          <Link href="/settings#billing" className={buttonVariants({ className: "w-full" })}>
+          <Link href="/upgrade"className={buttonVariants({ className: "w-full" })}>
             Upgrade to Pro
           </Link>
           <p className="text-xs text-muted-foreground">
