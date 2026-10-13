@@ -5,6 +5,8 @@ import { MarkdownEditor } from "@/components/items/MarkdownEditor";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { languageOptionsFor, toLanguageSelectValue } from "@/lib/monaco-language";
 import { CODE_TYPES, CONTENT_TYPES, LANGUAGE_TYPES, MARKDOWN_TYPES, URL_TYPES } from "@/lib/item-type-groups";
 
 type ItemContentFieldsProps = {
@@ -30,8 +32,32 @@ export function ItemContentFields({
   onUrlChange,
   contentPlaceholder,
 }: ItemContentFieldsProps) {
+  const languageOptions = languageOptionsFor(language);
+
   return (
     <>
+      {LANGUAGE_TYPES.includes(typeName) && (
+        <div className="space-y-1.5">
+          <Label htmlFor={`${idPrefix}-language`}>Language</Label>
+          <Select
+            items={languageOptions}
+            value={toLanguageSelectValue(language)}
+            onValueChange={(value) => onLanguageChange(value ?? "")}
+          >
+            <SelectTrigger id={`${idPrefix}-language`} className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {languageOptions.map((option) => (
+                <SelectItem key={option.value ?? "plaintext"} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {CODE_TYPES.includes(typeName) ? (
         <div className="space-y-1.5">
           <Label>Content</Label>
@@ -55,18 +81,6 @@ export function ItemContentFields({
             />
           </div>
         )
-      )}
-
-      {LANGUAGE_TYPES.includes(typeName) && (
-        <div className="space-y-1.5">
-          <Label htmlFor={`${idPrefix}-language`}>Language</Label>
-          <Input
-            id={`${idPrefix}-language`}
-            placeholder="e.g. typescript"
-            value={language}
-            onChange={(e) => onLanguageChange(e.target.value)}
-          />
-        </div>
       )}
 
       {URL_TYPES.includes(typeName) && (

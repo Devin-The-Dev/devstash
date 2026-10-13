@@ -1,18 +1,22 @@
 # Current Feature
 
-<!-- Feature name and short description -->
+Language Select — pick a Snippet/Command language from a dropdown above the code editor, so Monaco highlights as you type.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Replace the free-text Language input with a dropdown of supported Monaco languages
+- Move the language field above the content editor
+- Selecting a language immediately re-highlights the editor
+- Applies to both the New Item dialog and the item drawer's edit mode (shared `ItemContentFields`)
+- Existing items with an alias (`bash`, `ts`) or an unlisted language still show the right selection and keep their value until changed
 
 ## Notes
 
-<!-- Any extra notes -->
+- Option values are Monaco language ids; "Plain text" maps to an empty language (saved as null)
 
 ## History
 
