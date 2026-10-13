@@ -23,9 +23,11 @@ export function useItemDrawer(): ItemDrawerContextValue {
 export function ItemDrawerProvider({
   children,
   collections,
+  isPro,
 }: {
   children: React.ReactNode;
   collections: CollectionOption[];
+  isPro: boolean;
 }) {
   const [openItemId, setOpenItemId] = useState<string | null>(null);
 
@@ -41,7 +43,7 @@ export function ItemDrawerProvider({
   return (
     <ItemDrawerContext.Provider value={value}>
       {children}
-      <ItemDrawer collections={collections} />
+      <ItemDrawer collections={collections} isPro={isPro} />
     </ItemDrawerContext.Provider>
   );
 }

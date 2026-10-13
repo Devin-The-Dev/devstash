@@ -2,6 +2,7 @@
 
 import { ItemContentFields } from "@/components/items/ItemContentFields";
 import { CollectionMultiSelect } from "@/components/items/CollectionMultiSelect";
+import { TagsField } from "@/components/items/TagsField";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -42,9 +43,10 @@ type ItemEditFormProps = {
   form: EditForm;
   collections: CollectionOption[];
   onChange: (form: EditForm) => void;
+  isPro: boolean;
 };
 
-export function ItemEditForm({ typeName, form, collections, onChange }: ItemEditFormProps) {
+export function ItemEditForm({ typeName, form, collections, onChange, isPro }: ItemEditFormProps) {
   return (
     <>
       <div className="space-y-1.5">
@@ -76,15 +78,16 @@ export function ItemEditForm({ typeName, form, collections, onChange }: ItemEdit
         onUrlChange={(url) => onChange({ ...form, url })}
       />
 
-      <div className="space-y-1.5">
-        <Label htmlFor="edit-tags">Tags</Label>
-        <Input
-          id="edit-tags"
-          placeholder="Comma-separated"
-          value={form.tags}
-          onChange={(e) => onChange({ ...form, tags: e.target.value })}
-        />
-      </div>
+      <TagsField
+        id="edit-tags"
+        placeholder="Comma-separated"
+        value={form.tags}
+        onChange={(tags) => onChange({ ...form, tags })}
+        isPro={isPro}
+        title={form.title}
+        content={form.content || form.url}
+        typeName={typeName}
+      />
 
       <div className="space-y-1.5">
         <Label>Collections</Label>

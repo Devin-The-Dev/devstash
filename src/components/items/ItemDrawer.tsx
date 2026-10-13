@@ -22,7 +22,13 @@ import { useItemFavoritePin } from "@/hooks/use-item-favorite-pin";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import type { CollectionOption } from "@/lib/db/collections";
 
-export function ItemDrawer({ collections }: { collections: CollectionOption[] }) {
+export function ItemDrawer({
+  collections,
+  isPro,
+}: {
+  collections: CollectionOption[];
+  isPro: boolean;
+}) {
   const { openItemId, close } = useItemDrawer();
   const router = useRouter();
   const { item, status, patchItem } = useItemDetail(openItemId);
@@ -215,6 +221,7 @@ export function ItemDrawer({ collections }: { collections: CollectionOption[] })
                   form={editForm}
                   collections={collections}
                   onChange={setEditForm}
+                  isPro={isPro}
                 />
               ) : (
                 <>

@@ -1,18 +1,38 @@
-# Current Feature
+# Current Feature: AI Auto-Tagging
 
-<!-- Feature name and short description -->
+Pro-only "Suggest Tags" button that asks OpenAI `gpt-5-nano` for 3–5 freeform tags from the item's title and content, each with accept/reject controls. As the first AI feature, it also sets up the OpenAI foundation (client, AI rate limit) that later AI features will reuse.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- OpenAI client utility with an `AI_MODEL` constant, using the standard `openai` SDK and kept simple
+- `generateAutoTags` server action with auth, Pro gating, Zod validation, and rate limiting
+- AI rate limit config in the existing rate limit utility: 20 requests/hour per user
+- "Suggest Tags" button (Sparkles icon, ghost variant) near the tags input in the New Item dialog and the drawer's edit mode
+- Suggested tags shown as badges with per-tag accept (check) and reject (X) controls
+- Accepted tags are added to the item's tag list
+- Tags are freeform, not limited to the user's existing tags
+- Content truncated to 2000 chars before the API call
+- Suggest Tags button hidden for free users (UI gating), with server-side gating as the real enforcement
+- Errors shown via toast: Pro gating, rate limit, AI service errors
+- Follows existing patterns (`runAction`, `ActionResult`, `canUseProFeature`, `checkRateLimit`)
+- Unit tests for the server action
 
 ## Notes
 
-<!-- Any extra notes -->
+- **Use the Responses API, not Chat Completions.** Chat Completions returns empty content with `gpt-5-nano`. Call `client.responses.create({ model, instructions, input, text: { format: { type: "json_object" } } })` and read `response.output_text`.
+- Don't use `max_tokens`. If an output cap is needed, use `max_output_tokens`.
+- Don't use `zodResponseFormat`/`zodTextFormat` structured output: with this model it uses too many tokens and hits length limits. Use `json_object` and parse manually.
+- The model may return `{"tags": [...]}` **or** a bare `[...]`; handle both. Always lowercase tags afterward.
+- `OPENAI_API_KEY` is already in `.env`; `openai@^7.32.0` installed on this branch.
+- Found while testing: `json_object` mode returns a 400 unless the word "json" appears in the **input** (instructions alone don't count).
+- An exhausted OpenAI balance is a 429 with `type: "insufficient_quota"` (code `credit_balance_exhausted`), so it's mapped to "unavailable", not "busy".
+- Verified live on 2026-10-12 after credits were added: the useDebounce snippet got `react-hooks, typescript, debounce, use-debounce, web-development` in about 3 s; accept and dismiss work in the drawer; a title-only item in the New Item dialog got `docker`, `docker-compose`, etc.
+- `isPro` isn't passed to the item drawer yet (it already reaches `NewItemDialog`), so drawer UI gating needs it passed down as a prop.
+- Background: `docs/ai-integration-plan.md`. Where the plan and this spec differ (structured output vs `json_object`, burst/daily limits vs 20/hour, 12k vs 2000 chars, locked vs hidden button), **the spec wins**.
 
 ## History
 

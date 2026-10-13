@@ -28,6 +28,8 @@ export const forgotPasswordRateLimit = createLimiter("forgot-password", 3, "1 h"
 export const resetPasswordRateLimit = createLimiter("reset-password", 5, "15 m");
 export const uploadRateLimit = createLimiter("upload", 30, "10 m");
 export const changePasswordRateLimit = createLimiter("change-password", 5, "15 m");
+// Shared by all AI features and keyed by user ID.
+export const aiRateLimit = createLimiter("ai", 20, "1 h");
 
 export type RateLimitResult = {
   success: boolean;

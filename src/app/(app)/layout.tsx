@@ -19,7 +19,10 @@ export default async function AppShellLayout({
 
   return (
     <EditorPreferencesProvider initialPreferences={currentUser.editorPreferences}>
-      <ItemDrawerProvider collections={collections.map(({ id, name }) => ({ id, name }))}>
+      <ItemDrawerProvider
+        collections={collections.map(({ id, name }) => ({ id, name }))}
+        isPro={currentUser.isPro}
+      >
         <CommandPaletteProvider collections={collections}>
           <SidebarProvider>
             <AppSidebar />

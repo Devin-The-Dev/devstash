@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ItemContentFields } from "@/components/items/ItemContentFields";
+import { TagsField } from "@/components/items/TagsField";
 import { CollectionMultiSelect } from "@/components/items/CollectionMultiSelect";
 import { FileUpload, type UploadedFile } from "@/components/items/FileUpload";
 import {
@@ -189,15 +190,16 @@ export function NewItemDialog({
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="new-item-tags">Tags</Label>
-            <Input
-              id="new-item-tags"
-              placeholder="comma, separated, tags"
-              value={form.tags}
-              onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
-            />
-          </div>
+          <TagsField
+            id="new-item-tags"
+            placeholder="comma, separated, tags"
+            value={form.tags}
+            onChange={(tags) => setForm((f) => ({ ...f, tags }))}
+            isPro={isPro}
+            title={form.title}
+            content={form.content || form.url}
+            typeName={typeName}
+          />
 
           {FILE_TYPES.includes(typeName) ? (
             <div className="space-y-1.5">
