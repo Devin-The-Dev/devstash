@@ -1,38 +1,18 @@
-# Current Feature: AI Auto-Tagging
+# Current Feature
 
-Pro-only "Suggest Tags" button that asks OpenAI `gpt-5-nano` for 3–5 freeform tags from the item's title and content, each with accept/reject controls. As the first AI feature, it also sets up the OpenAI foundation (client, AI rate limit) that later AI features will reuse.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- OpenAI client utility with an `AI_MODEL` constant, using the standard `openai` SDK and kept simple
-- `generateAutoTags` server action with auth, Pro gating, Zod validation, and rate limiting
-- AI rate limit config in the existing rate limit utility: 20 requests/hour per user
-- "Suggest Tags" button (Sparkles icon, ghost variant) near the tags input in the New Item dialog and the drawer's edit mode
-- Suggested tags shown as badges with per-tag accept (check) and reject (X) controls
-- Accepted tags are added to the item's tag list
-- Tags are freeform, not limited to the user's existing tags
-- Content truncated to 2000 chars before the API call
-- Suggest Tags button hidden for free users (UI gating), with server-side gating as the real enforcement
-- Errors shown via toast: Pro gating, rate limit, AI service errors
-- Follows existing patterns (`runAction`, `ActionResult`, `canUseProFeature`, `checkRateLimit`)
-- Unit tests for the server action
+<!-- Goals and requirements -->
 
 ## Notes
 
-- **Use the Responses API, not Chat Completions.** Chat Completions returns empty content with `gpt-5-nano`. Call `client.responses.create({ model, instructions, input, text: { format: { type: "json_object" } } })` and read `response.output_text`.
-- Don't use `max_tokens`. If an output cap is needed, use `max_output_tokens`.
-- Don't use `zodResponseFormat`/`zodTextFormat` structured output: with this model it uses too many tokens and hits length limits. Use `json_object` and parse manually.
-- The model may return `{"tags": [...]}` **or** a bare `[...]`; handle both. Always lowercase tags afterward.
-- `OPENAI_API_KEY` is already in `.env`; `openai@^7.32.0` installed on this branch.
-- Found while testing: `json_object` mode returns a 400 unless the word "json" appears in the **input** (instructions alone don't count).
-- An exhausted OpenAI balance is a 429 with `type: "insufficient_quota"` (code `credit_balance_exhausted`), so it's mapped to "unavailable", not "busy".
-- Verified live on 2026-10-12 after credits were added: the useDebounce snippet got `react-hooks, typescript, debounce, use-debounce, web-development` in about 3 s; accept and dismiss work in the drawer; a title-only item in the New Item dialog got `docker`, `docker-compose`, etc.
-- `isPro` isn't passed to the item drawer yet (it already reaches `NewItemDialog`), so drawer UI gating needs it passed down as a prop.
-- Background: `docs/ai-integration-plan.md`. Where the plan and this spec differ (structured output vs `json_object`, burst/daily limits vs 20/hour, 12k vs 2000 chars, locked vs hidden button), **the spec wins**.
+<!-- Any extra notes -->
 
 ## History
 
@@ -102,3 +82,4 @@ In Progress
 - **2026-10-04** — Pro type creation gate completed on `fix/pro-type-creation-gate`. Free users could create File/Image items (and get upload URLs) while `BILLING_ENFORCED` was unset, then couldn't see them because `getVisibleItemsFilter` hides Pro types unconditionally. `canCreateItem` now blocks File/Image for free users regardless of the flag (item/collection count limits stay behind it), and `canUseProFeature` always requires Pro, so `/api/upload` returns 403 for free users. `NewItemDialog` takes an `isPro` prop (passed from `TopBar`) and shows File and Image as disabled options with a PRO badge for free users. Verified in browser as free (options disabled, upload 403) and Pro (options enabled, upload URL returned).
 - **2026-10-04** — Security audit Medium/Low fixes completed on `fix/audit-medium-low` (Mediums 3–12 and all Lows from the 2026-10-04 code-scanner audit; Medium 2, R2 cleanup on account deletion, left open). **Errors:** `runAction` (`src/lib/action-result.ts`) wraps item, collection and search actions, rethrowing Next.js control flow and returning a generic error otherwise; `changePassword`/`deleteAccount` return errors instead of throwing. **Input:** tags lowercased and de-duplicated in the Zod schema (shared `parseTagInput` client-side); max lengths on item and collection fields. **Config:** `getBaseUrl()` throws in production without `APP_URL`; `r2.ts` builds its client lazily and throws on missing env (including `R2_PUBLIC_URL`); Stripe webhook returns 500 when its secret is unset; security headers in `next.config.ts` (CSP limited to `frame-ancestors`/`object-src`/`base-uri`; a nonce-based script CSP is still to do). **Performance:** shell routes moved into an `(app)` route group with one layout; it loads `getCollectionOptions` (names + counts) instead of every collection and item; `getSidebarCollections` ranks recent collections in SQL; the command palette calls a `searchItems` action (debounced, title/description/type, recent items when empty); `loading.tsx` skeletons (`PageSkeleton`) per page; migration `session_version_and_indexes` adds `ItemCollection.collectionId`, `ItemTag.tagId` and `userId`-leading composite indexes, dropping low-value single-column ones; download route uses `getItemFile`. **Uploads:** `.xml` stored as `text/plain`; `createItem` checks image/PDF magic bytes via a ranged R2 read and deletes mismatches. **Auth:** `User.sessionVersion` is bumped on password change/reset and checked in the `jwt` callback (only a fresh sign-in adopts it, not `trigger: "update"`, which the client can fire); changing your password signs you out (`/sign-in?reset=changed`). Verification/reset tokens stored as SHA-256 hashes; `consumeVerificationToken` rejects reset tokens and handles deleted users. Registration returns the same response for existing emails and sends an account-exists email; a password reset also verifies the email so the real owner can reclaim a squatted account. `getClientIp` prefers `x-real-ip` and returns null instead of a shared "unknown" bucket; `changePassword` rate limited per user; user names HTML-escaped in emails. **Misc:** `ItemCard` copy toasts on failure; `FileUpload` revokes preview URLs; `toItemDetail` typed from its select; Vitest now includes `src/app/**/*.test.ts`. 232 tests. Verified in browser: shell pages, server search, duplicate tags, security headers, old session rejected after a password change, login limit. **Deploy:** run `prisma migrate deploy` on production before this code goes live; links issued before deploy stop working.
 - **2026-10-12** — Language Select completed on `feature/language-select`. Snippet/Command language is now a dropdown (26 Monaco languages plus "Plain text", saved as null) placed above the code editor in the shared `ItemContentFields`, so both the New Item dialog and the drawer's edit mode re-highlight as soon as a language is picked. `LANGUAGE_OPTIONS`, `toLanguageSelectValue` and `languageOptionsFor` in `src/lib/monaco-language.ts`: stored aliases (`bash`, `ts`) select their Monaco option without rewriting the saved value, and an unlisted legacy language is appended as an extra option so it stays selected. 236 tests. Verified in browser: TypeScript highlighting while typing in the New Item dialog; seeded `bash` command shows "Shell / Bash" and re-highlights when switched to Python.
+- **2026-10-12** — AI Auto-Tagging completed on `feature/ai-auto-tag` (first AI feature). Pro-only "Suggest Tags" button (Sparkles, ghost) on the Tags label row of the New Item dialog and the drawer's edit mode, via a shared `TagsField` component; hidden for free users. `generateAutoTags` in `src/actions/ai.ts` checks auth → `canUseProFeature` → new `aiRateLimit` (20/hour per user) → Zod, then calls `gpt-5-nano` through the Responses API with `json_object` output, `reasoning.effort: "minimal"`, `max_output_tokens: 1000`, `store: false`, and content truncated to 2000 chars. `parseTagSuggestions` in `src/lib/ai.ts` accepts `{"tags": [...]}` or a bare array, lowercases, de-dupes, drops the item's existing tags, and caps at 5. Suggestions are badges with accept/reject that only change form state until Save. OpenAI errors map to toasts: busy (429), unavailable (connection errors, or `insufficient_quota`, which is also a 429), generic otherwise. New `src/lib/openai.ts` (client + `AI_MODEL`, 30 s timeout) and `openai@^7.32.0`; `isPro` now passed from the app layout to the drawer. Gotcha: `json_object` mode returns a 400 unless the input itself mentions "json". Also added the AI research prompt, `docs/ai-integration-plan.md`, and the spec. 259 tests. Verified live in browser: useDebounce snippet got 5 relevant tags in about 3 s, accept/dismiss work, New Item dialog suggests from a title alone, button hidden for free users.
