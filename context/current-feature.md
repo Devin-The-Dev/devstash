@@ -1,31 +1,18 @@
-# Current Feature: AI Explain Code
+# Current Feature
 
-Pro-only AI-powered code explanation for snippet and command items in the item drawer, using OpenAI `gpt-5-nano`. The explanation renders inline via Code/Explain tabs in the code editor header.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Create an `explainCode` server action with auth, Pro gating, Zod validation and rate limiting
-- Add an "Explain" button (Sparkles icon) to the code editor window controls header, next to the Copy button
-- Show the button only for snippet and command types in the item drawer (not in create/edit forms)
-- After generating, show Code/Explain tabs in the editor header to switch between views
-- Render the explanation as markdown in the same container space as the code editor
-- Keep explanations concise (~200–300 words), covering what the code does and its key concepts
-- Loading state: Loader2 spinner while generating
-- Pro gating in UI: Crown icon + tooltip ("AI features require Pro subscription") for free users
-- Error handling via toast (Pro gating, rate limit, AI service errors)
-- Follow existing patterns (see the ai-auto-tag / ai-description features)
-- Unit tests for the server action
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Explanations are not saved to the database; they are regenerated on each click
-- Not available in create/edit forms, only in the item drawer read view
-- `isPro` needs to be passed as a prop to the item drawer / code editor
-- See `docs/ai-integration-plan.md` for full architectural context
+<!-- Any extra notes -->
 
 ## History
 
@@ -97,3 +84,4 @@ In Progress
 - **2026-10-12** — Language Select completed on `feature/language-select`. Snippet/Command language is now a dropdown (26 Monaco languages plus "Plain text", saved as null) placed above the code editor in the shared `ItemContentFields`, so both the New Item dialog and the drawer's edit mode re-highlight as soon as a language is picked. `LANGUAGE_OPTIONS`, `toLanguageSelectValue` and `languageOptionsFor` in `src/lib/monaco-language.ts`: stored aliases (`bash`, `ts`) select their Monaco option without rewriting the saved value, and an unlisted legacy language is appended as an extra option so it stays selected. 236 tests. Verified in browser: TypeScript highlighting while typing in the New Item dialog; seeded `bash` command shows "Shell / Bash" and re-highlights when switched to Python.
 - **2026-10-12** — AI Auto-Tagging completed on `feature/ai-auto-tag` (first AI feature). Pro-only "Suggest Tags" button (Sparkles, ghost) on the Tags label row of the New Item dialog and the drawer's edit mode, via a shared `TagsField` component; hidden for free users. `generateAutoTags` in `src/actions/ai.ts` checks auth → `canUseProFeature` → new `aiRateLimit` (20/hour per user) → Zod, then calls `gpt-5-nano` through the Responses API with `json_object` output, `reasoning.effort: "minimal"`, `max_output_tokens: 1000`, `store: false`, and content truncated to 2000 chars. `parseTagSuggestions` in `src/lib/ai.ts` accepts `{"tags": [...]}` or a bare array, lowercases, de-dupes, drops the item's existing tags, and caps at 5. Suggestions are badges with accept/reject that only change form state until Save. OpenAI errors map to toasts: busy (429), unavailable (connection errors, or `insufficient_quota`, which is also a 429), generic otherwise. New `src/lib/openai.ts` (client + `AI_MODEL`, 30 s timeout) and `openai@^7.32.0`; `isPro` now passed from the app layout to the drawer. Gotcha: `json_object` mode returns a 400 unless the input itself mentions "json". Also added the AI research prompt, `docs/ai-integration-plan.md`, and the spec. 259 tests. Verified live in browser: useDebounce snippet got 5 relevant tags in about 3 s, accept/dismiss work, New Item dialog suggests from a title alone, button hidden for free users.
 - **2026-10-14** — AI Description Summary completed on `feature/ai-description-summary`. Pro-only Sparkles icon button (ghost, `icon-xs`) on the Description label row of the New Item dialog and the drawer's edit mode, via a new `GenerateDescriptionButton`; hidden for free users and disabled until there is a title, content, URL or file name. `generateSummary` in `src/actions/ai.ts` sends the current unsaved inputs (type, title, language, URL, file name, content truncated to 2000 chars) to `gpt-5-nano` (Responses API, minimal reasoning, low verbosity, `store: false`) for a plain 1-2 sentence description; `cleanSummary` in `src/lib/ai.ts` collapses whitespace, strips wrapping quotes and clamps to `DESCRIPTION_MAX`. The result fills the field until saved (no preview box, unlike the AI plan's §5.2). Auth → `canUseProFeature` → `aiRateLimit` checks and the OpenAI error mapping were extracted into shared `authorizeAiRequest`/`requestAiText` helpers used by both AI actions. The drawer applies the reply through a separate `onDescriptionGenerated` updater so edits made while it is generating aren't overwritten. 14 new tests; verified in the browser with the demo user temporarily set to Pro on the dev branch.
+- **2026-10-14** — AI Explain Code completed on `feature/ai-explain-code`. Pro-only Explain button (Sparkles) next to Copy in the `CodeEditor` header, shown only for Snippet/Command items in the drawer's read view (`ItemDetailView` passes an `explain` prop with title, type and `isPro`; create/edit forms don't). `explainCode` in `src/actions/ai.ts` reuses `authorizeAiRequest`/`requestAiText`, validates content and a `Snippet | Command` type with Zod, and asks `gpt-5-nano` for a ~200–300 word markdown explanation (low reasoning, medium verbosity, `max_output_tokens: 2500`, content truncated to 2000 chars). Kept as a non-streaming Server Action per the spec, not the streaming route handler in the AI plan's §5.3. After the first explanation the header swaps the window dots for Code/Explain tabs; the explanation renders with `react-markdown` in the editor's space and Monaco stays mounted (`keepMounted`). Not persisted: the editor is keyed on item id + `updatedAt` so a stale explanation never shows. Free users get a Crown button with an "AI features require Pro subscription" tooltip (click also toasts). Errors toast via the shared mapping; new `NO_EXPLANATION_ERROR`. 11 new tests (284 total). Verified in browser as free (Crown + tooltip) and Pro (spinner, explanation, tab switching) with the demo user temporarily set to Pro on the dev branch. Open: the 2000-char content cap can cut long snippets short.
