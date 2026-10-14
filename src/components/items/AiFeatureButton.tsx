@@ -7,14 +7,22 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 const PRO_REQUIRED_MESSAGE = "AI features require Pro subscription";
 
-export function ExplainCodeButton({
+/**
+ * Sparkles icon button for an AI action in an editor header. Free users get a
+ * Crown with a "requires Pro" tooltip instead.
+ */
+export function AiFeatureButton({
+  label,
+  pendingLabel,
   isPro,
   isPending,
-  onExplain,
+  onClick,
 }: {
+  label: string;
+  pendingLabel: string;
   isPro: boolean;
   isPending: boolean;
-  onExplain: () => void;
+  onClick: () => void;
 }) {
   if (!isPro) {
     return (
@@ -25,7 +33,7 @@ export function ExplainCodeButton({
               type="button"
               variant="ghost"
               size="icon-sm"
-              aria-label={`Explain code. ${PRO_REQUIRED_MESSAGE}`}
+              aria-label={`${label}. ${PRO_REQUIRED_MESSAGE}`}
               aria-disabled
               className="text-muted-foreground"
               onClick={() => toast.error(PRO_REQUIRED_MESSAGE)}
@@ -46,9 +54,9 @@ export function ExplainCodeButton({
       size="icon-sm"
       disabled={isPending}
       aria-busy={isPending}
-      aria-label={isPending ? "Explaining code" : "Explain code"}
-      title="Explain code"
-      onClick={onExplain}
+      aria-label={isPending ? pendingLabel : label}
+      title={label}
+      onClick={onClick}
     >
       {isPending ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
     </Button>

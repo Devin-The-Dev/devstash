@@ -9,7 +9,7 @@ import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ExplainCodeButton } from "@/components/items/ExplainCodeButton";
+import { AiFeatureButton } from "@/components/items/AiFeatureButton";
 import { explainCode } from "@/actions/ai";
 import { resolveMonacoLanguage } from "@/lib/monaco-language";
 import { defineMonacoThemes, monacoThemeName } from "@/lib/monaco-themes";
@@ -120,10 +120,12 @@ export function CodeEditor({
             <span className="text-xs text-muted-foreground">{language}</span>
           )}
           {explain && (
-            <ExplainCodeButton
+            <AiFeatureButton
+              label="Explain code"
+              pendingLabel="Explaining code"
               isPro={explain.isPro}
               isPending={isExplaining}
-              onExplain={handleExplain}
+              onClick={handleExplain}
             />
           )}
           <Button

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { AI_CONTENT_MAX, cleanSummary, parseTagSuggestions, truncateForAi } from "@/lib/ai";
-import { DESCRIPTION_MAX } from "@/lib/validations/items";
+import {
+  AI_CONTENT_MAX,
+  MAX_PROMPT_CHANGES,
+  cleanSummary,
+  parsePromptOptimization,
+  parseTagSuggestions,
+  truncateForAi,
+} from "@/lib/ai";
+import { CONTENT_MAX, DESCRIPTION_MAX } from "@/lib/validations/items";
 
 describe("truncateForAi", () => {
   it("leaves short text unchanged", () => {
@@ -60,5 +67,67 @@ describe("cleanSummary", () => {
 
   it("clamps the summary to DESCRIPTION_MAX", () => {
     expect(cleanSummary("a".repeat(DESCRIPTION_MAX + 100))).toHaveLength(DESCRIPTION_MAX);
+  });
+});
+
+describe("parsePromptOptimization", () => {
+  const reply = (body: unknown) => JSON.stringify(body);
+
+  it("returns the trimmed prompt and changes", () => {
+    const result = parsePromptOptimization(
+      reply({ optimizedPrompt: "  Summarize the text in 3 bullets.  ", changes: [" Set a format "] }),
+      "Summarize this",
+    );
+
+    expect(result).toEqual({
+      optimizedPrompt: "Summarize the text in 3 bullets.",
+      changes: ["Set a format"],
+      unchanged: false,
+    });
+  });
+
+  it("reports a prompt identical to the original as unchanged, with no changes", () => {
+    const result = parsePromptOptimization(
+      reply({ optimizedPrompt: "Summarize this", changes: ["Nothing really"] }),
+      "  Summarize this\n",
+    );
+
+    expect(result).toEqual({ optimizedPrompt: "Summarize this", changes: [], unchanged: true });
+  });
+
+  it("drops non-string and blank changes and caps the list", () => {
+    const changes = ["a", 1, " ", "b", "c", "d", "e", "f", "g"];
+    const result = parsePromptOptimization(reply({ optimizedPrompt: "New", changes }), "Old");
+
+    expect(result?.changes).toEqual(["a", "b", "c", "d", "e", "f"].slice(0, MAX_PROMPT_CHANGES));
+  });
+
+  it("strips a <prompt> wrapper echoed from the input", () => {
+    const result = parsePromptOptimization(
+      reply({ optimizedPrompt: "<prompt>\nSummarize in 3 bullets.\n</prompt>", changes: [] }),
+      "Old",
+    );
+
+    expect(result?.optimizedPrompt).toBe("Summarize in 3 bullets.");
+  });
+
+  it("treats a missing changes list as empty", () => {
+    expect(parsePromptOptimization(reply({ optimizedPrompt: "New" }), "Old")?.changes).toEqual([]);
+  });
+
+  it("clamps the prompt to CONTENT_MAX", () => {
+    const result = parsePromptOptimization(
+      reply({ optimizedPrompt: "a".repeat(CONTENT_MAX + 10) }),
+      "Old",
+    );
+
+    expect(result?.optimizedPrompt).toHaveLength(CONTENT_MAX);
+  });
+
+  it("returns null for invalid JSON, a wrong shape, or an empty prompt", () => {
+    expect(parsePromptOptimization("not json", "Old")).toBeNull();
+    expect(parsePromptOptimization("null", "Old")).toBeNull();
+    expect(parsePromptOptimization(reply({ prompt: "New" }), "Old")).toBeNull();
+    expect(parsePromptOptimization(reply({ optimizedPrompt: "   " }), "Old")).toBeNull();
   });
 });

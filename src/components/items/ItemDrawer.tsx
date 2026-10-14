@@ -21,6 +21,7 @@ import { useItemDetail } from "@/hooks/use-item-detail";
 import { useItemFavoritePin } from "@/hooks/use-item-favorite-pin";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import type { CollectionOption } from "@/lib/db/collections";
+import type { UpdateItemInput } from "@/lib/validations/items";
 
 export function ItemDrawer({
   collections,
@@ -67,6 +68,27 @@ export function ItemDrawer({
     setMode("view");
   }
 
+  // Saves the item via updateItem and syncs the drawer and list. Returns
+  // whether it succeeded so callers can leave edit/review state.
+  async function persistItem(payload: UpdateItemInput, successMessage: string): Promise<boolean> {
+    if (!item) return false;
+    const actionResult = await updateItem(item.id, payload);
+    if (!actionResult.success) {
+      toast.error(actionResult.error);
+      return false;
+    }
+    const updated = actionResult.data;
+    patchItem({
+      ...updated,
+      lastUsedAt: updated.lastUsedAt ? new Date(updated.lastUsedAt).toISOString() : null,
+      createdAt: new Date(updated.createdAt).toISOString(),
+      updatedAt: new Date(updated.updatedAt).toISOString(),
+    });
+    toast.success(successMessage);
+    router.refresh();
+    return true;
+  }
+
   function handleSave() {
     if (!item || !editForm) return;
     const title = editForm.title.trim();
@@ -85,23 +107,29 @@ export function ItemDrawer({
     };
 
     startTransition(async () => {
-      const actionResult = await updateItem(item.id, payload);
-      if (!actionResult.success) {
-        toast.error(actionResult.error);
-        return;
+      if (await persistItem(payload, "Item updated")) {
+        setMode("view");
+        setEditForm(null);
       }
-      const updated = actionResult.data;
-      patchItem({
-        ...updated,
-        lastUsedAt: updated.lastUsedAt ? new Date(updated.lastUsedAt).toISOString() : null,
-        createdAt: new Date(updated.createdAt).toISOString(),
-        updatedAt: new Date(updated.updatedAt).toISOString(),
-      });
-      setMode("view");
-      setEditForm(null);
-      toast.success("Item updated");
-      router.refresh();
     });
+  }
+
+  // Replaces only the content (e.g. an accepted AI-optimized prompt), keeping
+  // every other field as currently saved.
+  async function handleReplaceContent(content: string): Promise<boolean> {
+    if (!item) return false;
+    return persistItem(
+      {
+        title: item.title,
+        description: item.description,
+        content,
+        url: item.url,
+        language: item.language,
+        tags: item.tags,
+        collectionIds: item.collections.map((collection) => collection.id),
+      },
+      "Prompt updated",
+    );
   }
 
   function handleDelete() {
@@ -229,7 +257,11 @@ export function ItemDrawer({
                 />
               ) : (
                 <>
-                  <ItemDetailView item={item} isPro={isPro} />
+                  <ItemDetailView
+                    item={item}
+                    isPro={isPro}
+                    onReplaceContent={handleReplaceContent}
+                  />
                   {item.collections.length > 0 && (
                     <div className="space-y-1">
                       <p className="text-xs font-medium text-muted-foreground">Collections</p>

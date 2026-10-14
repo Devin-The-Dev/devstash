@@ -9,7 +9,15 @@ import { formatFileSize } from "@/lib/format";
 import { CODE_TYPES, MARKDOWN_TYPES } from "@/lib/item-type-groups";
 import type { DrawerItem } from "@/hooks/use-item-detail";
 
-export function ItemDetailView({ item, isPro }: { item: DrawerItem; isPro: boolean }) {
+export function ItemDetailView({
+  item,
+  isPro,
+  onReplaceContent,
+}: {
+  item: DrawerItem;
+  isPro: boolean;
+  onReplaceContent: (content: string) => Promise<boolean>;
+}) {
   return (
     <>
       {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
@@ -30,7 +38,17 @@ export function ItemDetailView({ item, isPro }: { item: DrawerItem; isPro: boole
       )}
 
       {item.content && MARKDOWN_TYPES.includes(item.type.name) && (
-        <MarkdownEditor value={item.content} readOnly />
+        <MarkdownEditor
+          // Remount on item or content change so a stale optimization isn't shown.
+          key={`${item.id}-${item.updatedAt}`}
+          value={item.content}
+          readOnly
+          optimize={
+            item.type.name === "Prompt"
+              ? { title: item.title, isPro, onAccept: onReplaceContent }
+              : undefined
+          }
+        />
       )}
 
       {item.content &&

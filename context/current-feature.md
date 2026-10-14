@@ -1,18 +1,31 @@
-# Current Feature
+# Current Feature: AI Prompt Optimizer
 
-<!-- Feature name and short description -->
+Pro-only AI optimization for Prompt items, using OpenAI `gpt-5-nano`. An "Optimize" button in the prompt viewer's header, like "Explain" on snippets and commands, reviews the current prompt, refines it if needed, and asks the user whether to use the updated version.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Create an `optimizePrompt` server action with auth, Pro gating, Zod validation and the shared AI rate limit (reuse `authorizeAiRequest`/`requestAiText`)
+- Return the refined prompt plus a short list of what changed and why; if the prompt is already good, say so instead of rewriting it for the sake of it
+- Add an "Optimize" button (Sparkles icon) to the markdown viewer header for Prompt items in the item drawer, next to the Copy button, matching the Explain button
+- Show the result in the same container (e.g. Original/Optimized tabs) with the list of changes
+- Ask the user whether to use the updated prompt: **Use optimized prompt** saves it as the item's content via the existing `updateItem` action; **Discard** returns to the original
+- Loading state: Loader2 spinner while generating
+- Pro gating in UI: Crown icon + tooltip ("AI features require Pro subscription") for free users, the same as Explain
+- Error handling via toast (Pro gating, rate limit, AI service errors, save failures)
+- Follow existing patterns (`explainCode`, `ExplainCodeButton`, Code/Explain tabs in `CodeEditor`)
+- Unit tests for the server action and any new parsing helpers
 
 ## Notes
 
-<!-- Any extra notes -->
+- Only Prompt items, and only in the drawer's read view (not the create/edit forms)
+- `docs/ai-integration-plan.md` §5.4 proposes `{ optimizedPrompt, changes[] }` structured output and an edit-mode button. This feature puts the button in the viewer header instead, so accepting must save straight to the database rather than only updating a form
+- Nothing is saved until the user accepts; after saving, the drawer item and the list should refresh (as `handleSave` in `ItemDrawer` does)
+- Model output must be re-validated: clamp to `CONTENT_MAX` and reject an empty prompt
+- Content sent to the model is truncated by `truncateForAi` (2000 chars). An optimized prompt built from a truncated input would lose the rest of the prompt, so consider a higher limit for this action or refusing prompts over the limit
 
 ## History
 

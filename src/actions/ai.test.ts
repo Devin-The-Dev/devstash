@@ -6,8 +6,10 @@ import {
   AI_UNAVAILABLE_ERROR,
   AI_CONTENT_MAX,
   NO_EXPLANATION_ERROR,
+  NO_OPTIMIZATION_ERROR,
   NO_SUMMARY_ERROR,
   NO_TAGS_ERROR,
+  PROMPT_OPTIMIZE_MAX,
 } from "@/lib/ai";
 
 const { authMock, canUseProFeatureMock, checkRateLimitMock, openaiState } = vi.hoisted(() => ({
@@ -40,7 +42,9 @@ vi.mock("@/lib/openai", () => ({
   },
 }));
 
-const { explainCode, generateAutoTags, generateSummary } = await import("@/actions/ai");
+const { explainCode, generateAutoTags, generateSummary, optimizePrompt } = await import(
+  "@/actions/ai"
+);
 
 const createMock = () => openaiState.client!.responses.create;
 
@@ -439,6 +443,150 @@ describe("explainCode", () => {
     );
 
     const result = await explainCode(explainInput);
+
+    expect(result).toEqual({ success: false, error: AI_SERVICE_ERROR });
+  });
+});
+
+describe("optimizePrompt", () => {
+  const promptInput = { title: "Code reviewer", content: "Review my code" };
+  const optimizedReply = JSON.stringify({
+    optimizedPrompt: "Review the code below for bugs and readability. List issues by severity.",
+    changes: ["Stated what to look for", "Defined the output format"],
+  });
+
+  it("returns an error when there is no authenticated session", async () => {
+    authMock.mockResolvedValue(null);
+
+    const result = await optimizePrompt(promptInput);
+
+    expect(result).toEqual({ success: false, error: "Unauthorized" });
+    expect(createMock()).not.toHaveBeenCalled();
+  });
+
+  it("blocks free users before rate limiting or calling OpenAI", async () => {
+    canUseProFeatureMock.mockResolvedValue({
+      allowed: false,
+      error: "AI prompt optimization requires DevStash Pro",
+    });
+
+    const result = await optimizePrompt(promptInput);
+
+    expect(result).toEqual({
+      success: false,
+      error: "AI prompt optimization requires DevStash Pro",
+    });
+    expect(canUseProFeatureMock).toHaveBeenCalledWith("user-1", "AI prompt optimization");
+    expect(checkRateLimitMock).not.toHaveBeenCalled();
+    expect(createMock()).not.toHaveBeenCalled();
+  });
+
+  it("returns the rate limit message when the user is over the AI limit", async () => {
+    checkRateLimitMock.mockResolvedValue({ success: false, remaining: 0, reset: Date.now() });
+
+    const result = await optimizePrompt(promptInput);
+
+    expect(result).toEqual({
+      success: false,
+      error: "Too many attempts. Please try again in 30 minutes.",
+    });
+    expect(createMock()).not.toHaveBeenCalled();
+  });
+
+  it("rejects a blank prompt", async () => {
+    const result = await optimizePrompt({ ...promptInput, content: "  " });
+
+    expect(result).toEqual({ success: false, error: "There's no prompt to optimize" });
+    expect(createMock()).not.toHaveBeenCalled();
+  });
+
+  it("refuses prompts over the limit instead of truncating them", async () => {
+    const result = await optimizePrompt({
+      ...promptInput,
+      content: "x".repeat(PROMPT_OPTIMIZE_MAX + 1),
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "Prompts over 8,000 characters can't be optimized",
+    });
+    expect(createMock()).not.toHaveBeenCalled();
+  });
+
+  it("reports AI as unavailable when OpenAI isn't configured", async () => {
+    openaiState.client = null;
+
+    const result = await optimizePrompt(promptInput);
+
+    expect(result).toEqual({ success: false, error: AI_UNAVAILABLE_ERROR });
+  });
+
+  it("sends the whole prompt with a strict JSON schema", async () => {
+    createMock().mockResolvedValue({ output_text: optimizedReply });
+    const longPrompt = "x".repeat(PROMPT_OPTIMIZE_MAX);
+
+    await optimizePrompt({ ...promptInput, content: longPrompt });
+
+    const request = createMock().mock.calls[0][0];
+    expect(request).toMatchObject({
+      model: "gpt-5-nano",
+      text: { format: { type: "json_schema", name: "prompt_optimization", strict: true } },
+      store: false,
+    });
+    expect(request.input).toContain('"Code reviewer"');
+    expect(request.input).toContain(`<prompt>\n${longPrompt}\n</prompt>`);
+  });
+
+  it("returns the optimized prompt and changes", async () => {
+    createMock().mockResolvedValue({ output_text: optimizedReply });
+
+    const result = await optimizePrompt(promptInput);
+
+    expect(result).toEqual({
+      success: true,
+      data: {
+        optimizedPrompt: "Review the code below for bugs and readability. List issues by severity.",
+        changes: ["Stated what to look for", "Defined the output format"],
+        unchanged: false,
+      },
+    });
+  });
+
+  it("flags an unchanged prompt", async () => {
+    createMock().mockResolvedValue({
+      output_text: JSON.stringify({ optimizedPrompt: "Review my code", changes: [] }),
+    });
+
+    const result = await optimizePrompt(promptInput);
+
+    expect(result).toEqual({
+      success: true,
+      data: { optimizedPrompt: "Review my code", changes: [], unchanged: true },
+    });
+  });
+
+  it("returns an error when the model gives an unusable reply", async () => {
+    createMock().mockResolvedValue({ output_text: "not json" });
+
+    const result = await optimizePrompt(promptInput);
+
+    expect(result).toEqual({ success: false, error: NO_OPTIMIZATION_ERROR });
+  });
+
+  it("maps an OpenAI rate limit error to the busy message", async () => {
+    createMock().mockRejectedValue(new RateLimitError(429, undefined, "Rate limit", new Headers()));
+
+    const result = await optimizePrompt(promptInput);
+
+    expect(result).toEqual({ success: false, error: AI_BUSY_ERROR });
+  });
+
+  it("maps other OpenAI errors to the service error message", async () => {
+    createMock().mockRejectedValue(
+      new InternalServerError(500, undefined, "Server error", new Headers()),
+    );
+
+    const result = await optimizePrompt(promptInput);
 
     expect(result).toEqual({ success: false, error: AI_SERVICE_ERROR });
   });
