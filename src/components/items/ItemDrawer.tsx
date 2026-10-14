@@ -229,7 +229,7 @@ export function ItemDrawer({
                 />
               ) : (
                 <>
-                  <ItemDetailView item={item} />
+                  <ItemDetailView item={item} isPro={isPro} />
                   {item.collections.length > 0 && (
                     <div className="space-y-1">
                       <p className="text-xs font-medium text-muted-foreground">Collections</p>

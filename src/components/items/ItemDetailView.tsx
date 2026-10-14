@@ -9,13 +9,24 @@ import { formatFileSize } from "@/lib/format";
 import { CODE_TYPES, MARKDOWN_TYPES } from "@/lib/item-type-groups";
 import type { DrawerItem } from "@/hooks/use-item-detail";
 
-export function ItemDetailView({ item }: { item: DrawerItem }) {
+export function ItemDetailView({ item, isPro }: { item: DrawerItem; isPro: boolean }) {
   return (
     <>
       {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
 
       {item.content && CODE_TYPES.includes(item.type.name) && (
-        <CodeEditor value={item.content} language={item.language} readOnly />
+        <CodeEditor
+          // Remount on item or content change so a stale explanation isn't shown.
+          key={`${item.id}-${item.updatedAt}`}
+          value={item.content}
+          language={item.language}
+          readOnly
+          explain={{
+            title: item.title,
+            typeName: item.type.name as "Snippet" | "Command",
+            isPro,
+          }}
+        />
       )}
 
       {item.content && MARKDOWN_TYPES.includes(item.type.name) && (

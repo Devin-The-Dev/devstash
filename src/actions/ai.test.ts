@@ -5,6 +5,7 @@ import {
   AI_SERVICE_ERROR,
   AI_UNAVAILABLE_ERROR,
   AI_CONTENT_MAX,
+  NO_EXPLANATION_ERROR,
   NO_SUMMARY_ERROR,
   NO_TAGS_ERROR,
 } from "@/lib/ai";
@@ -39,7 +40,7 @@ vi.mock("@/lib/openai", () => ({
   },
 }));
 
-const { generateAutoTags, generateSummary } = await import("@/actions/ai");
+const { explainCode, generateAutoTags, generateSummary } = await import("@/actions/ai");
 
 const createMock = () => openaiState.client!.responses.create;
 
@@ -318,6 +319,126 @@ describe("generateSummary", () => {
     );
 
     const result = await generateSummary(validInput);
+
+    expect(result).toEqual({ success: false, error: AI_SERVICE_ERROR });
+  });
+});
+
+describe("explainCode", () => {
+  const explainInput = {
+    title: "useDebounce hook",
+    content: "export function useDebounce() {}",
+    typeName: "Snippet",
+    language: "typescript",
+  };
+
+  it("returns an error when there is no authenticated session", async () => {
+    authMock.mockResolvedValue(null);
+
+    const result = await explainCode(explainInput);
+
+    expect(result).toEqual({ success: false, error: "Unauthorized" });
+    expect(createMock()).not.toHaveBeenCalled();
+  });
+
+  it("blocks free users before rate limiting or calling OpenAI", async () => {
+    canUseProFeatureMock.mockResolvedValue({
+      allowed: false,
+      error: "AI code explanations requires DevStash Pro",
+    });
+
+    const result = await explainCode(explainInput);
+
+    expect(result).toEqual({ success: false, error: "AI code explanations requires DevStash Pro" });
+    expect(canUseProFeatureMock).toHaveBeenCalledWith("user-1", "AI code explanations");
+    expect(checkRateLimitMock).not.toHaveBeenCalled();
+    expect(createMock()).not.toHaveBeenCalled();
+  });
+
+  it("returns the rate limit message when the user is over the AI limit", async () => {
+    checkRateLimitMock.mockResolvedValue({ success: false, remaining: 0, reset: Date.now() });
+
+    const result = await explainCode(explainInput);
+
+    expect(result).toEqual({
+      success: false,
+      error: "Too many attempts. Please try again in 30 minutes.",
+    });
+    expect(createMock()).not.toHaveBeenCalled();
+  });
+
+  it("rejects blank content", async () => {
+    const result = await explainCode({ ...explainInput, content: "   " });
+
+    expect(result).toEqual({ success: false, error: "There's no code to explain" });
+    expect(createMock()).not.toHaveBeenCalled();
+  });
+
+  it("rejects item types other than snippets and commands", async () => {
+    const result = await explainCode({ ...explainInput, typeName: "Note" });
+
+    expect(result.success).toBe(false);
+    expect(createMock()).not.toHaveBeenCalled();
+  });
+
+  it("reports AI as unavailable when OpenAI isn't configured", async () => {
+    openaiState.client = null;
+
+    const result = await explainCode(explainInput);
+
+    expect(result).toEqual({ success: false, error: AI_UNAVAILABLE_ERROR });
+  });
+
+  it("sends the type, title, language, and truncated content", async () => {
+    createMock().mockResolvedValue({ output_text: "Explanation." });
+    const longContent = "x".repeat(AI_CONTENT_MAX + 500);
+
+    await explainCode({ ...explainInput, content: longContent, typeName: "Command", language: "bash" });
+
+    const request = createMock().mock.calls[0][0];
+    expect(request).toMatchObject({ model: "gpt-5-nano", store: false });
+    expect(request.input).toContain("Type: Command");
+    expect(request.input).toContain("Title: useDebounce hook");
+    expect(request.input).toContain("Language: bash");
+    expect(request.input).toContain("x".repeat(AI_CONTENT_MAX));
+    expect(request.input).not.toContain("x".repeat(AI_CONTENT_MAX + 1));
+  });
+
+  it("returns the trimmed markdown explanation", async () => {
+    createMock().mockResolvedValue({
+      output_text: "\n  Debounces a value.\n\n- Uses `setTimeout`\n  ",
+    });
+
+    const result = await explainCode(explainInput);
+
+    expect(result).toEqual({
+      success: true,
+      data: { explanation: "Debounces a value.\n\n- Uses `setTimeout`" },
+    });
+  });
+
+  it("returns an error when the model gives an empty reply", async () => {
+    createMock().mockResolvedValue({ output_text: "  " });
+
+    const result = await explainCode(explainInput);
+
+    expect(result).toEqual({ success: false, error: NO_EXPLANATION_ERROR });
+  });
+
+  it("maps an OpenAI rate limit error to the busy message", async () => {
+    createMock().mockRejectedValue(new RateLimitError(429, undefined, "Rate limit", new Headers()));
+
+    const result = await explainCode(explainInput);
+
+    expect(result).toEqual({ success: false, error: AI_BUSY_ERROR });
+  });
+
+  it("maps other OpenAI errors to the service error message", async () => {
+    createMock().mockRejectedValue(
+      new InternalServerError(500, undefined, "Server error", new Headers()),
+    );
+
+    const result = await explainCode(explainInput);
 
     expect(result).toEqual({ success: false, error: AI_SERVICE_ERROR });
   });

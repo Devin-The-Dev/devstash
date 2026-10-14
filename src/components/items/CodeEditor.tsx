@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import type { OnMount } from "@monaco-editor/react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Check, Copy } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ExplainCodeButton } from "@/components/items/ExplainCodeButton";
+import { explainCode } from "@/actions/ai";
 import { resolveMonacoLanguage } from "@/lib/monaco-language";
 import { defineMonacoThemes, monacoThemeName } from "@/lib/monaco-themes";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
@@ -18,18 +24,30 @@ const Editor = dynamic(() => import("@monaco-editor/react"), {
 const MIN_HEIGHT = 128;
 const MAX_HEIGHT = 400;
 
+// Enables the AI "Explain" button. Only passed from the drawer's read view.
+type ExplainOptions = {
+  title: string;
+  typeName: "Snippet" | "Command";
+  isPro: boolean;
+};
+
 export function CodeEditor({
   value,
   onChange,
   language,
   readOnly = false,
+  explain,
 }: {
   value: string;
   onChange?: (value: string) => void;
   language?: string | null;
   readOnly?: boolean;
+  explain?: ExplainOptions;
 }) {
   const [height, setHeight] = useState(MIN_HEIGHT);
+  const [tab, setTab] = useState<"code" | "explain">("code");
+  const [explanation, setExplanation] = useState<string | null>(null);
+  const [isExplaining, startExplaining] = useTransition();
   const { copied, copy } = useCopyToClipboard();
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoLanguage = resolveMonacoLanguage(language);
@@ -56,17 +74,57 @@ export function CodeEditor({
     await copy(value);
   }
 
+  function handleExplain() {
+    if (!explain) return;
+    startExplaining(async () => {
+      const result = await explainCode({
+        title: explain.title,
+        content: value,
+        typeName: explain.typeName,
+        language: language ?? null,
+      });
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      setExplanation(result.data.explanation);
+      setTab("explain");
+    });
+  }
+
   return (
-    <div className="overflow-hidden rounded-md border border-border">
-      <div className="flex items-center justify-between border-b border-border bg-card px-3 py-2">
-        <div className="flex items-center gap-1.5">
-          <span className="size-3 rounded-full bg-[#ff5f56]" />
-          <span className="size-3 rounded-full bg-[#ffbd2e]" />
-          <span className="size-3 rounded-full bg-[#27c93f]" />
-        </div>
+    <Tabs
+      value={tab}
+      onValueChange={(next) => setTab(next as "code" | "explain")}
+      className="gap-0 overflow-hidden rounded-md border border-border"
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-2">
+        {explanation ? (
+          <TabsList variant="line" className="h-auto bg-transparent p-0">
+            <TabsTrigger value="code" className="h-7 px-2 text-xs">
+              Code
+            </TabsTrigger>
+            <TabsTrigger value="explain" className="h-7 px-2 text-xs">
+              Explain
+            </TabsTrigger>
+          </TabsList>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <span className="size-3 rounded-full bg-[#ff5f56]" />
+            <span className="size-3 rounded-full bg-[#ffbd2e]" />
+            <span className="size-3 rounded-full bg-[#27c93f]" />
+          </div>
+        )}
         <div className="flex items-center gap-2">
           {language && (
             <span className="text-xs text-muted-foreground">{language}</span>
+          )}
+          {explain && (
+            <ExplainCodeButton
+              isPro={explain.isPro}
+              isPending={isExplaining}
+              onExplain={handleExplain}
+            />
           )}
           <Button
             type="button"
@@ -79,7 +137,13 @@ export function CodeEditor({
           </Button>
         </div>
       </div>
-      <div style={{ height }} className="transition-[height] duration-150">
+      {/* keepMounted so Monaco isn't torn down and re-created on every tab switch. */}
+      <TabsContent
+        value="code"
+        keepMounted
+        style={{ height }}
+        className="flex-none transition-[height] duration-150"
+      >
         <Editor
           height="100%"
           language={monacoLanguage}
@@ -108,7 +172,18 @@ export function CodeEditor({
             padding: { top: 12, bottom: 12 },
           }}
         />
-      </div>
-    </div>
+      </TabsContent>
+      {explanation && (
+        <TabsContent
+          value="explain"
+          className="overflow-auto p-3"
+          style={{ minHeight: height, maxHeight: MAX_HEIGHT }}
+        >
+          <div className="markdown-preview">
+            <Markdown remarkPlugins={[remarkGfm]}>{explanation}</Markdown>
+          </div>
+        </TabsContent>
+      )}
+    </Tabs>
   );
 }

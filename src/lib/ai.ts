@@ -9,6 +9,7 @@ export const AI_BUSY_ERROR = "The AI service is busy. Please try again in a minu
 export const AI_SERVICE_ERROR = "The AI service had a problem. Please try again.";
 export const NO_TAGS_ERROR = "Couldn't come up with tags for this item. Try adding more content.";
 export const NO_SUMMARY_ERROR = "Couldn't write a description for this item. Try adding more content.";
+export const NO_EXPLANATION_ERROR = "Couldn't explain this code. Please try again.";
 
 export function truncateForAi(text: string, max = AI_CONTENT_MAX): string {
   return text.length > max ? text.slice(0, max) : text;
