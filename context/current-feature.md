@@ -1,31 +1,18 @@
-# Current Feature: AI Prompt Optimizer
+# Current Feature
 
-Pro-only AI optimization for Prompt items, using OpenAI `gpt-5-nano`. An "Optimize" button in the prompt viewer's header, like "Explain" on snippets and commands, reviews the current prompt, refines it if needed, and asks the user whether to use the updated version.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Create an `optimizePrompt` server action with auth, Pro gating, Zod validation and the shared AI rate limit (reuse `authorizeAiRequest`/`requestAiText`)
-- Return the refined prompt plus a short list of what changed and why; if the prompt is already good, say so instead of rewriting it for the sake of it
-- Add an "Optimize" button (Sparkles icon) to the markdown viewer header for Prompt items in the item drawer, next to the Copy button, matching the Explain button
-- Show the result in the same container (e.g. Original/Optimized tabs) with the list of changes
-- Ask the user whether to use the updated prompt: **Use optimized prompt** saves it as the item's content via the existing `updateItem` action; **Discard** returns to the original
-- Loading state: Loader2 spinner while generating
-- Pro gating in UI: Crown icon + tooltip ("AI features require Pro subscription") for free users, the same as Explain
-- Error handling via toast (Pro gating, rate limit, AI service errors, save failures)
-- Follow existing patterns (`explainCode`, `ExplainCodeButton`, Code/Explain tabs in `CodeEditor`)
-- Unit tests for the server action and any new parsing helpers
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Only Prompt items, and only in the drawer's read view (not the create/edit forms)
-- `docs/ai-integration-plan.md` §5.4 proposes `{ optimizedPrompt, changes[] }` structured output and an edit-mode button. This feature puts the button in the viewer header instead, so accepting must save straight to the database rather than only updating a form
-- Nothing is saved until the user accepts; after saving, the drawer item and the list should refresh (as `handleSave` in `ItemDrawer` does)
-- Model output must be re-validated: clamp to `CONTENT_MAX` and reject an empty prompt
-- Content sent to the model is truncated by `truncateForAi` (2000 chars). An optimized prompt built from a truncated input would lose the rest of the prompt, so consider a higher limit for this action or refusing prompts over the limit
+<!-- Any extra notes -->
 
 ## History
 
@@ -98,3 +85,4 @@ In Progress
 - **2026-10-12** — AI Auto-Tagging completed on `feature/ai-auto-tag` (first AI feature). Pro-only "Suggest Tags" button (Sparkles, ghost) on the Tags label row of the New Item dialog and the drawer's edit mode, via a shared `TagsField` component; hidden for free users. `generateAutoTags` in `src/actions/ai.ts` checks auth → `canUseProFeature` → new `aiRateLimit` (20/hour per user) → Zod, then calls `gpt-5-nano` through the Responses API with `json_object` output, `reasoning.effort: "minimal"`, `max_output_tokens: 1000`, `store: false`, and content truncated to 2000 chars. `parseTagSuggestions` in `src/lib/ai.ts` accepts `{"tags": [...]}` or a bare array, lowercases, de-dupes, drops the item's existing tags, and caps at 5. Suggestions are badges with accept/reject that only change form state until Save. OpenAI errors map to toasts: busy (429), unavailable (connection errors, or `insufficient_quota`, which is also a 429), generic otherwise. New `src/lib/openai.ts` (client + `AI_MODEL`, 30 s timeout) and `openai@^7.32.0`; `isPro` now passed from the app layout to the drawer. Gotcha: `json_object` mode returns a 400 unless the input itself mentions "json". Also added the AI research prompt, `docs/ai-integration-plan.md`, and the spec. 259 tests. Verified live in browser: useDebounce snippet got 5 relevant tags in about 3 s, accept/dismiss work, New Item dialog suggests from a title alone, button hidden for free users.
 - **2026-10-14** — AI Description Summary completed on `feature/ai-description-summary`. Pro-only Sparkles icon button (ghost, `icon-xs`) on the Description label row of the New Item dialog and the drawer's edit mode, via a new `GenerateDescriptionButton`; hidden for free users and disabled until there is a title, content, URL or file name. `generateSummary` in `src/actions/ai.ts` sends the current unsaved inputs (type, title, language, URL, file name, content truncated to 2000 chars) to `gpt-5-nano` (Responses API, minimal reasoning, low verbosity, `store: false`) for a plain 1-2 sentence description; `cleanSummary` in `src/lib/ai.ts` collapses whitespace, strips wrapping quotes and clamps to `DESCRIPTION_MAX`. The result fills the field until saved (no preview box, unlike the AI plan's §5.2). Auth → `canUseProFeature` → `aiRateLimit` checks and the OpenAI error mapping were extracted into shared `authorizeAiRequest`/`requestAiText` helpers used by both AI actions. The drawer applies the reply through a separate `onDescriptionGenerated` updater so edits made while it is generating aren't overwritten. 14 new tests; verified in the browser with the demo user temporarily set to Pro on the dev branch.
 - **2026-10-14** — AI Explain Code completed on `feature/ai-explain-code`. Pro-only Explain button (Sparkles) next to Copy in the `CodeEditor` header, shown only for Snippet/Command items in the drawer's read view (`ItemDetailView` passes an `explain` prop with title, type and `isPro`; create/edit forms don't). `explainCode` in `src/actions/ai.ts` reuses `authorizeAiRequest`/`requestAiText`, validates content and a `Snippet | Command` type with Zod, and asks `gpt-5-nano` for a ~200–300 word markdown explanation (low reasoning, medium verbosity, `max_output_tokens: 2500`, content truncated to 2000 chars). Kept as a non-streaming Server Action per the spec, not the streaming route handler in the AI plan's §5.3. After the first explanation the header swaps the window dots for Code/Explain tabs; the explanation renders with `react-markdown` in the editor's space and Monaco stays mounted (`keepMounted`). Not persisted: the editor is keyed on item id + `updatedAt` so a stale explanation never shows. Free users get a Crown button with an "AI features require Pro subscription" tooltip (click also toasts). Errors toast via the shared mapping; new `NO_EXPLANATION_ERROR`. 11 new tests (284 total). Verified in browser as free (Crown + tooltip) and Pro (spinner, explanation, tab switching) with the demo user temporarily set to Pro on the dev branch. Open: the 2000-char content cap can cut long snippets short.
+- **2026-10-14** — AI Prompt Optimizer completed on `feature/ai-prompt-optimizer`. Pro-only Optimize button (Sparkles) next to Copy in the read-only `MarkdownEditor` header, shown only for Prompt items in the drawer's read view (`optimize` prop from `ItemDetailView`). `optimizePrompt` in `src/actions/ai.ts` reuses `authorizeAiRequest`/`requestAiText` and sends the whole prompt, not truncated, refusing anything over `PROMPT_OPTIMIZE_MAX` (8,000 chars) since the result replaces the content. It uses a strict `json_schema` format (`{optimizedPrompt, changes}`) with `reasoning: minimal`. `parsePromptOptimization` in `src/lib/ai.ts` validates the reply, strips an echoed `<prompt>` wrapper, clamps to `CONTENT_MAX`, caps changes at 6 and flags an unchanged prompt (toast, no tabs). The result shows as Original/Optimized tabs with a "What changed" list and "Use the optimized prompt?": accepting saves through `updateItem` via a new `persistItem` helper in `ItemDrawer` (shared with Save) and keeps every other field; Discard reverts. `ExplainCodeButton` became the shared `AiFeatureButton`. Gotchas found in the browser: `json_object` mode made gpt-5-nano double-escape newlines and copy the input wrapper into the prompt (fixed by the strict schema and clearer instructions); `reasoning: low` took 30–40 s, past the client's 30 s timeout (`minimal` takes about 2 s, with more modest rewrites). 19 new tests (303 total). Verified in browser with the demo user temporarily set to Pro on the dev branch; the test prompt's content was restored afterwards.
