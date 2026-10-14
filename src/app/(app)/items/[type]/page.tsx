@@ -2,10 +2,13 @@ import { notFound } from "next/navigation";
 import { ItemCard } from "@/components/dashboard/ItemCard";
 import { ImageThumbnailCard } from "@/components/dashboard/ImageThumbnailCard";
 import { FileListItem } from "@/components/dashboard/FileListItem";
+import { NewItemDialog } from "@/components/items/NewItemDialog";
 import { ProUpgradePrompt } from "@/components/items/ProUpgradePrompt";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { PaginationControls } from "@/components/shared/PaginationControls";
-import { ItemTypeIcon } from "@/lib/item-type-icons";
+import { getItemTypeIcon, ItemTypeIcon } from "@/lib/item-type-icons";
 import { formatCount } from "@/lib/format";
+import { getCollectionOptions } from "@/lib/db/collections";
 import { getItemsByType, getSystemItemTypes, itemTypeSlug } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
 import { ITEMS_PER_PAGE, parsePageParam, totalPagesFor } from "@/lib/pagination";
@@ -38,9 +41,16 @@ export default async function ItemsByTypePage({
   const totalPages = totalPagesFor(totalCount, ITEMS_PER_PAGE);
   const isImageType = type.name === "Image";
   const isFileType = type.name === "File";
+  const typeLabel = `${type.name.toLowerCase()}s`;
+
+  // Cached: the top bar already loads these for its New item dialog.
+  const [itemTypes, collections] =
+    totalCount === 0
+      ? await Promise.all([getSystemItemTypes(), getCollectionOptions(currentUser.id)])
+      : [[], []];
 
   return (
-    <main className="flex-1 space-y-6 p-6">
+    <div className="flex-1 space-y-6 p-6">
       <div className="flex items-center gap-3">
         <ItemTypeIcon icon={type.icon} className="size-6" style={{ color: type.color }} />
         <div>
@@ -51,10 +61,23 @@ export default async function ItemsByTypePage({
         </div>
       </div>
 
-      {items.length === 0 ? (
-        <p className="text-muted-foreground">
-          {totalCount === 0 ? `No ${type.name.toLowerCase()}s yet.` : "No items on this page."}
-        </p>
+      {totalCount === 0 ? (
+        <EmptyState
+          icon={getItemTypeIcon(type.icon)}
+          title={`No ${typeLabel} yet`}
+          description={`${type.name}s you add will show up here.`}
+          action={
+            <NewItemDialog
+              variant="cta"
+              itemTypes={itemTypes}
+              collections={collections.map(({ id, name }) => ({ id, name }))}
+              isPro={currentUser.isPro}
+              initialTypeId={type.id}
+            />
+          }
+        />
+      ) : items.length === 0 ? (
+        <p className="text-muted-foreground">No items on this page.</p>
       ) : isFileType ? (
         <div className="rounded-lg border">
           {items.map((item) => (
@@ -78,6 +101,6 @@ export default async function ItemsByTypePage({
         totalPages={totalPages}
         basePath={`/items/${typeSlug}`}
       />
-    </main>
+    </div>
   );
 }

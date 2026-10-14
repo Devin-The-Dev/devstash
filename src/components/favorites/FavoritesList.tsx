@@ -49,9 +49,9 @@ export function FavoritesList({
   );
 
   return (
-    <div className="space-y-6 font-mono text-[13px]">
-      <div className="flex items-center justify-end gap-2 px-2">
-        <label htmlFor="favorites-sort" className="text-xs text-muted-foreground">
+    <div className="space-y-6">
+      <div className="flex items-center justify-end gap-2">
+        <label htmlFor="favorites-sort" className="text-sm text-muted-foreground">
           Sort by
         </label>
         <Select
@@ -59,7 +59,7 @@ export function FavoritesList({
           value={sort}
           onValueChange={(value) => value !== null && setSort(value)}
         >
-          <SelectTrigger id="favorites-sort" size="sm" className="w-28 font-sans">
+          <SelectTrigger id="favorites-sort" size="sm" className="w-28">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

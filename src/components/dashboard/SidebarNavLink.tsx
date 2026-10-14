@@ -24,6 +24,8 @@ export function SidebarNavLink({
     <SidebarMenuButton
       tooltip={tooltip}
       isActive={isActive}
+      // Accent bar on the left so the active item stands out from hover states.
+      className="relative data-active:font-semibold data-active:before:absolute data-active:before:inset-y-1.5 data-active:before:left-0 data-active:before:w-0.5 data-active:before:rounded-full data-active:before:bg-sidebar-primary"
       render={<Link href={href} aria-current={isActive ? "page" : undefined} />}
     >
       {children}

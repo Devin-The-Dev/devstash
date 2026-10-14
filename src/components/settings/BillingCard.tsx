@@ -88,9 +88,9 @@ export function BillingCard({ isPro, hasBillingAccount, checkoutStatus }: Billin
         </div>
 
         <Tabs value={interval} onValueChange={(value) => setBillingInterval(value as BillingInterval)}>
-          <TabsList aria-label="Billing interval">
-            <TabsTrigger value="monthly">Monthly</TabsTrigger>
-            <TabsTrigger value="yearly">Yearly</TabsTrigger>
+          <TabsList aria-label="Billing interval" className="pointer-coarse:h-11">
+            <TabsTrigger value="monthly" className="pointer-coarse:px-4">Monthly</TabsTrigger>
+            <TabsTrigger value="yearly" className="pointer-coarse:px-4">Yearly</TabsTrigger>
           </TabsList>
         </Tabs>
 

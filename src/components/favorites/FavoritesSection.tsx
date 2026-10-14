@@ -8,15 +8,15 @@ export function FavoritesSection({
   children: React.ReactNode;
 }) {
   return (
-    <section>
-      <h2 className="flex items-center gap-2 border-b px-2 pb-1.5 text-xs uppercase tracking-wider text-muted-foreground">
+    <section className="space-y-3">
+      <h2 className="flex items-center gap-2 text-lg font-semibold">
         {title}
-        <span className="tabular-nums">({count})</span>
+        <span className="text-sm font-normal tabular-nums text-muted-foreground">{count}</span>
       </h2>
       {count === 0 ? (
-        <p className="px-2 py-2 text-muted-foreground">No favorite {title.toLowerCase()}.</p>
+        <p className="text-sm text-muted-foreground">No favorite {title.toLowerCase()}.</p>
       ) : (
-        <div className="divide-y divide-border/50">{children}</div>
+        <div className="divide-y overflow-hidden rounded-xl border bg-card">{children}</div>
       )}
     </section>
   );

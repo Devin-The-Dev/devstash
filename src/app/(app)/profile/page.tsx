@@ -12,7 +12,7 @@ export default async function ProfilePage() {
   const stats = await getProfileStats(currentUser.id);
 
   return (
-    <main className="max-w-3xl flex-1 space-y-6 p-6">
+    <div className="max-w-3xl flex-1 space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-semibold">Profile</h1>
         <p className="text-muted-foreground">Your account details and stats.</p>
@@ -58,6 +58,6 @@ export default async function ProfilePage() {
       </div>
 
       <ItemTypeBreakdown breakdown={stats.breakdown} />
-    </main>
+    </div>
   );
 }

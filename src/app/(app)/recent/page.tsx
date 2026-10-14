@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { Clock } from "lucide-react";
 import { ItemCard } from "@/components/dashboard/ItemCard";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { PaginationControls } from "@/components/shared/PaginationControls";
+import { buttonVariants } from "@/components/ui/button";
 import { getRecentItems } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
 import { ITEMS_PER_PAGE, parsePageParam, totalPagesFor } from "@/lib/pagination";
@@ -16,18 +19,23 @@ export default async function RecentPage({
   const totalPages = totalPagesFor(totalCount, ITEMS_PER_PAGE);
 
   return (
-    <main className="flex-1 space-y-6 p-6">
+    <div className="flex-1 space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-semibold">Recent</h1>
         <p className="text-muted-foreground">Items you&apos;ve used most recently.</p>
       </div>
 
       {totalCount === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-16 text-center text-muted-foreground">
-          <Clock className="size-8" />
-          <p className="font-medium text-foreground">Nothing here yet</p>
-          <p className="text-sm">Items you create or open will show up here.</p>
-        </div>
+        <EmptyState
+          icon={Clock}
+          title="Nothing here yet"
+          description="Items you create or open will show up here."
+          action={
+            <Link href="/dashboard" className={buttonVariants({ variant: "outline" })}>
+              Go to dashboard
+            </Link>
+          }
+        />
       ) : items.length === 0 ? (
         <p className="text-muted-foreground">No items on this page.</p>
       ) : (
@@ -39,6 +47,6 @@ export default async function RecentPage({
       )}
 
       <PaginationControls currentPage={page} totalPages={totalPages} basePath="/recent" />
-    </main>
+    </div>
   );
 }

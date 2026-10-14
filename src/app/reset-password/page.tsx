@@ -2,6 +2,7 @@ import Link from "next/link";
 import { XCircle, MailWarning } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
 import { checkPasswordResetToken } from "@/lib/db/verification";
 
@@ -29,7 +30,7 @@ export default async function ResetPasswordPage({
   if (status !== "valid") {
     const { icon: Icon, title, description } = ERROR_CONTENT[status];
     return (
-      <div className="flex min-h-svh items-center justify-center p-6">
+      <AuthShell>
         <Card className="w-full max-w-sm">
           <CardHeader className="items-center text-center">
             <Icon className="mb-2 size-10 text-muted-foreground" />
@@ -42,12 +43,12 @@ export default async function ResetPasswordPage({
             </Link>
           </CardContent>
         </Card>
-      </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
+    <AuthShell>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">Reset your password</CardTitle>
@@ -57,6 +58,6 @@ export default async function ResetPasswordPage({
           <ResetPasswordForm token={token as string} />
         </CardContent>
       </Card>
-    </div>
+    </AuthShell>
   );
 }

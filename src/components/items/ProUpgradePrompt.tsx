@@ -16,7 +16,7 @@ export function ProUpgradePrompt({ type }: { type: ItemTypeSummary }) {
   const typeLabel = `${type.name.toLowerCase()}s`;
 
   return (
-    <main className="flex flex-1 items-center justify-center p-6">
+    <div className="flex flex-1 items-center justify-center p-6">
       <div className="w-full max-w-md space-y-6 rounded-lg border p-8 text-center">
         <div
           className="mx-auto flex size-12 items-center justify-center rounded-full"
@@ -45,7 +45,7 @@ export function ProUpgradePrompt({ type }: { type: ItemTypeSummary }) {
         </ul>
 
         <div className="space-y-2">
-          <Link href="/upgrade"className={buttonVariants({ className: "w-full" })}>
+          <Link href="/upgrade" className={buttonVariants({ className: "w-full" })}>
             Upgrade to Pro
           </Link>
           <p className="text-xs text-muted-foreground">
@@ -53,6 +53,6 @@ export function ProUpgradePrompt({ type }: { type: ItemTypeSummary }) {
           </p>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

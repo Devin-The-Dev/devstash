@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircle2, XCircle, MailWarning } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { consumeVerificationToken } from "@/lib/db/verification";
 
 const CONTENT = {
@@ -32,7 +33,7 @@ export default async function VerifyEmailPage({
   const { icon: Icon, title, description } = CONTENT[result];
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
+    <AuthShell>
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center text-center">
           <Icon className="mb-2 size-10 text-muted-foreground" />
@@ -45,6 +46,6 @@ export default async function VerifyEmailPage({
           </Link>
         </CardContent>
       </Card>
-    </div>
+    </AuthShell>
   );
 }

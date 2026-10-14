@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { GitHubSignIn } from "@/components/auth/GitHubSignIn";
 
@@ -16,7 +17,7 @@ export default async function SignInPage({
   const { callbackUrl, reset } = await searchParams;
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
+    <AuthShell>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">Sign in to DevStash</CardTitle>
@@ -35,6 +36,6 @@ export default async function SignInPage({
           </p>
         </CardContent>
       </Card>
-    </div>
+    </AuthShell>
   );
 }

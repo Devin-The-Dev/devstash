@@ -8,6 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { GitHubSignIn } from "@/components/auth/GitHubSignIn";
 
 export default function RegisterPage() {
@@ -51,7 +52,7 @@ export default function RegisterPage() {
 
   if (sentTo) {
     return (
-      <div className="flex min-h-svh items-center justify-center p-6">
+      <AuthShell>
         <Card className="w-full max-w-sm">
           <CardHeader className="items-center text-center">
             <MailCheck className="mb-2 size-10 text-muted-foreground" />
@@ -67,12 +68,12 @@ export default function RegisterPage() {
             </Link>
           </CardContent>
         </Card>
-      </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
+    <AuthShell>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">Create an account</CardTitle>
@@ -105,8 +106,12 @@ export default function RegisterPage() {
                 type="password"
                 autoComplete="new-password"
                 minLength={8}
+                aria-describedby="password-hint"
                 required
               />
+              <p id="password-hint" className="text-xs text-muted-foreground">
+                Minimum 8 characters.
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -136,6 +141,6 @@ export default function RegisterPage() {
           </p>
         </CardContent>
       </Card>
-    </div>
+    </AuthShell>
   );
 }

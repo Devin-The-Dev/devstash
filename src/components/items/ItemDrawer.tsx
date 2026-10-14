@@ -10,11 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ItemEditForm, toEditForm, type EditForm } from "@/components/items/ItemEditForm";
 import { ItemDetailView } from "@/components/items/ItemDetailView";
 import { DeleteItemDialog } from "@/components/items/DeleteItemDialog";
 import { ItemTypeIcon } from "@/lib/item-type-icons";
 import { formatDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { getCopyableValue, parseTagInput } from "@/lib/item-content";
 import { deleteItem, updateItem } from "@/actions/items";
 import { useItemDetail } from "@/hooks/use-item-detail";
@@ -22,6 +24,33 @@ import { useItemFavoritePin } from "@/hooks/use-item-favorite-pin";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import type { CollectionOption } from "@/lib/db/collections";
 import type { UpdateItemInput } from "@/lib/validations/items";
+
+// Icon-only drawer action with a matching aria-label and hover tooltip.
+function IconAction({
+  label,
+  className,
+  children,
+  ...props
+}: { label: string } & Omit<React.ComponentProps<typeof Button>, "aria-label">) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={label}
+            className={cn("touch-target", className)}
+            {...props}
+          />
+        }
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 export function ItemDrawer({
   collections,
@@ -149,7 +178,7 @@ export function ItemDrawer({
 
   return (
     <Sheet open={openItemId !== null} onOpenChange={(open) => !open && close()}>
-      <SheetContent className="flex flex-col overflow-y-auto">
+      <SheetContent className="flex flex-col overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-xl data-[side=right]:lg:max-w-2xl">
         {status === "loading" || !item ? (
           <div className="space-y-4 p-4">
             <Skeleton className="h-6 w-3/4" />
@@ -190,11 +219,8 @@ export function ItemDrawer({
               ) : (
                 <>
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Favorite"
-                      aria-pressed={item.isFavorite}
+                    <IconAction
+                      label={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
                       disabled={isPending}
                       onClick={toggleFavorite}
                     >
@@ -203,36 +229,35 @@ export function ItemDrawer({
                           item.isFavorite ? "size-4 fill-yellow-400 text-yellow-400" : "size-4"
                         }
                       />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={item.isPinned ? "Unpin item" : "Pin item"}
+                    </IconAction>
+                    <IconAction
+                      label={item.isPinned ? "Unpin item" : "Pin item"}
                       disabled={isPending}
                       onClick={togglePinned}
                     >
                       <Pin
                         className={item.isPinned ? "size-4 fill-current text-primary" : "size-4"}
                       />
-                    </Button>
-                    <Button variant="ghost" size="icon-sm" aria-label="Copy" onClick={handleCopy}>
+                    </IconAction>
+                    <IconAction label={copied ? "Copied" : "Copy"} onClick={handleCopy}>
                       {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-                    </Button>
+                    </IconAction>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon-sm" aria-label="Edit" onClick={handleStartEdit}>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={handleStartEdit}>
                       <Pencil className="size-4" />
+                      Edit
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Delete"
+                    {/* Divider keeps Delete from sitting flush against Edit. */}
+                    <Separator orientation="vertical" className="h-5" />
+                    <IconAction
+                      label="Delete item"
                       disabled={isPending}
-                      className="text-destructive"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => setDeleteDialogOpen(true)}
                     >
                       <Trash2 className="size-4" />
-                    </Button>
+                    </IconAction>
                   </div>
                 </>
               )}

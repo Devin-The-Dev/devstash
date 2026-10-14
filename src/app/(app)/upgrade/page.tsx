@@ -9,15 +9,17 @@ export default async function UpgradePage() {
   }
 
   return (
-    <main className="max-w-4xl flex-1 space-y-8 p-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold">Upgrade to DevStash Pro</h1>
-        <p className="text-muted-foreground">
-          Unlimited items and collections, file and image uploads, and AI features. Cancel anytime.
-        </p>
-      </div>
+    <div className="flex-1 p-6">
+      <div className="mx-auto max-w-4xl space-y-8">
+        <div className="space-y-2 text-center">
+          <h1 className="text-2xl font-semibold">Upgrade to DevStash Pro</h1>
+          <p className="text-muted-foreground">
+            Unlimited items and collections, file and image uploads, and AI features. Cancel anytime.
+          </p>
+        </div>
 
-      <UpgradePlans />
-    </main>
+        <UpgradePlans />
+      </div>
+    </div>
   );
 }

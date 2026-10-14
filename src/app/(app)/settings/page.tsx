@@ -37,7 +37,7 @@ export default async function SettingsPage({
   const checkoutStatus = checkout === "success" || checkout === "canceled" ? checkout : undefined;
 
   return (
-    <main className="max-w-3xl flex-1 space-y-6 p-6">
+    <div className="max-w-3xl flex-1 space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-semibold">Settings</h1>
         <p className="text-muted-foreground">Manage your editor preferences, billing, password, and account.</p>
@@ -88,6 +88,6 @@ export default async function SettingsPage({
           </div>
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

@@ -26,7 +26,9 @@ function emptyForm(): FormState {
   return { name: "", description: "" };
 }
 
-export function NewCollectionDialog() {
+// "toolbar" collapses to an icon in narrow top bars; "cta" always shows the label.
+export function NewCollectionDialog({ variant = "toolbar" }: { variant?: "toolbar" | "cta" }) {
+  const isToolbar = variant === "toolbar";
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -70,11 +72,11 @@ export function NewCollectionDialog() {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger
         render={<Button variant="outline" />}
-        aria-label="New collection"
-        className="@max-xl:size-8 @max-xl:px-0"
+        aria-label={isToolbar ? "New collection" : undefined}
+        className={isToolbar ? "@max-xl:size-8 @max-xl:px-0" : undefined}
       >
         <FolderPlus className="size-4" />
-        <span className="hidden @xl:inline">New collection</span>
+        <span className={isToolbar ? "hidden @xl:inline" : undefined}>New collection</span>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>

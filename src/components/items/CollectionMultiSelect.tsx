@@ -8,12 +8,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import type { CollectionOption } from "@/lib/db/collections";
 
 type CollectionMultiSelectProps = {
+  id?: string;
   collections: CollectionOption[];
   selectedIds: string[];
   onChange: (ids: string[]) => void;
 };
 
 export function CollectionMultiSelect({
+  id,
   collections,
   selectedIds,
   onChange,
@@ -28,6 +30,7 @@ export function CollectionMultiSelect({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
+        id={id}
         render={<Button variant="outline" className="w-full justify-between font-normal" />}
       >
         <span className={`truncate text-left ${selected.length === 0 ? "text-muted-foreground" : ""}`}>

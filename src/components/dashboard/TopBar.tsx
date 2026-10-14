@@ -22,34 +22,36 @@ export async function TopBar() {
       <div className="min-w-0 max-w-md flex-1">
         <SearchTrigger />
       </div>
-      <Link
-        href="/favorites"
-        aria-label="Favorites"
-        title="Favorites"
-        className={buttonVariants({ variant: "ghost", size: "icon" })}
-      >
-        <Star />
-      </Link>
-      {!currentUser.isPro && (
+      <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4">
         <Link
-          href="/upgrade"
-          aria-label="Upgrade"
-          title="Upgrade to Pro"
-          className={buttonVariants({
-            variant: "ghost",
-            className: "text-muted-foreground @max-xl:size-8 @max-xl:px-0",
-          })}
+          href="/favorites"
+          aria-label="Favorites"
+          title="Favorites"
+          className={buttonVariants({ variant: "ghost", size: "icon" })}
         >
-          <Sparkles />
-          <span className="hidden @xl:inline">Upgrade</span>
+          <Star />
         </Link>
-      )}
-      <NewCollectionDialog />
-      <NewItemDialog
-        itemTypes={itemTypes}
-        collections={collections.map((c) => ({ id: c.id, name: c.name }))}
-        isPro={currentUser.isPro}
-      />
+        {!currentUser.isPro && (
+          <Link
+            href="/upgrade"
+            aria-label="Upgrade"
+            title="Upgrade to Pro"
+            className={buttonVariants({
+              variant: "ghost",
+              className: "text-muted-foreground @max-xl:size-8 @max-xl:px-0",
+            })}
+          >
+            <Sparkles />
+            <span className="hidden @xl:inline">Upgrade</span>
+          </Link>
+        )}
+        <NewCollectionDialog />
+        <NewItemDialog
+          itemTypes={itemTypes}
+          collections={collections.map((c) => ({ id: c.id, name: c.name }))}
+          isPro={currentUser.isPro}
+        />
+      </div>
     </header>
   );
 }

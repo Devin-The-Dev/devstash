@@ -20,7 +20,7 @@ export default async function DashboardPage() {
   const { collections: topCollections, totalCount: totalCollections } = collectionsPage;
 
   return (
-    <main className="flex-1 space-y-8 p-6">
+    <div className="flex-1 space-y-8 p-6">
       <div>
         <h1 className="text-2xl font-semibold">
           Welcome back, {currentUser.name.split(" ")[0]}
@@ -43,6 +43,6 @@ export default async function DashboardPage() {
       <PinnedItemsSection items={pinnedItems} />
 
       <RecentItemsSection items={recentItems} />
-    </main>
+    </div>
   );
 }

@@ -87,7 +87,7 @@ function BillingToggle({ yearly, onChange }: { yearly: boolean; onChange: (yearl
         aria-checked={yearly}
         aria-label="Bill yearly"
         onClick={() => onChange(!yearly)}
-        className="relative h-[26px] w-12 cursor-pointer rounded-full border border-home-border-strong bg-home-surface-2 transition-colors aria-checked:border-home-brand aria-checked:bg-home-brand"
+        className="touch-target h-[26px] w-12 cursor-pointer rounded-full border border-home-border-strong bg-home-surface-2 transition-colors aria-checked:border-home-brand aria-checked:bg-home-brand"
       >
         <span
           className={cn(

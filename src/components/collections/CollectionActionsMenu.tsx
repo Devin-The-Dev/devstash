@@ -34,7 +34,7 @@ export function CollectionActionsMenu({ collection }: { collection: CollectionSu
               variant="ghost"
               size="icon-sm"
               aria-label="Collection actions"
-              className="text-muted-foreground hover:text-foreground"
+              className="touch-target text-muted-foreground hover:text-foreground"
             />
           }
         >

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Box, LayoutDashboard, LogOut, Settings, Star, Clock, User } from "lucide-react";
+import { ArrowRight, Box, LayoutDashboard, LogOut, Settings, Sparkles, Star, Clock, User } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -123,10 +123,13 @@ export async function AppSidebar() {
               {recentCollections.map((collection) => (
                 <SidebarMenuItem key={collection.id}>
                   <SidebarNavLink href={`/collections/${collection.id}`} tooltip={collection.name}>
-                    <span
-                      className="size-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: collection.dominantColor ?? "#6b7280" }}
-                    />
+                    {/* size-4 box keeps the dot aligned with the icons in other groups. */}
+                    <span className="flex size-4 shrink-0 items-center justify-center">
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ backgroundColor: collection.dominantColor ?? "#6b7280" }}
+                      />
+                    </span>
                     <span>{collection.name}</span>
                   </SidebarNavLink>
                 </SidebarMenuItem>
@@ -135,7 +138,7 @@ export async function AppSidebar() {
                 {/* Exact: on /collections/[id] the collection's own link is the active one. */}
                 <SidebarNavLink href="/collections" tooltip="View all collections" exact>
                   <ArrowRight />
-                  <span className="text-muted-foreground">View all collections</span>
+                  <span>View all collections</span>
                 </SidebarNavLink>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -146,8 +149,14 @@ export async function AppSidebar() {
         {!currentUser.isPro && (
           <Link
             href="/upgrade"
-            className={buttonVariants({ size: "sm", className: "w-full group-data-[collapsible=icon]:hidden" })}
+            // Secondary style: the billing card on /settings is the primary upgrade CTA.
+            className={buttonVariants({
+              variant: "outline",
+              size: "sm",
+              className: "w-full group-data-[collapsible=icon]:hidden",
+            })}
           >
+            <Sparkles />
             Upgrade to Pro
           </Link>
         )}

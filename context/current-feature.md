@@ -1,18 +1,12 @@
-# Current Feature
+# Current Feature: UI Polish Follow-ups
 
-<!-- Feature name and short description -->
+Work through every follow-up left over from the UI Layout Fixes review.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
-
-<!-- Goals and requirements -->
-
-## Follow-ups (from UI review)
-
-Left over from UI Layout Fixes. Pick from here for the next UI branch.
 
 ### Medium
 
@@ -36,6 +30,15 @@ Left over from UI Layout Fixes. Pick from here for the next UI branch.
 - **Landing page.** Consider a social-proof strip under the hero. Make sure the scroll-reveal sections still show with JS off or reduced motion on.
 
 ## Notes
+
+- Source: follow-ups from the UI Layout Fixes review.
+- Landing social-proof strip: only add it if there's real content for it. Don't invent testimonials or user counts. Skipped for now.
+- Landing scroll-reveal already stays visible with JS off or reduced motion (`Reveal.tsx` only hides content under `js:motion-safe:`). No change needed.
+- Upgrade entry points: the billing card on /settings is the primary CTA. The sidebar footer is now an outline button and the top bar stays ghost/muted.
+- Upgrade plans: kept Free left / Pro right on desktop (reads current → upgrade). Pro stays first on mobile.
+- Touch targets: new `touch-target` utility in `globals.css` grows the hit area to 40px on `pointer: coarse` without changing visuals. The pin on cards is a static indicator, not a button, so it isn't included.
+- Muted text: the token already passed AA. It was raised anyway for headroom on hover and accent backgrounds (light 0.556 → 0.5, dark 0.708 → 0.75).
+- Removed `formatIsoDate` (and its test) since Favorites now uses relative dates.
 
 ## History
 

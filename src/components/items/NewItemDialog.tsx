@@ -43,10 +43,10 @@ type FormState = {
   file: UploadedFile | null;
 };
 
-function emptyForm(typeId: string): FormState {
+function emptyForm(typeId: string, collectionIds: string[] = []): FormState {
   return {
     typeId,
-    collectionIds: [],
+    collectionIds,
     title: "",
     description: "",
     tags: "",
@@ -61,23 +61,33 @@ export function NewItemDialog({
   itemTypes,
   collections,
   isPro,
+  variant = "toolbar",
+  initialTypeId,
+  initialCollectionIds,
 }: {
   itemTypes: ItemTypeSummary[];
   collections: CollectionOption[];
   isPro: boolean;
+  // "toolbar" collapses to an icon in narrow top bars; "cta" always shows the label.
+  variant?: "toolbar" | "cta";
+  initialTypeId?: string;
+  initialCollectionIds?: string[];
 }) {
   const router = useRouter();
   const creatableTypes = itemTypes.filter((type) => CREATABLE_ITEM_TYPES.includes(type.name));
+  const isToolbar = variant === "toolbar";
+  const defaultTypeId =
+    creatableTypes.find((type) => type.id === initialTypeId)?.id ?? creatableTypes[0]?.id ?? "";
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [form, setForm] = useState<FormState>(() => emptyForm(creatableTypes[0]?.id ?? ""));
+  const [form, setForm] = useState<FormState>(() => emptyForm(defaultTypeId, initialCollectionIds));
 
   const typeName = creatableTypes.find((type) => type.id === form.typeId)?.name ?? "";
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
     if (next) {
-      setForm(emptyForm(creatableTypes[0]?.id ?? ""));
+      setForm(emptyForm(defaultTypeId, initialCollectionIds));
     }
   }
 
@@ -122,11 +132,11 @@ export function NewItemDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger
         render={<Button />}
-        aria-label="New item"
-        className="@max-xl:size-8 @max-xl:px-0"
+        aria-label={isToolbar ? "New item" : undefined}
+        className={isToolbar ? "@max-xl:size-8 @max-xl:px-0" : undefined}
       >
         <Plus className="size-4" />
-        <span className="hidden @xl:inline">New item</span>
+        <span className={isToolbar ? "hidden @xl:inline" : undefined}>New item</span>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
@@ -139,13 +149,13 @@ export function NewItemDialog({
         <div className="grid gap-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Type</Label>
+              <Label htmlFor="new-item-type">Type</Label>
               <Select
                 items={creatableTypes.map((type) => ({ value: type.id, label: type.name }))}
                 value={form.typeId}
                 onValueChange={(value) => setForm((f) => ({ ...f, typeId: value as string }))}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="new-item-type" className="w-full">
                   <SelectValue placeholder="Select a type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -163,8 +173,9 @@ export function NewItemDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label>Collections</Label>
+              <Label htmlFor="new-item-collections">Collections</Label>
               <CollectionMultiSelect
+                id="new-item-collections"
                 collections={collections}
                 selectedIds={form.collectionIds}
                 onChange={(collectionIds) => setForm((f) => ({ ...f, collectionIds }))}

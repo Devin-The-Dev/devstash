@@ -30,8 +30,12 @@ export function ResetPasswordForm({ token }: { token: string }) {
           type="password"
           autoComplete="new-password"
           minLength={8}
+          aria-describedby="password-hint"
           required
         />
+        <p id="password-hint" className="text-xs text-muted-foreground">
+          Minimum 8 characters.
+        </p>
       </div>
 
       <div className="space-y-1.5">

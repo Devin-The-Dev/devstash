@@ -53,7 +53,7 @@ export function ItemCard({ item }: { item: ItemSummary }) {
                 variant="ghost"
                 size="icon-sm"
                 aria-label="Copy"
-                className="-m-1 text-muted-foreground hover:text-foreground"
+                className="touch-target -m-1 text-muted-foreground hover:text-foreground"
                 onClick={handleCopy}
               >
                 {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}

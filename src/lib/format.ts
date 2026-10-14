@@ -23,14 +23,6 @@ export function formatDate(date: Date | string): string {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "long" }).format(new Date(date));
 }
 
-// YYYY-MM-DD in local time, for dense monospace list columns.
-export function formatIsoDate(date: Date | string): string {
-  const d = new Date(date);
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${month}-${day}`;
-}
-
 // "1 item", "3 items". Pass `plural` for words that don't just take an "s".
 export function formatCount(count: number, singular: string, plural = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : plural}`;

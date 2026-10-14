@@ -101,7 +101,8 @@
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
+    /* ~5.9:1 on white, so it stays above WCAG AA on hover/accent backgrounds. */
+    --muted-foreground: oklch(0.5 0 0);
     --accent: oklch(0.97 0 0);
     --accent-foreground: oklch(0.205 0 0);
     --destructive: oklch(0.577 0.245 27.325);
@@ -136,7 +137,8 @@
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
     --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
+    /* ~8:1 on the background and ~6.5:1 on accent, for small text like timestamps. */
+    --muted-foreground: oklch(0.75 0 0);
     --accent: oklch(0.269 0 0);
     --accent-foreground: oklch(0.985 0 0);
     --destructive: oklch(0.704 0.191 22.216);
@@ -156,6 +158,24 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* Grows a small control's hit area to 40px on touch screens without changing
+   its visual size or the layout around it. */
+@utility touch-target {
+    position: relative;
+
+    @media (pointer: coarse) {
+        &::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: max(100%, 2.5rem);
+            height: max(100%, 2.5rem);
+            transform: translate(-50%, -50%);
+        }
+    }
 }
 
 @layer base {
