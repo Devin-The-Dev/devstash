@@ -2,13 +2,11 @@
 
 import type Stripe from "stripe";
 import { z } from "zod";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getStripe, getPriceId, isProStatus } from "@/lib/stripe";
 import { getBillingUser, syncSubscription } from "@/lib/db/billing";
 import { getBaseUrl } from "@/lib/url";
-
-type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
+import { runUserAction, type ActionResult } from "@/lib/action-result";
 
 const intervalSchema = z.enum(["monthly", "yearly"]);
 
@@ -45,75 +43,69 @@ async function findProSubscription(customerId: string): Promise<Stripe.Subscript
   return data.find((subscription) => isProStatus(subscription.status));
 }
 
+const CHECKOUT_ERROR = "Could not start checkout";
+
 export async function createCheckoutSession(interval: unknown): Promise<ActionResult<{ url: string }>> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: "Unauthorized" };
-  }
+  return runUserAction(
+    "createCheckoutSession",
+    async (userId) => {
+      const parsed = intervalSchema.safeParse(interval);
+      if (!parsed.success) {
+        return { success: false, error: "Invalid billing interval" };
+      }
 
-  const parsed = intervalSchema.safeParse(interval);
-  if (!parsed.success) {
-    return { success: false, error: "Invalid billing interval" };
-  }
+      const user = await getBillingUser(userId);
+      if (user?.isPro) {
+        return { success: false, error: "You already have DevStash Pro" };
+      }
 
-  try {
-    const user = await getBillingUser(session.user.id);
-    if (user?.isPro) {
-      return { success: false, error: "You already have DevStash Pro" };
-    }
+      const customerId = await getOrCreateCustomerId(userId);
 
-    const customerId = await getOrCreateCustomerId(session.user.id);
+      // isPro lags when webhooks are delayed or failing, so ask Stripe directly
+      // before starting a second subscription for the same customer.
+      const existing = await findProSubscription(customerId);
+      if (existing) {
+        await syncSubscription(existing);
+        return { success: false, error: "You already have DevStash Pro" };
+      }
 
-    // isPro lags when webhooks are delayed or failing, so ask Stripe directly
-    // before starting a second subscription for the same customer.
-    const existing = await findProSubscription(customerId);
-    if (existing) {
-      await syncSubscription(existing);
-      return { success: false, error: "You already have DevStash Pro" };
-    }
+      const baseUrl = getBaseUrl();
 
-    const baseUrl = getBaseUrl();
+      const checkout = await getStripe().checkout.sessions.create({
+        mode: "subscription",
+        customer: customerId,
+        client_reference_id: userId,
+        line_items: [{ price: getPriceId(parsed.data), quantity: 1 }],
+        allow_promotion_codes: true,
+        subscription_data: { metadata: { userId } },
+        success_url: `${baseUrl}/settings?checkout=success&session_id={CHECKOUT_SESSION_ID}#billing`,
+        cancel_url: `${baseUrl}/settings?checkout=canceled#billing`,
+      });
 
-    const checkout = await getStripe().checkout.sessions.create({
-      mode: "subscription",
-      customer: customerId,
-      client_reference_id: session.user.id,
-      line_items: [{ price: getPriceId(parsed.data), quantity: 1 }],
-      allow_promotion_codes: true,
-      subscription_data: { metadata: { userId: session.user.id } },
-      success_url: `${baseUrl}/settings?checkout=success&session_id={CHECKOUT_SESSION_ID}#billing`,
-      cancel_url: `${baseUrl}/settings?checkout=canceled#billing`,
-    });
-
-    if (!checkout.url) {
-      return { success: false, error: "Could not start checkout" };
-    }
-    return { success: true, data: { url: checkout.url } };
-  } catch (error) {
-    console.error("createCheckoutSession failed", error);
-    return { success: false, error: "Could not start checkout" };
-  }
+      if (!checkout.url) {
+        return { success: false, error: CHECKOUT_ERROR };
+      }
+      return { success: true, data: { url: checkout.url } };
+    },
+    CHECKOUT_ERROR,
+  );
 }
 
 export async function createPortalSession(): Promise<ActionResult<{ url: string }>> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: "Unauthorized" };
-  }
+  return runUserAction(
+    "createPortalSession",
+    async (userId) => {
+      const user = await getBillingUser(userId);
+      if (!user?.stripeCustomerId) {
+        return { success: false, error: "No billing account found" };
+      }
 
-  try {
-    const user = await getBillingUser(session.user.id);
-    if (!user?.stripeCustomerId) {
-      return { success: false, error: "No billing account found" };
-    }
-
-    const portal = await getStripe().billingPortal.sessions.create({
-      customer: user.stripeCustomerId,
-      return_url: `${getBaseUrl()}/settings#billing`,
-    });
-    return { success: true, data: { url: portal.url } };
-  } catch (error) {
-    console.error("createPortalSession failed", error);
-    return { success: false, error: "Could not open billing portal" };
-  }
+      const portal = await getStripe().billingPortal.sessions.create({
+        customer: user.stripeCustomerId,
+        return_url: `${getBaseUrl()}/settings#billing`,
+      });
+      return { success: true, data: { url: portal.url } };
+    },
+    "Could not open billing portal",
+  );
 }

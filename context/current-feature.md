@@ -1,10 +1,21 @@
-# Current Feature
+# Current Feature: Server Actions Refactor
+
+Remove duplicated code in `src/actions/` found by the `refactor-scanner` agent: all high and medium findings, plus the collection revalidate group (low #7). Behavior and error messages stay the same.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
+
+- Add `runUserAction(name, (userId) => ...)` to `src/lib/action-result.ts`: session check returning "Unauthorized", wrapped in `runAction`. Use it in `items`, `collections`, `search`, `billing`, `editor-preferences` and `ai`
+- Add `firstIssue(error, fallback)` and replace every `parsed.error.issues[0]?.message ?? ...` in `src/actions/` (including the form-state actions in `profile.ts` and `auth.ts`)
+- Give `runAction` an optional fallback error message so `billing.ts` keeps "Could not start checkout" / "Could not open billing portal"
+- `billing.ts` and `editor-preferences.ts`: import the shared `ActionResult` and use the shared wrapper (editor-preferences previously let database errors throw to the client)
+- `items.ts`: private `findOwnedItem` for the four ownership lookups, and a shared `toggleItemFlag` behind `toggleItemFavorite` / `toggleItemPinned`
+- `collections.ts`: `revalidateCollection(id)` for the repeated `revalidatePath` group
+- `ai.ts`: `authorizeAiRequest` takes the user id from `runUserAction` and only checks Pro + rate limit
+- Unit tests for the new `action-result` helpers; existing action tests pass unchanged
 
 ## Follow-ups (from UI review)
 

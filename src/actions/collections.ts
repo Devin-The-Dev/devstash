@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
 import {
   deleteCollection,
   toggleCollectionFavorite as toggleCollectionFavoriteQuery,
@@ -9,24 +8,25 @@ import {
   type CollectionRecord,
 } from "@/lib/db/collections";
 import { updateCollectionSchema } from "@/lib/validations/collections";
-import { runAction, type ActionResult } from "@/lib/action-result";
+import { firstIssue, runUserAction, type ActionResult } from "@/lib/action-result";
+
+function revalidateCollection(collectionId: string) {
+  revalidatePath("/collections");
+  revalidatePath(`/collections/${collectionId}`);
+  revalidatePath("/dashboard");
+}
 
 export async function updateCollectionAction(
   collectionId: string,
   input: { name: string; description: string | null },
 ): Promise<ActionResult<CollectionRecord>> {
-  return runAction("updateCollectionAction", async () => {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false, error: "Unauthorized" };
-    }
-
+  return runUserAction("updateCollectionAction", async (userId) => {
     const parsed = updateCollectionSchema.safeParse(input);
     if (!parsed.success) {
-      return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+      return { success: false, error: firstIssue(parsed.error) };
     }
 
-    const updated = await updateCollection(session.user.id, collectionId, {
+    const updated = await updateCollection(userId, collectionId, {
       name: parsed.data.name,
       description: parsed.data.description || null,
     });
@@ -34,9 +34,7 @@ export async function updateCollectionAction(
       return { success: false, error: "Collection not found" };
     }
 
-    revalidatePath("/collections");
-    revalidatePath(`/collections/${collectionId}`);
-    revalidatePath("/dashboard");
+    revalidateCollection(collectionId);
 
     return { success: true, data: updated };
   });
@@ -45,20 +43,13 @@ export async function updateCollectionAction(
 export async function deleteCollectionAction(
   collectionId: string,
 ): Promise<ActionResult<null>> {
-  return runAction("deleteCollectionAction", async () => {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false, error: "Unauthorized" };
-    }
-
-    const deleted = await deleteCollection(session.user.id, collectionId);
+  return runUserAction("deleteCollectionAction", async (userId) => {
+    const deleted = await deleteCollection(userId, collectionId);
     if (!deleted) {
       return { success: false, error: "Collection not found" };
     }
 
-    revalidatePath("/collections");
-    revalidatePath(`/collections/${collectionId}`);
-    revalidatePath("/dashboard");
+    revalidateCollection(collectionId);
 
     return { success: true, data: null };
   });
@@ -67,13 +58,8 @@ export async function deleteCollectionAction(
 export async function toggleCollectionFavorite(
   collectionId: string,
 ): Promise<ActionResult<{ isFavorite: boolean }>> {
-  return runAction("toggleCollectionFavorite", async () => {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false, error: "Unauthorized" };
-    }
-
-    const updated = await toggleCollectionFavoriteQuery(session.user.id, collectionId);
+  return runUserAction("toggleCollectionFavorite", async (userId) => {
+    const updated = await toggleCollectionFavoriteQuery(userId, collectionId);
     if (!updated) {
       return { success: false, error: "Collection not found" };
     }

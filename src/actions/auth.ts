@@ -9,6 +9,7 @@ import { findResetEligibleUser } from "@/lib/db/user";
 import { createPasswordResetToken, consumePasswordResetToken } from "@/lib/db/verification";
 import { sendPasswordResetEmail } from "@/lib/email/send-password-reset-email";
 import { getBaseUrl } from "@/lib/url";
+import { firstIssue } from "@/lib/action-result";
 import {
   checkRateLimit,
   forgotPasswordRateLimit,
@@ -29,7 +30,7 @@ export async function signInWithCredentials(
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: firstIssue(parsed.error) };
   }
 
   const callbackUrl = formData.get("callbackUrl")?.toString() || "/dashboard";
@@ -74,7 +75,7 @@ export async function requestPasswordReset(
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: firstIssue(parsed.error) };
   }
 
   const ip = await getClientIp();
@@ -125,7 +126,7 @@ export async function resetPassword(
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: firstIssue(parsed.error) };
   }
 
   const hashedPassword = await bcrypt.hash(parsed.data.password, 12);

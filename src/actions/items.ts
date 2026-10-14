@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   createItem as createItemQuery,
@@ -20,7 +20,13 @@ import {
   UPLOAD_CONSTRAINTS,
 } from "@/lib/upload-constraints";
 import { canCreateItem } from "@/lib/usage-limits";
-import { runAction, type ActionResult } from "@/lib/action-result";
+import { firstIssue, runUserAction, type ActionResult } from "@/lib/action-result";
+
+const ITEM_NOT_FOUND = { success: false, error: "Item not found" } as const;
+
+function findOwnedItem<S extends Prisma.ItemSelect>(userId: string, itemId: string, select: S) {
+  return prisma.item.findFirst({ where: { id: itemId, userId }, select });
+}
 
 async function assertOwnedCollections(userId: string, collectionIds: string[]): Promise<boolean> {
   if (collectionIds.length === 0) return true;
@@ -32,15 +38,10 @@ async function assertOwnedCollections(userId: string, collectionIds: string[]): 
 }
 
 export async function createItem(input: unknown): Promise<ActionResult<ItemDetail>> {
-  return runAction("createItem", async () => {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false, error: "Unauthorized" };
-    }
-
+  return runUserAction("createItem", async (userId) => {
     const parsed = createItemSchema.safeParse(input);
     if (!parsed.success) {
-      return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+      return { success: false, error: firstIssue(parsed.error) };
     }
 
     const types = await getSystemItemTypes();
@@ -50,7 +51,7 @@ export async function createItem(input: unknown): Promise<ActionResult<ItemDetai
     }
 
     // Also covers File/Image: a fileUrl can be submitted without going through /api/upload.
-    const gate = await canCreateItem(session.user.id, type.name);
+    const gate = await canCreateItem(userId, type.name);
     if (!gate.allowed) {
       return { success: false, error: gate.error };
     }
@@ -72,7 +73,7 @@ export async function createItem(input: unknown): Promise<ActionResult<ItemDetai
       const constraint = UPLOAD_CONSTRAINTS[type.name === "Image" ? "image" : "file"];
       if (
         !key ||
-        !key.startsWith(`${session.user.id}/`) ||
+        !key.startsWith(`${userId}/`) ||
         !constraint.extensions.includes(getExtension(key))
       ) {
         return { success: false, error: "Invalid file" };
@@ -98,12 +99,12 @@ export async function createItem(input: unknown): Promise<ActionResult<ItemDetai
       fileSize = object.contentLength;
     }
 
-    if (!(await assertOwnedCollections(session.user.id, parsed.data.collectionIds))) {
+    if (!(await assertOwnedCollections(userId, parsed.data.collectionIds))) {
       return { success: false, error: "Collection not found" };
     }
 
     const isLink = type.name === "Link";
-    const created = await createItemQuery(session.user.id, {
+    const created = await createItemQuery(userId, {
       typeId: type.id,
       collectionIds: parsed.data.collectionIds,
       title: parsed.data.title,
@@ -122,117 +123,78 @@ export async function createItem(input: unknown): Promise<ActionResult<ItemDetai
   });
 }
 
-export async function toggleItemFavorite(
+/**
+ * Flips a boolean flag on an item the user owns. Favorite and pinned state
+ * show up in the sidebar, dashboard, /favorites, card indicators and listing
+ * order, so the whole app shell is refreshed in the action's response.
+ */
+async function toggleItemFlag<F extends "isFavorite" | "isPinned">(
+  name: string,
   itemId: string,
-): Promise<ActionResult<{ isFavorite: boolean }>> {
-  return runAction("toggleItemFavorite", async () => {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false, error: "Unauthorized" };
-    }
-
-    const item = await prisma.item.findFirst({
-      where: { id: itemId, userId: session.user.id },
-      select: { isFavorite: true },
-    });
+  field: F,
+): Promise<ActionResult<Record<F, boolean>>> {
+  return runUserAction(name, async (userId) => {
+    const select = { [field]: true } as Record<F, true>;
+    const item = (await findOwnedItem(userId, itemId, select)) as Record<F, boolean> | null;
     if (!item) {
-      return { success: false, error: "Item not found" };
+      return ITEM_NOT_FOUND;
     }
 
     const updated = await prisma.item.update({
       where: { id: itemId },
-      data: { isFavorite: !item.isFavorite },
-      select: { isFavorite: true },
+      data: { [field]: !item[field] },
+      select,
     });
 
-    // Favorite state shows up in the sidebar, dashboard stats, /favorites and
-    // every card, so refresh the whole app shell in the action's response.
     revalidatePath("/", "layout");
 
-    return { success: true, data: updated };
+    return { success: true, data: updated as unknown as Record<F, boolean> };
   });
+}
+
+export async function toggleItemFavorite(
+  itemId: string,
+): Promise<ActionResult<{ isFavorite: boolean }>> {
+  return toggleItemFlag("toggleItemFavorite", itemId, "isFavorite");
 }
 
 export async function toggleItemPinned(
   itemId: string,
 ): Promise<ActionResult<{ isPinned: boolean }>> {
-  return runAction("toggleItemPinned", async () => {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false, error: "Unauthorized" };
-    }
-
-    const item = await prisma.item.findFirst({
-      where: { id: itemId, userId: session.user.id },
-      select: { isPinned: true },
-    });
-    if (!item) {
-      return { success: false, error: "Item not found" };
-    }
-
-    const updated = await prisma.item.update({
-      where: { id: itemId },
-      data: { isPinned: !item.isPinned },
-      select: { isPinned: true },
-    });
-
-    // Pinned state drives the dashboard Pinned section, card indicators and
-    // listing order, so refresh the app shell like toggleItemFavorite does.
-    revalidatePath("/", "layout");
-
-    return { success: true, data: updated };
-  });
+  return toggleItemFlag("toggleItemPinned", itemId, "isPinned");
 }
 
 export async function updateItem(
   itemId: string,
   input: unknown,
 ): Promise<ActionResult<ItemDetail>> {
-  return runAction("updateItem", async () => {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false, error: "Unauthorized" };
-    }
-
+  return runUserAction("updateItem", async (userId) => {
     const parsed = updateItemSchema.safeParse(input);
     if (!parsed.success) {
-      return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+      return { success: false, error: firstIssue(parsed.error) };
     }
 
-    const existing = await prisma.item.findFirst({
-      where: { id: itemId, userId: session.user.id },
-      select: { id: true },
-    });
-    if (!existing) {
-      return { success: false, error: "Item not found" };
+    if (!(await findOwnedItem(userId, itemId, { id: true }))) {
+      return ITEM_NOT_FOUND;
     }
 
-    if (!(await assertOwnedCollections(session.user.id, parsed.data.collectionIds))) {
+    if (!(await assertOwnedCollections(userId, parsed.data.collectionIds))) {
       return { success: false, error: "Collection not found" };
     }
 
-    const updated = await updateItemQuery(session.user.id, itemId, parsed.data);
+    const updated = await updateItemQuery(userId, itemId, parsed.data);
 
     return { success: true, data: updated };
   });
 }
 
 export async function deleteItem(itemId: string): Promise<ActionResult<{ id: string }>> {
-  return runAction("deleteItem", async () => {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false, error: "Unauthorized" };
+  return runUserAction("deleteItem", async (userId) => {
+    if (!(await findOwnedItem(userId, itemId, { id: true }))) {
+      return ITEM_NOT_FOUND;
     }
 
-    const item = await prisma.item.findFirst({
-      where: { id: itemId, userId: session.user.id },
-      select: { id: true },
-    });
-    if (!item) {
-      return { success: false, error: "Item not found" };
-    }
-
-    const deleted = await deleteItemQuery(session.user.id, itemId);
+    const deleted = await deleteItemQuery(userId, itemId);
 
     // The item is already gone, so an R2 failure is logged rather than
     // reported back as a failed delete.

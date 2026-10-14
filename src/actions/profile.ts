@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
-import { GENERIC_ACTION_ERROR } from "@/lib/action-result";
+import { firstIssue, GENERIC_ACTION_ERROR } from "@/lib/action-result";
 import { changePasswordRateLimit, checkRateLimit, rateLimitMessage } from "@/lib/rate-limit";
 import { changePasswordSchema, deleteAccountSchema } from "@/lib/validations/profile";
 
@@ -28,7 +28,7 @@ export async function changePassword(
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: firstIssue(parsed.error) };
   }
 
   // Keyed on the user so a hijacked session can't guess the current password freely.
@@ -83,7 +83,7 @@ export async function deleteAccount(
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Type DELETE to confirm" };
+    return { error: firstIssue(parsed.error, "Type DELETE to confirm") };
   }
 
   try {
