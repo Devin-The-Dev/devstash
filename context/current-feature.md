@@ -1,23 +1,14 @@
 # Current Feature
 
-UI Layout Fixes — resolve the top 6 issues from the Playwright UI review.
-
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Sidebar highlights the active link (`isActive` + `aria-current="page"`)
-- Register page gets a "Sign up with GitHub" button (shared with sign-in)
-- Add the missing `/recent` page (sidebar + dashboard "View all" both 404 today)
-- New item dialog Type select shows the type name, not the raw id
-- Move Profile, Settings, and Upgrade under the `(app)` layout so they get the sidebar and top bar
-- Mobile sidebar drawer closes after navigating
-
 ## Follow-ups (from UI review)
 
-Not in scope for this branch. Logged for later.
+Left over from UI Layout Fixes. Pick from here for the next UI branch.
 
 ### Medium
 
@@ -41,8 +32,6 @@ Not in scope for this branch. Logged for later.
 - **Landing page.** Consider a social-proof strip under the hero. Make sure the scroll-reveal sections still show with JS off or reduced motion on.
 
 ## Notes
-
-- Settings syncs the Stripe checkout before reading `isPro`, but `getCurrentUser()` is `cache()`d and the layout now reads it too. Redirect after syncing so the fresh request sees the updated plan everywhere.
 
 ## History
 
@@ -116,3 +105,4 @@ Not in scope for this branch. Logged for later.
 - **2026-10-14** — AI Description Summary completed on `feature/ai-description-summary`. Pro-only Sparkles icon button (ghost, `icon-xs`) on the Description label row of the New Item dialog and the drawer's edit mode, via a new `GenerateDescriptionButton`; hidden for free users and disabled until there is a title, content, URL or file name. `generateSummary` in `src/actions/ai.ts` sends the current unsaved inputs (type, title, language, URL, file name, content truncated to 2000 chars) to `gpt-5-nano` (Responses API, minimal reasoning, low verbosity, `store: false`) for a plain 1-2 sentence description; `cleanSummary` in `src/lib/ai.ts` collapses whitespace, strips wrapping quotes and clamps to `DESCRIPTION_MAX`. The result fills the field until saved (no preview box, unlike the AI plan's §5.2). Auth → `canUseProFeature` → `aiRateLimit` checks and the OpenAI error mapping were extracted into shared `authorizeAiRequest`/`requestAiText` helpers used by both AI actions. The drawer applies the reply through a separate `onDescriptionGenerated` updater so edits made while it is generating aren't overwritten. 14 new tests; verified in the browser with the demo user temporarily set to Pro on the dev branch.
 - **2026-10-14** — AI Explain Code completed on `feature/ai-explain-code`. Pro-only Explain button (Sparkles) next to Copy in the `CodeEditor` header, shown only for Snippet/Command items in the drawer's read view (`ItemDetailView` passes an `explain` prop with title, type and `isPro`; create/edit forms don't). `explainCode` in `src/actions/ai.ts` reuses `authorizeAiRequest`/`requestAiText`, validates content and a `Snippet | Command` type with Zod, and asks `gpt-5-nano` for a ~200–300 word markdown explanation (low reasoning, medium verbosity, `max_output_tokens: 2500`, content truncated to 2000 chars). Kept as a non-streaming Server Action per the spec, not the streaming route handler in the AI plan's §5.3. After the first explanation the header swaps the window dots for Code/Explain tabs; the explanation renders with `react-markdown` in the editor's space and Monaco stays mounted (`keepMounted`). Not persisted: the editor is keyed on item id + `updatedAt` so a stale explanation never shows. Free users get a Crown button with an "AI features require Pro subscription" tooltip (click also toasts). Errors toast via the shared mapping; new `NO_EXPLANATION_ERROR`. 11 new tests (284 total). Verified in browser as free (Crown + tooltip) and Pro (spinner, explanation, tab switching) with the demo user temporarily set to Pro on the dev branch. Open: the 2000-char content cap can cut long snippets short.
 - **2026-10-14** — AI Prompt Optimizer completed on `feature/ai-prompt-optimizer`. Pro-only Optimize button (Sparkles) next to Copy in the read-only `MarkdownEditor` header, shown only for Prompt items in the drawer's read view (`optimize` prop from `ItemDetailView`). `optimizePrompt` in `src/actions/ai.ts` reuses `authorizeAiRequest`/`requestAiText` and sends the whole prompt, not truncated, refusing anything over `PROMPT_OPTIMIZE_MAX` (8,000 chars) since the result replaces the content. It uses a strict `json_schema` format (`{optimizedPrompt, changes}`) with `reasoning: minimal`. `parsePromptOptimization` in `src/lib/ai.ts` validates the reply, strips an echoed `<prompt>` wrapper, clamps to `CONTENT_MAX`, caps changes at 6 and flags an unchanged prompt (toast, no tabs). The result shows as Original/Optimized tabs with a "What changed" list and "Use the optimized prompt?": accepting saves through `updateItem` via a new `persistItem` helper in `ItemDrawer` (shared with Save) and keeps every other field; Discard reverts. `ExplainCodeButton` became the shared `AiFeatureButton`. Gotchas found in the browser: `json_object` mode made gpt-5-nano double-escape newlines and copy the input wrapper into the prompt (fixed by the strict schema and clearer instructions); `reasoning: low` took 30–40 s, past the client's 30 s timeout (`minimal` takes about 2 s, with more modest rewrites). 19 new tests (303 total). Verified in browser with the demo user temporarily set to Pro on the dev branch; the test prompt's content was restored afterwards.
+- **2026-10-14** — UI Layout Fixes completed on `fix/ui-layout-review`, resolving the top 6 issues from the Playwright UI review. **Sidebar active state:** new client `SidebarNavLink` sets `isActive` and `aria-current="page"` using `isActivePath` (`src/lib/nav.ts`; prefix match so nested routes keep their parent lit, sibling-prefix safe, `exact` for "View all collections" so a collection's own link wins on `/collections/[id]`). **Mobile drawer** closes after any navigation via `CloseMobileSidebarOnNavigate`, mounted in the `(app)` layout rather than inside `AppSidebar` (its children mount in the drawer on mobile, so the effect would close it on open). **Register** gets "Sign up with GitHub" through a `GitHubSignIn` component (OR divider + OAuth form) shared with sign-in. **`/recent`** page added (paginated, `getRecentItems` in `items.ts` orders purely by `lastUsedAt` with the visibility filter, empty state, loading skeleton, proxy-protected); the sidebar and dashboard "View all" no longer 404. **New item Type select** shows the type name by passing `items` to the Base UI Select. **Profile, Settings, Upgrade** moved into the `(app)` route group (sidebar + top bar; "Back to dashboard" links removed; Settings uses the layout's `EditorPreferencesProvider`). Settings now `redirect`s to `/settings?checkout=success#billing` after syncing a Stripe checkout, because the layout reads the `cache()`d `getCurrentUser()` in parallel and could otherwise show the pre-checkout plan. Verified: 308/308 tests (new `nav.test.ts`), lint, `npm run build`, and a Playwright pass at 1440px and 390px as the demo user. Active links carry `aria-current`/`data-active` with a visible highlight on every nav route, register shows the GitHub button, the drawer closes on tap, the Type select reads "Snippet", and `/recent`, `/profile`, `/settings` and `/upgrade` render in the app shell with no horizontal overflow. **Follow-ups:** see the Follow-ups section above (top bar alignment, nested `<main>`, subtler-than-ideal active state, Favorites styling, item drawer width, touch targets, auth page polish, Upgrade duplication, plan card centring, mobile stat alignment, empty states, label `htmlFor`).
