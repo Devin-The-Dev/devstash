@@ -1,44 +1,16 @@
-# Current Feature: UI Polish Follow-ups
+# Current Feature
 
-Work through every follow-up left over from the UI Layout Fixes review.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-### Medium
-
-- **Top bar actions bunch up on the left.** The buttons stop about 230px short of the right edge at 1440px. Make the search `flex-1` or push the actions right with `ml-auto` (`TopBar.tsx`).
-- **Nested `<main>` elements.** `SidebarInset` renders a `<main>` and each `(app)` page renders another. Make the page-level wrappers `div`s.
-- **Favorites page doesn't match the rest of the app.** It uses monospace text, ISO dates and a dense table, while other pages use cards and relative dates ("1w ago"). Titles are cut off on mobile. Unify typography and date format, and hide the badge or date below `sm` (`FavoritesList.tsx`).
-- **Item drawer is too narrow.** Code lines wrap awkwardly. Action buttons (star, pin, copy, edit, delete) are icon-only with no labels or tooltips, and Delete sits right next to Edit. Widen to `sm:max-w-xl` or more, add `aria-label`s and tooltips, and separate Delete.
-- **Sidebar alignment.** Recent-collection dots sit about 6px off from the icons in other groups. Wrap the dot in a `size-4` box. "View all collections" uses muted text that reads as disabled.
-- **Touch targets are under 32px on mobile.** Affected: card copy, pin, star and ⋮ icons, and the Monthly/Yearly toggle. Aim for at least 40px on touch.
-- **Auth pages are bare.** No logo and no link back to home. Register doesn't explain the password rule ("Minimum 8 characters").
-- **Sidebar active state is too subtle.** It's only a faint grey background and weight 500, and the brighter "Upgrade to Pro" footer button reads as the selected item. Add a left accent bar or more contrast (`SidebarNavLink.tsx`).
-
-### Low
-
-- **Low-contrast muted text.** Affected: card timestamps, "Sort by", the "OR" divider and "Forgot password?". Check against WCAG AA (4.5:1) and raise the `muted-foreground` token if needed.
-- **"Upgrade" shows up three times at once:** sidebar footer, top bar and billing card. Keep one primary entry point and make the others secondary.
-- **Empty states.** Add an icon, one line of text and a CTA to list pages that can be empty (e.g. Collections, Files, Images).
-- **New item dialog labels.** "Type" and "Collections" `<Label>`s have no `htmlFor`, so screen readers don't announce them (`NewItemDialog.tsx`).
-- **Upgrade plan cards are off-centre on desktop.** About 850px of cards sit left-aligned in a 1150px content area. Centre them with `mx-auto`. Also decide whether desktop should put Pro first, to match mobile (`UpgradePlans.tsx`).
-- **Dashboard stat numbers don't line up on mobile.** "Favorite collections" wraps to two lines, so its number sits lower than the others. Shorten the label or bottom-align the numbers.
-- **Landing page.** Consider a social-proof strip under the hero. Make sure the scroll-reveal sections still show with JS off or reduced motion on.
+<!-- Goals and requirements -->
 
 ## Notes
-
-- Source: follow-ups from the UI Layout Fixes review.
-- Landing social-proof strip: only add it if there's real content for it. Don't invent testimonials or user counts. Skipped for now.
-- Landing scroll-reveal already stays visible with JS off or reduced motion (`Reveal.tsx` only hides content under `js:motion-safe:`). No change needed.
-- Upgrade entry points: the billing card on /settings is the primary CTA. The sidebar footer is now an outline button and the top bar stays ghost/muted.
-- Upgrade plans: kept Free left / Pro right on desktop (reads current → upgrade). Pro stays first on mobile.
-- Touch targets: new `touch-target` utility in `globals.css` grows the hit area to 40px on `pointer: coarse` without changing visuals. The pin on cards is a static indicator, not a button, so it isn't included.
-- Muted text: the token already passed AA. It was raised anyway for headroom on hover and accent backgrounds (light 0.556 → 0.5, dark 0.708 → 0.75).
-- Removed `formatIsoDate` (and its test) since Favorites now uses relative dates.
 
 ## History
 
@@ -115,3 +87,4 @@ In Progress
 - **2026-10-14** — UI Layout Fixes completed on `fix/ui-layout-review`, resolving the top 6 issues from the Playwright UI review. **Sidebar active state:** new client `SidebarNavLink` sets `isActive` and `aria-current="page"` using `isActivePath` (`src/lib/nav.ts`; prefix match so nested routes keep their parent lit, sibling-prefix safe, `exact` for "View all collections" so a collection's own link wins on `/collections/[id]`). **Mobile drawer** closes after any navigation via `CloseMobileSidebarOnNavigate`, mounted in the `(app)` layout rather than inside `AppSidebar` (its children mount in the drawer on mobile, so the effect would close it on open). **Register** gets "Sign up with GitHub" through a `GitHubSignIn` component (OR divider + OAuth form) shared with sign-in. **`/recent`** page added (paginated, `getRecentItems` in `items.ts` orders purely by `lastUsedAt` with the visibility filter, empty state, loading skeleton, proxy-protected); the sidebar and dashboard "View all" no longer 404. **New item Type select** shows the type name by passing `items` to the Base UI Select. **Profile, Settings, Upgrade** moved into the `(app)` route group (sidebar + top bar; "Back to dashboard" links removed; Settings uses the layout's `EditorPreferencesProvider`). Settings now `redirect`s to `/settings?checkout=success#billing` after syncing a Stripe checkout, because the layout reads the `cache()`d `getCurrentUser()` in parallel and could otherwise show the pre-checkout plan. Verified: 308/308 tests (new `nav.test.ts`), lint, `npm run build`, and a Playwright pass at 1440px and 390px as the demo user. Active links carry `aria-current`/`data-active` with a visible highlight on every nav route, register shows the GitHub button, the drawer closes on tap, the Type select reads "Snippet", and `/recent`, `/profile`, `/settings` and `/upgrade` render in the app shell with no horizontal overflow. **Follow-ups:** see the Follow-ups section above (top bar alignment, nested `<main>`, subtler-than-ideal active state, Favorites styling, item drawer width, touch targets, auth page polish, Upgrade duplication, plan card centring, mobile stat alignment, empty states, label `htmlFor`).
 - **2026-10-14** — Server Actions Refactor completed on `fix/actions-refactor`, from a `refactor-scanner` scan of `src/actions/`. New `runUserAction` (session check + `runAction`) and `firstIssue` (first Zod issue message) in `src/lib/action-result.ts`, used across all actions; `runAction` takes an optional fallback message so billing keeps its custom errors. `billing.ts` and `editor-preferences.ts` now use the shared `ActionResult` and error wrapper (editor-preferences no longer throws DB errors to the client). `items.ts` gets `findOwnedItem` and a shared `toggleItemFlag`; `collections.ts` gets `revalidateCollection`; `authorizeAiRequest` takes the user id. Added `action-result.test.ts`. Verified with tests (314), lint, build, and Playwright (item favorite/pin/edit, collection edit/favorite/delete, search, editor preferences, Stripe test checkout).
 - **2026-10-14** — Components Refactor completed on `fix/components-refactor`, from a `refactor-scanner` scan of `src/components/` (findings 1, 2, 4, 10). New `<ItemTypeIcon>` component in `item-type-icons.tsx` replaces inline `itemTypeIconMap[...] ?? Box` lookups (ItemCard, ProUpgradePrompt, ItemDrawer, `/items/[type]`; FavoriteItemRow uses `getItemTypeIcon`). New shared `ConfirmDeleteDialog` behind `DeleteItemDialog` and `DeleteCollectionDialog`. `BillingInterval` defined once in `plans.ts` (removed from UpgradePlans, BillingCard, stripe.ts); BillingCard uses `PRO_PLAN_COPY`. New `formatCount` in `format.ts` for all item/collection counts, fixing "1 items" on collection cards and the dashboard greeting. Remaining scanner findings (useActionTransition hook, CopyButton, FormError, ItemDrawer/MarkdownEditor/NewItemDialog/FileUpload/AppSidebar splits) are not done. Verified with tests (317), lint, build, and Playwright.
+- **2026-10-14** — UI Polish Follow-ups completed on `feature/ui-polish-follow-ups`, covering the leftover UI Layout Fixes review items. Top bar actions pushed right; `(app)` page wrappers are `div`s so `SidebarInset` holds the only `<main>`. Sidebar: left accent bar + bold for the active item, recent-collection dots in a `size-4` box, "View all collections" no longer muted, footer Upgrade is now an outline button (the /settings billing card is the primary upgrade CTA). Favorites restyled to sans text, card-style lists and relative dates, badge hidden below `sm`; `formatIsoDate` removed. Item drawer widened (`sm:max-w-xl`, `lg:max-w-2xl`), icon actions get labels + tooltips, Edit is a labeled button with a divider before Delete. New `touch-target` utility in `globals.css` (40px hit area on `pointer: coarse`) on card copy/star/menu buttons, drawer actions and the pricing toggle; settings interval tabs get taller on touch. New `AuthShell` (logo + back-to-home) on all auth pages; register and reset show "Minimum 8 characters." New shared `EmptyState` with a CTA on Collections, item-type, collection detail, Recent and Favorites pages; `NewItemDialog`/`NewCollectionDialog` gained a `cta` variant and `NewItemDialog` can preselect a type or collection. New item Type/Collections labels linked to their fields, upgrade plan cards centred (Free left / Pro right kept on desktop), dashboard stat numbers bottom-aligned, `muted-foreground` raised in both themes. Landing scroll-reveal already handled no-JS/reduced motion; social-proof strip skipped (no real content). Verified with tests (316), lint, build, and Playwright; empty states not checked in the browser (demo account has no empty lists).
