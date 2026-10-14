@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
+import { CloseMobileSidebarOnNavigate } from "@/components/dashboard/SidebarNavLink";
 import { TopBar } from "@/components/dashboard/TopBar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ItemDrawerProvider } from "@/components/items/ItemDrawerProvider";
@@ -7,7 +8,8 @@ import { CommandPaletteProvider } from "@/components/search/CommandPaletteProvid
 import { getCollectionOptions } from "@/lib/db/collections";
 import { getCurrentUser } from "@/lib/db/user";
 
-// Shared shell for the signed-in app (dashboard, collections, items, favorites).
+// Shared shell for the signed-in app (dashboard, items, collections, favorites,
+// recent, profile, settings, upgrade).
 // The route group adds no URL segment.
 export default async function AppShellLayout({
   children,
@@ -25,6 +27,9 @@ export default async function AppShellLayout({
       >
         <CommandPaletteProvider collections={collections}>
           <SidebarProvider>
+            {/* Not inside AppSidebar: on mobile the sidebar's children mount in
+                the drawer, so the effect would close it as soon as it opens. */}
+            <CloseMobileSidebarOnNavigate />
             <AppSidebar />
             <SidebarInset>
               <TopBar />

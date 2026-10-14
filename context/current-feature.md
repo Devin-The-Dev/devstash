@@ -1,18 +1,48 @@
 # Current Feature
 
-<!-- Feature name and short description -->
+UI Layout Fixes — resolve the top 6 issues from the Playwright UI review.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Sidebar highlights the active link (`isActive` + `aria-current="page"`)
+- Register page gets a "Sign up with GitHub" button (shared with sign-in)
+- Add the missing `/recent` page (sidebar + dashboard "View all" both 404 today)
+- New item dialog Type select shows the type name, not the raw id
+- Move Profile, Settings, and Upgrade under the `(app)` layout so they get the sidebar and top bar
+- Mobile sidebar drawer closes after navigating
+
+## Follow-ups (from UI review)
+
+Not in scope for this branch. Logged for later.
+
+### Medium
+
+- **Top bar actions bunch up on the left.** The buttons stop about 230px short of the right edge at 1440px. Make the search `flex-1` or push the actions right with `ml-auto` (`TopBar.tsx`).
+- **Nested `<main>` elements.** `SidebarInset` renders a `<main>` and each `(app)` page renders another. Make the page-level wrappers `div`s.
+- **Favorites page doesn't match the rest of the app.** It uses monospace text, ISO dates and a dense table, while other pages use cards and relative dates ("1w ago"). Titles are cut off on mobile. Unify typography and date format, and hide the badge or date below `sm` (`FavoritesList.tsx`).
+- **Item drawer is too narrow.** Code lines wrap awkwardly. Action buttons (star, pin, copy, edit, delete) are icon-only with no labels or tooltips, and Delete sits right next to Edit. Widen to `sm:max-w-xl` or more, add `aria-label`s and tooltips, and separate Delete.
+- **Sidebar alignment.** Recent-collection dots sit about 6px off from the icons in other groups. Wrap the dot in a `size-4` box. "View all collections" uses muted text that reads as disabled.
+- **Touch targets are under 32px on mobile.** Affected: card copy, pin, star and ⋮ icons, and the Monthly/Yearly toggle. Aim for at least 40px on touch.
+- **Auth pages are bare.** No logo and no link back to home. Register doesn't explain the password rule ("Minimum 8 characters").
+- **Sidebar active state is too subtle.** It's only a faint grey background and weight 500, and the brighter "Upgrade to Pro" footer button reads as the selected item. Add a left accent bar or more contrast (`SidebarNavLink.tsx`).
+
+### Low
+
+- **Low-contrast muted text.** Affected: card timestamps, "Sort by", the "OR" divider and "Forgot password?". Check against WCAG AA (4.5:1) and raise the `muted-foreground` token if needed.
+- **"Upgrade" shows up three times at once:** sidebar footer, top bar and billing card. Keep one primary entry point and make the others secondary.
+- **Empty states.** Add an icon, one line of text and a CTA to list pages that can be empty (e.g. Collections, Files, Images).
+- **New item dialog labels.** "Type" and "Collections" `<Label>`s have no `htmlFor`, so screen readers don't announce them (`NewItemDialog.tsx`).
+- **Upgrade plan cards are off-centre on desktop.** About 850px of cards sit left-aligned in a 1150px content area. Centre them with `mx-auto`. Also decide whether desktop should put Pro first, to match mobile (`UpgradePlans.tsx`).
+- **Dashboard stat numbers don't line up on mobile.** "Favorite collections" wraps to two lines, so its number sits lower than the others. Shorten the label or bottom-align the numbers.
+- **Landing page.** Consider a social-proof strip under the hero. Make sure the scroll-reveal sections still show with JS off or reduced motion on.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Settings syncs the Stripe checkout before reading `isPro`, but `getCurrentUser()` is `cache()`d and the layout now reads it too. Redirect after syncing so the fresh request sees the updated plan everywhere.
 
 ## History
 

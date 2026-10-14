@@ -141,6 +141,7 @@ export function NewItemDialog({
             <div className="space-y-1.5">
               <Label>Type</Label>
               <Select
+                items={creatableTypes.map((type) => ({ value: type.id, label: type.name }))}
                 value={form.typeId}
                 onValueChange={(value) => setForm((f) => ({ ...f, typeId: value as string }))}
               >

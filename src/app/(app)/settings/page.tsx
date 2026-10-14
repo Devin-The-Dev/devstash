@@ -1,10 +1,9 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ChangePasswordForm } from "@/components/profile/ChangePasswordForm";
 import { DeleteAccountDialog } from "@/components/profile/DeleteAccountDialog";
 import { EditorPreferencesForm } from "@/components/settings/EditorPreferencesForm";
-import { EditorPreferencesProvider } from "@/components/editor/EditorPreferencesProvider";
 import { BillingCard } from "@/components/settings/BillingCard";
 import { auth } from "@/auth";
 import { syncCheckoutSession } from "@/lib/db/billing";
@@ -17,9 +16,11 @@ export default async function SettingsPage({
 }) {
   const { checkout, session_id: sessionId } = await searchParams;
 
-  // Sync from the checkout session before getCurrentUser() reads isPro, so the
-  // page shows Pro even if the webhook hasn't landed yet (or stripe listen isn't
-  // running locally). getCurrentUser() is cache()d, so the ID comes from auth().
+  // Sync from the checkout session so the app shows Pro even if the webhook
+  // hasn't landed yet (or stripe listen isn't running locally). The (app)
+  // layout reads the cache()d getCurrentUser() in parallel with this page, so
+  // it may already hold the pre-sync isPro; redirecting starts a fresh request
+  // where the layout and page both see the updated plan.
   if (checkout === "success" && sessionId) {
     const session = await auth();
     if (session?.user?.id) {
@@ -29,13 +30,14 @@ export default async function SettingsPage({
         console.error("Checkout return sync failed; relying on the webhook", error);
       }
     }
+    redirect("/settings?checkout=success#billing");
   }
 
   const currentUser = await getCurrentUser();
   const checkoutStatus = checkout === "success" || checkout === "canceled" ? checkout : undefined;
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 p-6">
+    <main className="max-w-3xl flex-1 space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-semibold">Settings</h1>
         <p className="text-muted-foreground">Manage your editor preferences, billing, password, and account.</p>
@@ -47,9 +49,7 @@ export default async function SettingsPage({
           <CardDescription>Changes save automatically and apply to all code editors.</CardDescription>
         </CardHeader>
         <CardContent>
-          <EditorPreferencesProvider initialPreferences={currentUser.editorPreferences}>
-            <EditorPreferencesForm />
-          </EditorPreferencesProvider>
+          <EditorPreferencesForm />
         </CardContent>
       </Card>
 
@@ -88,10 +88,6 @@ export default async function SettingsPage({
           </div>
         </CardContent>
       </Card>
-
-      <Link href="/dashboard" className="text-sm text-foreground underline underline-offset-4">
-        Back to dashboard
-      </Link>
-    </div>
+    </main>
   );
 }

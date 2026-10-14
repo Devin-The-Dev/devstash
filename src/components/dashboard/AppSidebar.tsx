@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { UserAvatar } from "@/components/auth/UserAvatar";
+import { SidebarNavLink } from "@/components/dashboard/SidebarNavLink";
 import { getItemTypeIcon } from "@/lib/item-type-icons";
 import { getSidebarCollections } from "@/lib/db/collections";
 import { getSystemItemTypes, itemTypeSlug } from "@/lib/db/items";
@@ -63,10 +64,10 @@ export async function AppSidebar() {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton tooltip={item.title} render={<Link href={item.url} />}>
+                  <SidebarNavLink href={item.url} tooltip={item.title}>
                     <item.icon />
                     <span>{item.title}</span>
-                  </SidebarMenuButton>
+                  </SidebarNavLink>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -83,10 +84,7 @@ export async function AppSidebar() {
                 const isPro = PRO_ITEM_TYPE_NAMES.has(type.name) && !currentUser.isPro;
                 return (
                   <SidebarMenuItem key={type.id}>
-                    <SidebarMenuButton
-                      tooltip={`${type.name}s`}
-                      render={<Link href={`/items/${slug}`} />}
-                    >
+                    <SidebarNavLink href={`/items/${slug}`} tooltip={`${type.name}s`}>
                       <Icon style={{ color: type.color }} />
                       <span>{type.name}s</span>
                       {isPro && (
@@ -94,7 +92,7 @@ export async function AppSidebar() {
                           PRO
                         </Badge>
                       )}
-                    </SidebarMenuButton>
+                    </SidebarNavLink>
                   </SidebarMenuItem>
                 );
               })}
@@ -108,13 +106,10 @@ export async function AppSidebar() {
             <SidebarMenu>
               {favoriteCollections.map((collection) => (
                 <SidebarMenuItem key={collection.id}>
-                  <SidebarMenuButton
-                    tooltip={collection.name}
-                    render={<Link href={`/collections/${collection.id}`} />}
-                  >
+                  <SidebarNavLink href={`/collections/${collection.id}`} tooltip={collection.name}>
                     <Star className="text-yellow-400" />
                     <span>{collection.name}</span>
-                  </SidebarMenuButton>
+                  </SidebarNavLink>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -127,26 +122,21 @@ export async function AppSidebar() {
             <SidebarMenu>
               {recentCollections.map((collection) => (
                 <SidebarMenuItem key={collection.id}>
-                  <SidebarMenuButton
-                    tooltip={collection.name}
-                    render={<Link href={`/collections/${collection.id}`} />}
-                  >
+                  <SidebarNavLink href={`/collections/${collection.id}`} tooltip={collection.name}>
                     <span
                       className="size-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: collection.dominantColor ?? "#6b7280" }}
                     />
                     <span>{collection.name}</span>
-                  </SidebarMenuButton>
+                  </SidebarNavLink>
                 </SidebarMenuItem>
               ))}
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  tooltip="View all collections"
-                  render={<Link href="/collections" />}
-                >
+                {/* Exact: on /collections/[id] the collection's own link is the active one. */}
+                <SidebarNavLink href="/collections" tooltip="View all collections" exact>
                   <ArrowRight />
                   <span className="text-muted-foreground">View all collections</span>
-                </SidebarMenuButton>
+                </SidebarNavLink>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>

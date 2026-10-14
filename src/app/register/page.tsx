@@ -8,6 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { GitHubSignIn } from "@/components/auth/GitHubSignIn";
 
 export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +78,7 @@ export default function RegisterPage() {
           <CardTitle className="text-xl">Create an account</CardTitle>
           <CardDescription>Sign up to start using DevStash.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <Alert variant="destructive">
@@ -123,14 +124,16 @@ export default function RegisterPage() {
             <Button type="submit" className="w-full" disabled={pending}>
               {pending ? "Creating account..." : "Create account"}
             </Button>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <Link href="/sign-in" className="text-foreground underline underline-offset-4">
-                Sign in
-              </Link>
-            </p>
           </form>
+
+          <GitHubSignIn label="Sign up with GitHub" />
+
+          <p className="text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link href="/sign-in" className="text-foreground underline underline-offset-4">
+              Sign in
+            </Link>
+          </p>
         </CardContent>
       </Card>
     </div>

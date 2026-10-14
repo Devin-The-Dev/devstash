@@ -224,6 +224,29 @@ export const getItemsByCollection = cache(
   },
 );
 
+// Pure recency (no pinned-first), matching the dashboard's "Recently used".
+export const getRecentItems = cache(
+  async (
+    userId: string,
+    page: number,
+    pageSize: number,
+  ): Promise<{ items: ItemSummary[]; totalCount: number }> => {
+    const where = { userId, ...(await getVisibleItemsFilter(userId)) };
+    const [items, totalCount] = await Promise.all([
+      prisma.item.findMany({
+        where,
+        select: ITEM_SUMMARY_WITH_TYPE_SELECT,
+        orderBy: LAST_USED_ORDER,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.item.count({ where }),
+    ]);
+
+    return { items: items.map((item) => toItemSummary(item, item.type)), totalCount };
+  },
+);
+
 const ITEM_DETAIL_SELECT = {
   id: true,
   title: true,

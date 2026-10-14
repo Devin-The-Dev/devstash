@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Boxes, FolderKanban } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +12,7 @@ export default async function ProfilePage() {
   const stats = await getProfileStats(currentUser.id);
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 p-6">
+    <main className="max-w-3xl flex-1 space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-semibold">Profile</h1>
         <p className="text-muted-foreground">Your account details and stats.</p>
@@ -59,10 +58,6 @@ export default async function ProfilePage() {
       </div>
 
       <ItemTypeBreakdown breakdown={stats.breakdown} />
-
-      <Link href="/dashboard" className="text-sm text-foreground underline underline-offset-4">
-        Back to dashboard
-      </Link>
-    </div>
+    </main>
   );
 }
