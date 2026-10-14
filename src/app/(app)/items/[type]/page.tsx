@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import { Box } from "lucide-react";
 import { ItemCard } from "@/components/dashboard/ItemCard";
 import { ImageThumbnailCard } from "@/components/dashboard/ImageThumbnailCard";
 import { FileListItem } from "@/components/dashboard/FileListItem";
 import { ProUpgradePrompt } from "@/components/items/ProUpgradePrompt";
 import { PaginationControls } from "@/components/shared/PaginationControls";
-import { itemTypeIconMap } from "@/lib/item-type-icons";
+import { ItemTypeIcon } from "@/lib/item-type-icons";
+import { formatCount } from "@/lib/format";
 import { getItemsByType, getSystemItemTypes, itemTypeSlug } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
 import { ITEMS_PER_PAGE, parsePageParam, totalPagesFor } from "@/lib/pagination";
@@ -36,18 +36,17 @@ export default async function ItemsByTypePage({
 
   const { type, items, totalCount } = result;
   const totalPages = totalPagesFor(totalCount, ITEMS_PER_PAGE);
-  const Icon = itemTypeIconMap[type.icon] ?? Box;
   const isImageType = type.name === "Image";
   const isFileType = type.name === "File";
 
   return (
     <main className="flex-1 space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <Icon className="size-6" style={{ color: type.color }} />
+        <ItemTypeIcon icon={type.icon} className="size-6" style={{ color: type.color }} />
         <div>
           <h1 className="text-2xl font-semibold">{type.name}s</h1>
           <p className="text-muted-foreground">
-            {totalCount} {totalCount === 1 ? "item" : "items"}
+            {formatCount(totalCount, "item")}
           </p>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { CollectionDetailActions } from "@/components/collections/CollectionDeta
 import { PaginationControls } from "@/components/shared/PaginationControls";
 import { getItemsByCollection } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
+import { formatCount } from "@/lib/format";
 import { ITEMS_PER_PAGE, parsePageParam, totalPagesFor } from "@/lib/pagination";
 
 export default async function CollectionDetailPage({
@@ -32,7 +33,7 @@ export default async function CollectionDetailPage({
             <p className="text-muted-foreground">{collection.description}</p>
           )}
           <p className="text-sm text-muted-foreground">
-            {totalCount} {totalCount === 1 ? "item" : "items"}
+            {formatCount(totalCount, "item")}
           </p>
         </div>
         <CollectionDetailActions collection={collection} />

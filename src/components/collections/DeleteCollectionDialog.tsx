@@ -2,16 +2,7 @@
 
 import { useTransition } from "react";
 import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDeleteDialog } from "@/components/shared/ConfirmDeleteDialog";
 import { deleteCollectionAction } from "@/actions/collections";
 
 export function DeleteCollectionDialog({
@@ -43,23 +34,18 @@ export function DeleteCollectionDialog({
   }
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete &quot;{collectionName}&quot;?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Items in this collection are not deleted — they&apos;ll just no longer be part of it.
-            This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" disabled={isPending} onClick={handleDelete}>
-            {isPending ? "Deleting..." : "Delete"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDeleteDialog
+      open={open}
+      isPending={isPending}
+      onOpenChange={onOpenChange}
+      onConfirm={handleDelete}
+      title={<>Delete &quot;{collectionName}&quot;?</>}
+      description={
+        <>
+          Items in this collection are not deleted — they&apos;ll just no longer be part of it.
+          This action cannot be undone.
+        </>
+      }
+    />
   );
 }

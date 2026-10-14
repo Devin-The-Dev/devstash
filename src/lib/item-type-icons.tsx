@@ -8,6 +8,7 @@ import {
   Image as ImageIcon,
   Box,
   type LucideIcon,
+  type LucideProps,
 } from "lucide-react";
 
 export const itemTypeIconMap: Record<string, LucideIcon> = {
@@ -25,4 +26,11 @@ export const itemTypeIconMap: Record<string, LucideIcon> = {
 // component and crashing.
 export function getItemTypeIcon(icon: string): LucideIcon {
   return itemTypeIconMap[icon] ?? Box;
+}
+
+// For rendering an item type's icon directly. Calling getItemTypeIcon at the
+// top of a component trips the React Compiler's static-components lint rule.
+export function ItemTypeIcon({ icon, ...props }: { icon: string } & LucideProps) {
+  const Icon = itemTypeIconMap[icon] ?? Box;
+  return <Icon {...props} />;
 }

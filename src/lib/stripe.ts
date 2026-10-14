@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import type { BillingInterval } from "@/lib/plans";
 
 let stripeClient: Stripe | null = null;
 
@@ -13,8 +14,6 @@ export function getStripe(): Stripe {
   }
   return stripeClient;
 }
-
-export type BillingInterval = "monthly" | "yearly";
 
 export function getPriceId(interval: BillingInterval): string {
   const priceId =

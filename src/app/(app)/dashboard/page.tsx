@@ -5,6 +5,7 @@ import { RecentItemsSection } from "@/components/dashboard/RecentItemsSection";
 import { getCollectionsPage, getFavoriteCollectionsCount } from "@/lib/db/collections";
 import { getDashboardItems } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
+import { formatCount } from "@/lib/format";
 import { DASHBOARD_COLLECTIONS_LIMIT, DASHBOARD_RECENT_ITEMS_LIMIT } from "@/lib/pagination";
 
 export default async function DashboardPage() {
@@ -25,7 +26,8 @@ export default async function DashboardPage() {
           Welcome back, {currentUser.name.split(" ")[0]}
         </h1>
         <p className="text-muted-foreground">
-          You have {totalItems} items across {totalCollections} collections.
+          You have {formatCount(totalItems, "item")} across{" "}
+          {formatCount(totalCollections, "collection")}.
         </p>
       </div>
 

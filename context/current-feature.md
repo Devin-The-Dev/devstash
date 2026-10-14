@@ -1,14 +1,17 @@
-# Current Feature
+# Current Feature: Components Refactor
 
-<!-- Feature name and short description -->
+Duplication fixes from a `refactor-scanner` scan of `src/components/` (findings 1, 2, 4 and 10). Component splits (ItemDrawer, MarkdownEditor, etc.) are out of scope for this branch.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Replace inline `itemTypeIconMap[...] ?? Box` with the shared helpers: `getItemTypeIcon` in FavoriteItemRow (passes the icon as a prop), and a new `<ItemTypeIcon icon=… />` component in ItemCard, ProUpgradePrompt, ItemDrawer and the `/items/[type]` page (calling `getItemTypeIcon` at a component's top level trips the `react-hooks/static-components` lint rule)
+- Shared `ConfirmDeleteDialog` in `src/components/shared/`, used by `DeleteItemDialog` and `DeleteCollectionDialog`
+- One `BillingInterval` type in `src/lib/plans.ts` (was declared in UpgradePlans, BillingCard and stripe.ts); BillingCard reads the period from `PRO_PLAN_COPY`
+- `formatCount(n, singular, plural?)` in `src/lib/format.ts` for "1 item" / "3 items"; fixes "1 items" on CollectionCard and the dashboard greeting
 
 ## Follow-ups (from UI review)
 

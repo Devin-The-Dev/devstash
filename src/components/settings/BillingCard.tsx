@@ -8,9 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FREE_COLLECTION_LIMIT, FREE_ITEM_LIMIT, PRO_PRICING } from "@/lib/plans";
-
-type BillingInterval = "monthly" | "yearly";
+import {
+  FREE_COLLECTION_LIMIT,
+  FREE_ITEM_LIMIT,
+  PRO_PLAN_COPY,
+  PRO_PRICING,
+  type BillingInterval,
+} from "@/lib/plans";
 
 interface BillingCardProps {
   isPro: boolean;
@@ -91,17 +95,11 @@ export function BillingCard({ isPro, hasBillingAccount, checkoutStatus }: Billin
         </Tabs>
 
         <p className="text-sm">
-          {interval === "monthly" ? (
-            <>
-              <span className="text-2xl font-semibold">{PRO_PRICING.monthly}</span>
-              <span className="text-muted-foreground">/month</span>
-            </>
-          ) : (
-            <>
-              <span className="text-2xl font-semibold">{PRO_PRICING.yearly}</span>
-              <span className="text-muted-foreground">/year — save 25%</span>
-            </>
-          )}
+          <span className="text-2xl font-semibold">{PRO_PRICING[interval]}</span>
+          <span className="text-muted-foreground">
+            {PRO_PLAN_COPY[interval].period}
+            {interval === "yearly" && " — save 25%"}
+          </span>
         </p>
 
         <Button disabled={pending} onClick={() => redirectTo(() => createCheckoutSession(interval))}>

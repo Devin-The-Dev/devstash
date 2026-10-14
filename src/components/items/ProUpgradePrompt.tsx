@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Box, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { itemTypeIconMap } from "@/lib/item-type-icons";
+import { ItemTypeIcon } from "@/lib/item-type-icons";
 import { PRO_PRICING } from "@/lib/plans";
 import type { ItemTypeSummary } from "@/lib/db/items";
 
@@ -13,7 +13,6 @@ const PRO_FEATURES = [
 ];
 
 export function ProUpgradePrompt({ type }: { type: ItemTypeSummary }) {
-  const Icon = itemTypeIconMap[type.icon] ?? Box;
   const typeLabel = `${type.name.toLowerCase()}s`;
 
   return (
@@ -23,7 +22,7 @@ export function ProUpgradePrompt({ type }: { type: ItemTypeSummary }) {
           className="mx-auto flex size-12 items-center justify-center rounded-full"
           style={{ backgroundColor: `${type.color}1a` }}
         >
-          <Icon className="size-6" style={{ color: type.color }} />
+          <ItemTypeIcon icon={type.icon} className="size-6" style={{ color: type.color }} />
         </div>
 
         <div className="space-y-2">

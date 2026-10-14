@@ -3,7 +3,7 @@ import { FavoritesList } from "@/components/favorites/FavoritesList";
 import { getFavoriteCollections } from "@/lib/db/collections";
 import { getFavoriteItems } from "@/lib/db/items";
 import { getCurrentUser } from "@/lib/db/user";
-import { formatIsoDate } from "@/lib/format";
+import { formatCount, formatIsoDate } from "@/lib/format";
 
 export default async function FavoritesPage() {
   const currentUser = await getCurrentUser();
@@ -18,8 +18,7 @@ export default async function FavoritesPage() {
       <div>
         <h1 className="text-2xl font-semibold">Favorites</h1>
         <p className="text-muted-foreground">
-          {items.length} {items.length === 1 ? "item" : "items"} · {collections.length}{" "}
-          {collections.length === 1 ? "collection" : "collections"}
+          {formatCount(items.length, "item")} · {formatCount(collections.length, "collection")}
         </p>
       </div>
 

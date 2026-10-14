@@ -7,7 +7,7 @@ import { CollectionActionsMenu } from "@/components/collections/CollectionAction
 import { FavoriteToggleButton } from "@/components/shared/FavoriteToggleButton";
 import { toggleCollectionFavorite } from "@/actions/collections";
 import { getItemTypeIcon } from "@/lib/item-type-icons";
-import { formatRelativeTime } from "@/lib/format";
+import { formatCount, formatRelativeTime } from "@/lib/format";
 import type { CollectionSummary } from "@/lib/db/collections";
 
 export function CollectionCard({ collection }: { collection: CollectionSummary }) {
@@ -60,7 +60,7 @@ export function CollectionCard({ collection }: { collection: CollectionSummary }
             })}
           </div>
           <span>
-            {collection.itemCount} items · {formatRelativeTime(collection.lastUsedAt)}
+            {formatCount(collection.itemCount, "item")} · {formatRelativeTime(collection.lastUsedAt)}
           </span>
         </div>
       </CardContent>

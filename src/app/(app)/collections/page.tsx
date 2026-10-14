@@ -2,6 +2,7 @@ import { CollectionCard } from "@/components/dashboard/CollectionCard";
 import { PaginationControls } from "@/components/shared/PaginationControls";
 import { getCollectionsPage } from "@/lib/db/collections";
 import { getCurrentUser } from "@/lib/db/user";
+import { formatCount } from "@/lib/format";
 import { COLLECTIONS_PER_PAGE, parsePageParam, totalPagesFor } from "@/lib/pagination";
 
 export default async function CollectionsPage({
@@ -23,7 +24,7 @@ export default async function CollectionsPage({
       <div>
         <h1 className="text-2xl font-semibold">Collections</h1>
         <p className="text-muted-foreground">
-          {totalCount} {totalCount === 1 ? "collection" : "collections"}
+          {formatCount(totalCount, "collection")}
         </p>
       </div>
 

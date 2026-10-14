@@ -1,5 +1,27 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { formatRelativeTime, formatDate, formatIsoDate, formatFileSize, getInitials } from "@/lib/format";
+import {
+  formatRelativeTime,
+  formatDate,
+  formatIsoDate,
+  formatCount,
+  formatFileSize,
+  getInitials,
+} from "@/lib/format";
+
+describe("formatCount", () => {
+  it("uses the singular for exactly one", () => {
+    expect(formatCount(1, "item")).toBe("1 item");
+  });
+
+  it("adds an s for zero and many", () => {
+    expect(formatCount(0, "item")).toBe("0 items");
+    expect(formatCount(3, "collection")).toBe("3 collections");
+  });
+
+  it("uses a custom plural when given", () => {
+    expect(formatCount(2, "entry", "entries")).toBe("2 entries");
+  });
+});
 
 describe("formatRelativeTime", () => {
   afterEach(() => {

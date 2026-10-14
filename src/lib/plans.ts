@@ -4,6 +4,8 @@ export const FREE_ITEM_LIMIT = 50;
 export const FREE_COLLECTION_LIMIT = 3;
 export const PRO_ITEM_TYPE_NAMES: ReadonlySet<string> = new Set(["File", "Image"]);
 
+export type BillingInterval = "monthly" | "yearly";
+
 export const PRO_PRICING = { monthly: "$8", yearly: "$72" } as const;
 
 export const PRO_PLAN_COPY = {

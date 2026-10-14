@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Check, Copy, Pencil, Pin, Star, Trash2 } from "lucide-react";
+import { Check, Copy, Pencil, Pin, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useItemDrawer } from "@/components/items/ItemDrawerProvider";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { ItemEditForm, toEditForm, type EditForm } from "@/components/items/ItemEditForm";
 import { ItemDetailView } from "@/components/items/ItemDetailView";
 import { DeleteItemDialog } from "@/components/items/DeleteItemDialog";
-import { itemTypeIconMap } from "@/lib/item-type-icons";
+import { ItemTypeIcon } from "@/lib/item-type-icons";
 import { formatDate } from "@/lib/format";
 import { getCopyableValue, parseTagInput } from "@/lib/item-content";
 import { deleteItem, updateItem } from "@/actions/items";
@@ -147,8 +147,6 @@ export function ItemDrawer({
     });
   }
 
-  const Icon = item ? (itemTypeIconMap[item.type.icon] ?? Box) : Box;
-
   return (
     <Sheet open={openItemId !== null} onOpenChange={(open) => !open && close()}>
       <SheetContent className="flex flex-col overflow-y-auto">
@@ -167,7 +165,7 @@ export function ItemDrawer({
           <>
             <SheetHeader>
               <div className="flex items-center gap-2">
-                <Icon className="size-5 shrink-0" style={{ color: item.type.color }} />
+                <ItemTypeIcon icon={item.type.icon} className="size-5 shrink-0" style={{ color: item.type.color }} />
                 <SheetTitle className="truncate">{item.title}</SheetTitle>
               </div>
               <Badge variant="secondary" className="w-fit text-xs">

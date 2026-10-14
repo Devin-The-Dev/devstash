@@ -31,6 +31,11 @@ export function formatIsoDate(date: Date | string): string {
   return `${d.getFullYear()}-${month}-${day}`;
 }
 
+// "1 item", "3 items". Pass `plural` for words that don't just take an "s".
+export function formatCount(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;

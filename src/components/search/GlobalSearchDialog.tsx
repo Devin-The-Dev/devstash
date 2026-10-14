@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/command";
 import { useItemDrawer } from "@/components/items/ItemDrawerProvider";
 import { getItemTypeIcon } from "@/lib/item-type-icons";
+import { formatCount } from "@/lib/format";
 import { searchItems } from "@/actions/search";
 import type { SearchableItem } from "@/lib/db/items";
 import type { SearchableCollection } from "@/components/search/CommandPaletteProvider";
@@ -125,7 +126,7 @@ export function GlobalSearchDialog({
                 <Folder className="size-4 shrink-0 text-muted-foreground" />
                 <span className="flex-1 truncate">{collection.name}</span>
                 <span className="shrink-0 text-xs text-muted-foreground">
-                  {collection.itemCount} {collection.itemCount === 1 ? "item" : "items"}
+                  {formatCount(collection.itemCount, "item")}
                 </span>
               </CommandItem>
             ))}

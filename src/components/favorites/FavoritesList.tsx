@@ -10,6 +10,7 @@ import {
   sortFavorites,
   type FavoriteSort,
 } from "@/lib/favorites-sort";
+import { formatCount } from "@/lib/format";
 import type { FavoriteCollection } from "@/lib/db/collections";
 import type { FavoriteItem } from "@/lib/db/items";
 import { FavoriteItemRow } from "./FavoriteItemRow";
@@ -88,7 +89,7 @@ export function FavoritesList({
               icon={FolderOpen}
               title={collection.name}
               typeLabel="collection"
-              meta={`${collection.itemCount} ${collection.itemCount === 1 ? "item" : "items"}`}
+              meta={formatCount(collection.itemCount, "item")}
               date={collection.date}
             />
           </Link>

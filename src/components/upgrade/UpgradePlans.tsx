@@ -7,9 +7,14 @@ import { createCheckoutSession } from "@/actions/billing";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { FREE_FEATURES, PRO_FEATURES, PRO_PLAN_COPY, PRO_PRICING, type PlanFeature } from "@/lib/plans";
-
-type BillingInterval = "monthly" | "yearly";
+import {
+  FREE_FEATURES,
+  PRO_FEATURES,
+  PRO_PLAN_COPY,
+  PRO_PRICING,
+  type BillingInterval,
+  type PlanFeature,
+} from "@/lib/plans";
 
 const INTERVAL_OPTIONS: { value: BillingInterval; label: string }[] = [
   { value: "monthly", label: "Monthly" },
