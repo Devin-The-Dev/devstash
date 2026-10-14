@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { AI_CONTENT_MAX, parseTagSuggestions, truncateForAi } from "@/lib/ai";
+import { AI_CONTENT_MAX, cleanSummary, parseTagSuggestions, truncateForAi } from "@/lib/ai";
+import { DESCRIPTION_MAX } from "@/lib/validations/items";
 
 describe("truncateForAi", () => {
   it("leaves short text unchanged", () => {
@@ -44,5 +45,20 @@ describe("parseTagSuggestions", () => {
     expect(parseTagSuggestions("not json")).toEqual([]);
     expect(parseTagSuggestions('{"labels": ["react"]}')).toEqual([]);
     expect(parseTagSuggestions("null")).toEqual([]);
+  });
+});
+
+describe("cleanSummary", () => {
+  it("collapses whitespace and newlines", () => {
+    expect(cleanSummary("  A hook.\n\n  For search.  ")).toBe("A hook. For search.");
+  });
+
+  it("strips straight and smart quotes around the summary", () => {
+    expect(cleanSummary('"A shell command."')).toBe("A shell command.");
+    expect(cleanSummary("“A shell command.”")).toBe("A shell command.");
+  });
+
+  it("clamps the summary to DESCRIPTION_MAX", () => {
+    expect(cleanSummary("a".repeat(DESCRIPTION_MAX + 100))).toHaveLength(DESCRIPTION_MAX);
   });
 });

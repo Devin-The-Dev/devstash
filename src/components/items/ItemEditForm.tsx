@@ -3,6 +3,7 @@
 import { ItemContentFields } from "@/components/items/ItemContentFields";
 import { CollectionMultiSelect } from "@/components/items/CollectionMultiSelect";
 import { TagsField } from "@/components/items/TagsField";
+import { GenerateDescriptionButton } from "@/components/items/GenerateDescriptionButton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -43,10 +44,22 @@ type ItemEditFormProps = {
   form: EditForm;
   collections: CollectionOption[];
   onChange: (form: EditForm) => void;
+  // Separate from onChange: the AI reply arrives seconds after the click, so
+  // it must update only the description, not overwrite edits made meanwhile.
+  onDescriptionGenerated: (description: string) => void;
   isPro: boolean;
+  fileName?: string | null;
 };
 
-export function ItemEditForm({ typeName, form, collections, onChange, isPro }: ItemEditFormProps) {
+export function ItemEditForm({
+  typeName,
+  form,
+  collections,
+  onChange,
+  onDescriptionGenerated,
+  isPro,
+  fileName,
+}: ItemEditFormProps) {
   return (
     <>
       <div className="space-y-1.5">
@@ -59,7 +72,20 @@ export function ItemEditForm({ typeName, form, collections, onChange, isPro }: I
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="edit-description">Description</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="edit-description">Description</Label>
+          {isPro && (
+            <GenerateDescriptionButton
+              onGenerate={onDescriptionGenerated}
+              title={form.title}
+              content={form.content}
+              typeName={typeName}
+              language={form.language}
+              url={form.url}
+              fileName={fileName}
+            />
+          )}
+        </div>
         <Textarea
           id="edit-description"
           value={form.description}

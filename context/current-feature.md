@@ -1,18 +1,31 @@
-# Current Feature
+# Current Feature: AI Description Summary
 
-<!-- Feature name and short description -->
+Pro-only icon button beside the Description field that generates a concise 1-2 sentence description from the item's current (unsaved) form inputs.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Add a `generateSummary` server action in `src/actions/ai.ts` that returns `{ summary }` (1-2 sentences, sliced to `DESCRIPTION_MAX`)
+- Action follows the same guards as `generateAutoTags`: auth, `canUseProFeature`, `aiRateLimit`, Zod validation, `openai` availability, and the shared OpenAI error handling
+- Input is whatever the form currently holds — no save required: title, content, type name, language, URL, and file name
+- Works for every item type (snippet, prompt, command, note, link, file, image); require at least one usable field (title, content, URL, or file name) or return a clear error
+- Add an icon button (Sparkles) next to the Description label in both the New Item dialog and the drawer's edit form
+- Clicking it shows a loading state, then fills the description input with the result; errors surface via toast
+- The generated text only changes the form until the user saves
+- Button hidden for free users (same as Suggest Tags)
+- Unit tests in `src/actions/ai.test.ts` covering auth, Pro gate, rate limit, validation, empty input, success, and OpenAI error paths
 
 ## Notes
 
-<!-- Any extra notes -->
+- Reuse `src/lib/ai.ts` helpers (`truncateForAi`, error constants) and `AI_MODEL` from `src/lib/openai.ts`; consider extracting the shared OpenAI error mapping from `generateAutoTags` instead of duplicating it
+- Prompt: instruct the model to treat `<item>` contents as data, write plain text (no markdown, no quotes), 1-2 sentences, describing what the item is/does
+- Use `reasoning: { effort: "minimal" }`, `store: false`, and a small `max_output_tokens`; trim and clamp the output to `DESCRIPTION_MAX`
+- For URL/file items with little content, the summary is based on title + URL/file name only
+- `docs/ai-integration-plan.md` §5.2 describes this feature (it suggests a preview box with Use/Discard); this spec fills the field directly — the user can still edit or undo by retyping before saving
+- No schema migration needed — result goes into the existing `description` field
 
 ## History
 

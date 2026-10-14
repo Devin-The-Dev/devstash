@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ItemContentFields } from "@/components/items/ItemContentFields";
 import { TagsField } from "@/components/items/TagsField";
+import { GenerateDescriptionButton } from "@/components/items/GenerateDescriptionButton";
 import { CollectionMultiSelect } from "@/components/items/CollectionMultiSelect";
 import { FileUpload, type UploadedFile } from "@/components/items/FileUpload";
 import {
@@ -181,7 +182,20 @@ export function NewItemDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="new-item-description">Description</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="new-item-description">Description</Label>
+              {isPro && (
+                <GenerateDescriptionButton
+                  onGenerate={(description) => setForm((f) => ({ ...f, description }))}
+                  title={form.title}
+                  content={form.content}
+                  typeName={typeName}
+                  language={form.language}
+                  url={form.url}
+                  fileName={form.file?.fileName}
+                />
+              )}
+            </div>
             <Input
               id="new-item-description"
               placeholder="Short summary"

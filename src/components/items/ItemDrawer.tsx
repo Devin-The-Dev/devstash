@@ -221,7 +221,11 @@ export function ItemDrawer({
                   form={editForm}
                   collections={collections}
                   onChange={setEditForm}
+                  onDescriptionGenerated={(description) =>
+                    setEditForm((current) => current && { ...current, description })
+                  }
                   isPro={isPro}
+                  fileName={item.fileName}
                 />
               ) : (
                 <>

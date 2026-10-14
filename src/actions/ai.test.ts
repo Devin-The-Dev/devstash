@@ -5,6 +5,7 @@ import {
   AI_SERVICE_ERROR,
   AI_UNAVAILABLE_ERROR,
   AI_CONTENT_MAX,
+  NO_SUMMARY_ERROR,
   NO_TAGS_ERROR,
 } from "@/lib/ai";
 
@@ -38,7 +39,7 @@ vi.mock("@/lib/openai", () => ({
   },
 }));
 
-const { generateAutoTags } = await import("@/actions/ai");
+const { generateAutoTags, generateSummary } = await import("@/actions/ai");
 
 const createMock = () => openaiState.client!.responses.create;
 
@@ -195,6 +196,128 @@ describe("generateAutoTags", () => {
     );
 
     const result = await generateAutoTags(validInput);
+
+    expect(result).toEqual({ success: false, error: AI_SERVICE_ERROR });
+  });
+});
+
+describe("generateSummary", () => {
+  it("returns an error when there is no authenticated session", async () => {
+    authMock.mockResolvedValue(null);
+
+    const result = await generateSummary(validInput);
+
+    expect(result).toEqual({ success: false, error: "Unauthorized" });
+    expect(createMock()).not.toHaveBeenCalled();
+  });
+
+  it("blocks free users before rate limiting or calling OpenAI", async () => {
+    canUseProFeatureMock.mockResolvedValue({
+      allowed: false,
+      error: "AI summaries requires DevStash Pro",
+    });
+
+    const result = await generateSummary(validInput);
+
+    expect(result).toEqual({ success: false, error: "AI summaries requires DevStash Pro" });
+    expect(canUseProFeatureMock).toHaveBeenCalledWith("user-1", "AI summaries");
+    expect(checkRateLimitMock).not.toHaveBeenCalled();
+    expect(createMock()).not.toHaveBeenCalled();
+  });
+
+  it("returns the rate limit message when the user is over the AI limit", async () => {
+    checkRateLimitMock.mockResolvedValue({ success: false, remaining: 0, reset: Date.now() });
+
+    const result = await generateSummary(validInput);
+
+    expect(result).toEqual({
+      success: false,
+      error: "Too many attempts. Please try again in 30 minutes.",
+    });
+    expect(createMock()).not.toHaveBeenCalled();
+  });
+
+  it("rejects input with no title, content, URL, or file name", async () => {
+    const result = await generateSummary({ title: " ", content: "", url: "", fileName: null });
+
+    expect(result).toEqual({ success: false, error: "Add a title or content first" });
+    expect(createMock()).not.toHaveBeenCalled();
+  });
+
+  it("accepts a URL alone for link items", async () => {
+    createMock().mockResolvedValue({ output_text: "The official React docs." });
+
+    const result = await generateSummary({ url: "https://react.dev", typeName: "Link" });
+
+    expect(result).toEqual({ success: true, data: { summary: "The official React docs." } });
+    expect(createMock().mock.calls[0][0].input).toContain("URL: https://react.dev");
+  });
+
+  it("reports AI as unavailable when OpenAI isn't configured", async () => {
+    openaiState.client = null;
+
+    const result = await generateSummary(validInput);
+
+    expect(result).toEqual({ success: false, error: AI_UNAVAILABLE_ERROR });
+  });
+
+  it("sends every available field with truncated content", async () => {
+    createMock().mockResolvedValue({ output_text: "A summary." });
+    const longContent = "x".repeat(AI_CONTENT_MAX + 500);
+
+    await generateSummary({
+      title: "Report",
+      content: longContent,
+      typeName: "File",
+      language: "typescript",
+      fileName: "report.pdf",
+    });
+
+    const request = createMock().mock.calls[0][0];
+    expect(request).toMatchObject({ model: "gpt-5-nano", store: false });
+    expect(request.input).toContain("Type: File");
+    expect(request.input).toContain("Title: Report");
+    expect(request.input).toContain("Language: typescript");
+    expect(request.input).toContain("File name: report.pdf");
+    expect(request.input).toContain("x".repeat(AI_CONTENT_MAX));
+    expect(request.input).not.toContain("x".repeat(AI_CONTENT_MAX + 1));
+  });
+
+  it("returns the cleaned summary", async () => {
+    createMock().mockResolvedValue({
+      output_text: '  "A React hook that debounces a value.\n Useful for search inputs."  ',
+    });
+
+    const result = await generateSummary(validInput);
+
+    expect(result).toEqual({
+      success: true,
+      data: { summary: "A React hook that debounces a value. Useful for search inputs." },
+    });
+  });
+
+  it("returns an error when the model gives an empty reply", async () => {
+    createMock().mockResolvedValue({ output_text: "   " });
+
+    const result = await generateSummary(validInput);
+
+    expect(result).toEqual({ success: false, error: NO_SUMMARY_ERROR });
+  });
+
+  it("maps an OpenAI rate limit error to the busy message", async () => {
+    createMock().mockRejectedValue(new RateLimitError(429, undefined, "Rate limit", new Headers()));
+
+    const result = await generateSummary(validInput);
+
+    expect(result).toEqual({ success: false, error: AI_BUSY_ERROR });
+  });
+
+  it("maps other OpenAI errors to the service error message", async () => {
+    createMock().mockRejectedValue(
+      new InternalServerError(500, undefined, "Server error", new Headers()),
+    );
+
+    const result = await generateSummary(validInput);
 
     expect(result).toEqual({ success: false, error: AI_SERVICE_ERROR });
   });
